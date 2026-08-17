@@ -1,13 +1,11 @@
 /* === XOALA COMMAND CENTER: MASTER STYLES === */
 
-/* Custom Scrollbar for a sleek look */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* The View Controller */
 .view-section {
     display: none;
     animation: fadeIn 0.3s ease-out forwards;
@@ -19,20 +17,6 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Glassmorphism Cards */
-.glass-card {
-    background: rgba(17, 17, 17, 0.7);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-}
-.glass-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border-color: rgba(221, 170, 51, 0.2);
-}
-
-/* Sidebar Navigation Active State */
 .nav-item { color: #888; border-left: 3px solid transparent; }
 .nav-item:hover { color: #fff; background: rgba(255,255,255,0.02); }
 .nav-item.active {
@@ -41,8 +25,6 @@
     border-left: 3px solid #DDAA33;
 }
 
-/* === THE SOVEREIGN LOGO MAGIC === */
-/* 1. We use CSS Masking to turn your black/white PNG into a pure CSS gradient */
 .xoala-logo {
     width: 180px; 
     height: 60px;
@@ -51,9 +33,9 @@
     -webkit-mask-size: contain;
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-position: left center;
+    transition: filter 0.3s ease;
 }
 
-/* 2. The Liquid Shine Overlay */
 .liquid-shine {
     position: relative;
     filter: drop-shadow(0 0 10px rgba(221, 170, 51, 0.3));
@@ -73,18 +55,61 @@
     100% { left: 200%; }
 }
 
-/* === MARKDOWN FORMATTING (Artemis Chat) === */
 .markdown-body p { margin-bottom: 1em; }
 .markdown-body strong { color: #DDAA33; font-weight: 600; }
 .markdown-body pre { 
-    background: #050505; 
-    padding: 1rem; 
-    border-radius: 0.5rem; 
-    border: 1px solid rgba(255,255,255,0.1); 
-    overflow-x: auto; 
-    margin-top: 0.5rem; 
+    background: #050505; padding: 1rem; border-radius: 0.5rem; 
+    border: 1px solid rgba(255,255,255,0.1); overflow-x: auto; margin-top: 0.5rem; 
 }
 .markdown-body code { font-family: 'Courier New', Courier, monospace; color: #F0D788; }
 .markdown-body table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
 .markdown-body th { border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem; background: rgba(255,255,255,0.02); text-align: left; color: #DDAA33; }
 .markdown-body td { border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; }
+
+/* Top 0.1% Glassmorphism & Hover Elements */
+.glass-card {
+    background: rgba(17, 17, 17, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border-color: rgba(221, 170, 51, 0.2);
+}
+
+.logo-container {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    padding: 5px;
+}
+.logo-container:hover {
+    background: rgba(224, 192, 96, 0.05);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 0 25px rgba(224, 192, 96, 0.2);
+}
+.logo-container:hover .xoala-logo {
+    filter: brightness(1.3) drop-shadow(0 0 10px rgba(224, 192, 96, 0.8));
+}
+
+/* Sidebar Minimization State */
+.sidebar-expanded { width: 18rem; }
+.sidebar-collapsed { width: 5.5rem; }
+.sidebar-collapsed .nav-text { display: none; }
+.sidebar-collapsed .logo-container { transform: scale(0.8) translateX(-10px); }
+.sidebar-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+.sidebar-collapsed .nav-item i { margin: 0; font-size: 1.5rem; }
+
+.dot-pulse {
+    position: relative; left: -9999px; width: 6px; height: 6px; border-radius: 5px;
+    background-color: #DDAA33; color: #DDAA33; box-shadow: 9999px 0 0 -2px #DDAA33;
+    animation: dotPulse 1.5s infinite linear; animation-delay: .25s;
+}
+.dot-pulse::before, .dot-pulse::after {
+    content: ''; display: inline-block; position: absolute; top: 0; width: 6px; height: 6px;
+    border-radius: 5px; background-color: #DDAA33; color: #DDAA33;
+}
+.dot-pulse::before { box-shadow: 9984px 0 0 -2px #DDAA33; animation: dotPulseBefore 1.5s infinite linear; animation-delay: 0s; }
+.dot-pulse::after { box-shadow: 10014px 0 0 -2px #DDAA33; animation: dotPulseAfter 1.5s infinite linear; animation-delay: .5s; }
