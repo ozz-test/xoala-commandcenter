@@ -3,229 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xoala Command Center | Terminal</title>
+    <title>Xoala Command Center | Sovereign</title>
     <!-- Use marked.js to render Artemis's markdown formatting cleanly -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
-            --bg-base: #050505;
-            --bg-surface: #121212;
-            --bg-panel: #1e1e1e;
-            --accent-primary: #007acc;
-            --accent-glow: rgba(0, 122, 204, 0.4);
-            --text-main: #e0e0e0;
-            --text-muted: #888888;
-            --border-color: #333333;
+            /* Immutable Core Themes */
+            --bg-obsidian: #050505;
+            --gold-gradient: linear-gradient(145deg, #F0D788, #DDAA33);
+            --gold-solid: #E0C060;
+            --gold-glow: rgba(224, 192, 96, 0.15);
+            
+            /* UI Surface Variables */
+            --panel-glass: rgba(20, 20, 20, 0.6);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --text-primary: #f2f2f2;
+            --text-muted: #8a8a8a;
+            
+            /* Typography */
             --font-mono: 'Courier New', Courier, monospace;
-            --font-sans: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-base);
-            color: var(--text-main);
+            background-color: var(--bg-obsidian);
+            color: var(--text-primary);
             font-family: var(--font-sans);
             display: flex;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* Sidebar Navigation */
+        /* --- SIDEBAR NAVIGATION --- */
         .sidebar {
-            width: 250px;
-            background-color: var(--bg-surface);
-            border-right: 1px solid var(--border-color);
+            width: 260px;
+            background: var(--panel-glass);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
         .brand {
-            padding: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: #ffffff;
-            border-bottom: 1px solid var(--border-color);
+            padding: 30px 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 2px;
             text-transform: uppercase;
+            border-bottom: 1px solid var(--border-subtle);
         }
 
-        .brand span { color: var(--accent-primary); }
+        .brand span {
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
 
         .nav-items {
             list-style: none;
-            padding: 0;
+            padding: 20px 0;
             margin: 0;
+            flex: 1;
         }
 
         .nav-items li {
-            padding: 15px 20px;
+            padding: 15px 25px;
             cursor: pointer;
-            border-bottom: 1px solid #1a1a1a;
-            transition: all 0.2s;
             font-size: 0.9rem;
             color: var(--text-muted);
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
         }
 
-        .nav-items li:hover, .nav-items li.active {
-            background-color: var(--bg-panel);
-            color: #ffffff;
-            border-left: 3px solid var(--accent-primary);
+        .nav-items li:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.02);
         }
 
-        /* Main Terminal Area */
+        .nav-items li.active {
+            color: var(--gold-solid);
+            background: var(--gold-glow);
+            border-right: 3px solid var(--gold-solid);
+        }
+
+        .sidebar-footer {
+            padding: 20px 25px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* Native Cloudflare Access Logout Button */
+        .btn-logout {
+            display: block;
+            text-decoration: none;
+            text-align: center;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--text-muted);
+            padding: 10px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            color: var(--bg-obsidian);
+            background: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+
+        /* --- MAIN CONTENT AREA --- */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background-color: var(--bg-base);
+            position: relative;
         }
 
         .top-bar {
             height: 60px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
-            padding: 0 20px;
-            background-color: var(--bg-surface);
+            padding: 0 30px;
             font-family: var(--font-mono);
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
+            letter-spacing: 1px;
         }
 
         .status-dot {
-            height: 8px;
-            width: 8px;
-            background-color: #4caf50;
+            height: 6px;
+            width: 6px;
+            background: var(--gold-gradient);
             border-radius: 50%;
-            margin-right: 10px;
-            box-shadow: 0 0 8px #4caf50;
+            margin-right: 12px;
+            box-shadow: 0 0 10px var(--gold-solid);
         }
 
-        /* Artemis Chat Interface */
-        .chat-container {
+        /* View Container (Handles switching between Dashboard & Chat) */
+        .view-section {
+            display: none;
             flex: 1;
-            padding: 20px;
             overflow-y: auto;
+            padding: 30px;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .view-section.active {
             display: flex;
             flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- COMMAND DASHBOARD UI --- */
+        .dashboard-header {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 20px;
         }
 
-        .message {
-            max-width: 80%;
-            padding: 15px;
+        .kpi-card {
+            background: var(--panel-glass);
+            border: 1px solid var(--border-subtle);
+            padding: 25px;
             border-radius: 4px;
-            line-height: 1.5;
-            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: var(--gold-gradient);
+            opacity: 0.5;
         }
 
-        .message.user {
-            background-color: var(--bg-panel);
-            align-self: flex-end;
-            border: 1px solid var(--border-color);
+        .kpi-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
         }
 
-        .message.artemis {
-            background-color: rgba(0, 122, 204, 0.05);
-            align-self: flex-start;
-            border-left: 3px solid var(--accent-primary);
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 200;
+            color: var(--text-primary);
             font-family: var(--font-mono);
         }
 
-        .message.artemis p { margin-top: 0; }
-        .message.artemis pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; }
-        .message.artemis table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-        .message.artemis th, .message.artemis td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
+        .kpi-trend {
+            font-size: 0.8rem;
+            margin-top: 10px;
+            color: #4caf50;
+        }
+
+        /* --- ARTEMIS CHAT UI --- */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            padding-bottom: 20px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 20px;
+            border-radius: 4px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .message.user {
+            background: var(--panel-glass);
+            align-self: flex-end;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .message.artemis {
+            background: rgba(224, 192, 96, 0.03);
+            align-self: flex-start;
+            border-left: 2px solid var(--gold-solid);
+            font-family: var(--font-sans);
+        }
+
+        .message.artemis strong {
+            color: var(--gold-solid);
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        /* Markdown Styling inside Chat */
+        .message.artemis pre { background: var(--bg-obsidian); padding: 15px; border: 1px solid var(--border-subtle); overflow-x: auto; border-radius: 4px;}
+        .message.artemis code { font-family: var(--font-mono); color: var(--gold-solid); }
+        .message.artemis table { border-collapse: collapse; width: 100%; margin-top: 15px; font-size: 0.9rem;}
+        .message.artemis th { border: 1px solid var(--border-subtle); padding: 10px; background: rgba(255,255,255,0.02); color: var(--gold-solid); text-align: left;}
+        .message.artemis td { border: 1px solid var(--border-subtle); padding: 10px; }
 
         /* Input Area */
         .input-area {
-            padding: 20px;
-            background-color: var(--bg-surface);
-            border-top: 1px solid var(--border-color);
             display: flex;
-            gap: 10px;
+            gap: 15px;
+            margin-top: 10px;
         }
 
         .terminal-input {
             flex: 1;
-            background-color: var(--bg-base);
-            border: 1px solid var(--border-color);
-            color: #fff;
-            padding: 15px;
+            background: var(--panel-glass);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 18px 20px;
             font-family: var(--font-mono);
             font-size: 0.95rem;
             outline: none;
-            transition: box-shadow 0.2s;
+            transition: all 0.3s;
         }
 
         .terminal-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 10px var(--accent-glow);
+            border-color: var(--gold-solid);
+            box-shadow: 0 0 15px var(--gold-glow);
         }
 
         .btn-send {
-            background-color: var(--accent-primary);
-            color: #fff;
+            background: var(--gold-gradient);
+            color: var(--bg-obsidian);
             border: none;
-            padding: 0 25px;
-            font-weight: bold;
+            padding: 0 30px;
+            font-weight: 700;
             cursor: pointer;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: background-color 0.2s;
+            letter-spacing: 1.5px;
+            transition: opacity 0.3s;
         }
 
-        .btn-send:hover { background-color: #005f9e; }
-        .btn-send:disabled { background-color: var(--border-color); cursor: not-allowed; color: var(--text-muted); }
-
-        .loading-text { font-style: italic; color: var(--accent-primary); }
+        .btn-send:hover { opacity: 0.9; }
+        .btn-send:disabled { background: var(--border-subtle); cursor: not-allowed; color: var(--text-muted); }
+        
+        .loading-text { font-style: italic; color: var(--gold-solid); opacity: 0.7;}
     </style>
 </head>
 <body>
 
-    <!-- Sidebar -->
+    <!-- Sidebar Navigation -->
     <div class="sidebar">
         <div class="brand">Xoala <span>Terminal</span></div>
-        <ul class="nav-items">
-            <li class="active">Artemis AI Core</li>
+        <ul class="nav-items" id="nav-menu">
+            <li class="active" data-target="dashboard-view">Command Dashboard</li>
+            <li data-target="artemis-view">Artemis AI Core</li>
             <li>KYC Data Lake (Pending)</li>
-            <li>Market Briefs (Pending)</li>
             <li>System Diagnostics</li>
         </ul>
+        <div class="sidebar-footer">
+            <!-- Native Cloudflare Logout Endpoint -->
+            <a href="/cdn-cgi/access/logout" class="btn-logout">Disconnect</a>
+        </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
         <div class="top-bar">
             <div class="status-dot"></div>
-            SYSTEM SECURE | CLOUDFLARE ZERO TRUST ACTIVE | ARTEMIS ONLINE
+            SYSTEM SECURE | CLOUDFLARE ZERO TRUST ACTIVE | OBSIDIAN PROTOCOL ENGAGED
         </div>
 
-        <div class="chat-container" id="chat-box">
-            <div class="message artemis">
-                <strong>ARTEMIS:</strong><br>
-                Terminal accessed. Authentication verified. Awaiting your query, master.
+        <!-- 1. COMMAND DASHBOARD VIEW (Default) -->
+        <div id="dashboard-view" class="view-section active">
+            <div class="dashboard-header">Terminal Operations</div>
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-title">Active KYC Tickets</div>
+                    <div class="kpi-value">1,634</div>
+                    <div class="kpi-trend">▲ Synchronized via Data Lake</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Pipeline Integrity</div>
+                    <div class="kpi-value">99.8%</div>
+                    <div class="kpi-trend">System Optimal</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">High Risk Escalations</div>
+                    <div class="kpi-value">24</div>
+                    <div class="kpi-trend">Pending MLRO Review</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Artemis Core Status</div>
+                    <div class="kpi-value">ONLINE</div>
+                    <div class="kpi-trend">Latency: 42ms</div>
+                </div>
             </div>
         </div>
 
-        <div class="input-area">
-            <input type="text" id="prompt-input" class="terminal-input" placeholder="Query the KYC Data Lake..." autocomplete="off">
-            <button id="send-btn" class="btn-send">Execute</button>
+        <!-- 2. ARTEMIS AI CHAT VIEW -->
+        <div id="artemis-view" class="view-section">
+            <div class="chat-container" id="chat-box">
+                <div class="message artemis">
+                    <strong>ARTEMIS:</strong><br><br>
+                    Terminal accessed. Security parameters verified. I am online and connected to the master data lake. Awaiting your query, master.
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="prompt-input" class="terminal-input" placeholder="Initiate query protocol..." autocomplete="off">
+                <button id="send-btn" class="btn-send">Execute</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // === XOALA COMMAND CENTER: FRONTEND LOGIC ===
+        // === XOALA COMMAND CENTER: INTERFACE LOGIC ===
         
-        // IMPORTANT: Replace this with your Cloudflare API Worker URL
+        // Exact Middleware URL implemented
         const MIDDLEWARE_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/'; 
 
+        // --- Navigation Logic ---
+        const navItems = document.querySelectorAll('.nav-items li[data-target]');
+        const viewSections = document.querySelectorAll('.view-section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove active class from all tabs
+                navItems.forEach(nav => nav.classList.remove('active'));
+                viewSections.forEach(view => view.classList.remove('active'));
+
+                // Add active class to clicked tab and corresponding view
+                item.classList.add('active');
+                document.getElementById(item.getAttribute('data-target')).classList.add('active');
+            });
+        });
+
+        // --- Artemis Chat Logic ---
         const chatBox = document.getElementById('chat-box');
         const promptInput = document.getElementById('prompt-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // Execute on Enter key
         promptInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') executeQuery();
         });
@@ -239,17 +416,15 @@
             // 1. Display User Message
             appendMessage(prompt, 'user');
             promptInput.value = '';
-            
-            // 2. Disable input while waiting
             promptInput.disabled = true;
             sendBtn.disabled = true;
             
-            // 3. Create Loading Indicator
+            // 2. Create Loading Indicator
             const loadingId = 'loading-' + Date.now();
             appendLoading(loadingId);
 
             try {
-                // 4. Fire the payload to the Cloudflare API Worker
+                // 3. Fire payload to the Middleware Worker
                 const response = await fetch(MIDDLEWARE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -257,23 +432,20 @@
                 });
 
                 const data = await response.json();
-
-                // Remove loading indicator
                 document.getElementById(loadingId).remove();
 
-                // 5. Display Artemis's Response (Rendered via marked.js for formatting)
+                // 4. Render Markdown Response
                 if (response.ok) {
                     appendMessage(marked.parse(data.response), 'artemis', true);
                 } else {
-                    appendMessage(`Error: ${data.error || 'Connection failed.'}`, 'artemis');
+                    appendMessage(`System Error: ${data.error || 'Connection failed.'}`, 'artemis');
                 }
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                appendMessage(`System Failure: ${error.message}. Ensure Middleware URL is correct.`, 'artemis');
+                appendMessage(`Connection Failure: ${error.message}. Verify Middleware URL.`, 'artemis');
             }
 
-            // 6. Re-enable input
             promptInput.disabled = false;
             sendBtn.disabled = false;
             promptInput.focus();
@@ -284,7 +456,7 @@
             div.className = `message ${sender}`;
             
             if (sender === 'artemis' && isHTML) {
-                div.innerHTML = content; // marked.js returns HTML
+                div.innerHTML = content;
             } else {
                 div.textContent = content;
             }
@@ -297,7 +469,7 @@
             const div = document.createElement('div');
             div.className = `message artemis loading-text`;
             div.id = id;
-            div.textContent = 'Artemis is analyzing the data lake...';
+            div.textContent = 'Artemis is analyzing the master data lake...';
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
