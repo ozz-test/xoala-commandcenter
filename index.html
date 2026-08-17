@@ -3,13 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xoala Command Center</title>
+    <title>Xoala Command Center | Terminal</title>
+    <!-- Use marked.js to render Artemis's markdown formatting cleanly -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        h1 { font-size: 3rem; font-weight: 300; letter-spacing: 2px; }
+        :root {
+            --bg-base: #050505;
+            --bg-surface: #121212;
+            --bg-panel: #1e1e1e;
+            --accent-primary: #007acc;
+            --accent-glow: rgba(0, 122, 204, 0.4);
+            --text-main: #e0e0e0;
+            --text-muted: #888888;
+            --border-color: #333333;
+            --font-mono: 'Courier New', Courier, monospace;
+            --font-sans: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+        }
+
+        .brand span { color: var(--accent-primary); }
+
+        .nav-items {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-items li {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #1a1a1a;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .nav-items li:hover, .nav-items li.active {
+            background-color: var(--bg-panel);
+            color: #ffffff;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        /* Main Terminal Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-base);
+        }
+
+        .top-bar {
+            height: 60px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background-color: var(--bg-surface);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            background-color: #4caf50;
+            border-radius: 50%;
+            margin-right: 10px;
+            box-shadow: 0 0 8px #4caf50;
+        }
+
+        /* Artemis Chat Interface */
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 15px;
+            border-radius: 4px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .message.user {
+            background-color: var(--bg-panel);
+            align-self: flex-end;
+            border: 1px solid var(--border-color);
+        }
+
+        .message.artemis {
+            background-color: rgba(0, 122, 204, 0.05);
+            align-self: flex-start;
+            border-left: 3px solid var(--accent-primary);
+            font-family: var(--font-mono);
+        }
+
+        .message.artemis p { margin-top: 0; }
+        .message.artemis pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .message.artemis table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        .message.artemis th, .message.artemis td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background-color: var(--bg-surface);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+
+        .terminal-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .btn-send {
+            background-color: var(--accent-primary);
+            color: #fff;
+            border: none;
+            padding: 0 25px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-send:hover { background-color: #005f9e; }
+        .btn-send:disabled { background-color: var(--border-color); cursor: not-allowed; color: var(--text-muted); }
+
+        .loading-text { font-style: italic; color: var(--accent-primary); }
     </style>
 </head>
 <body>
-    <h1>SYSTEM INITIALIZING...</h1>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">Xoala <span>Terminal</span></div>
+        <ul class="nav-items">
+            <li class="active">Artemis AI Core</li>
+            <li>KYC Data Lake (Pending)</li>
+            <li>Market Briefs (Pending)</li>
+            <li>System Diagnostics</li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <div class="status-dot"></div>
+            SYSTEM SECURE | CLOUDFLARE ZERO TRUST ACTIVE | ARTEMIS ONLINE
+        </div>
+
+        <div class="chat-container" id="chat-box">
+            <div class="message artemis">
+                <strong>ARTEMIS:</strong><br>
+                Terminal accessed. Authentication verified. Awaiting your query, master.
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="prompt-input" class="terminal-input" placeholder="Query the KYC Data Lake..." autocomplete="off">
+            <button id="send-btn" class="btn-send">Execute</button>
+        </div>
+    </div>
+
+    <script>
+        // === XOALA COMMAND CENTER: FRONTEND LOGIC ===
+        
+        // IMPORTANT: Replace this with your Cloudflare API Worker URL
+        const MIDDLEWARE_URL = 'https://xoala-command-center-middleware.yourname.workers.dev'; 
+
+        const chatBox = document.getElementById('chat-box');
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // Execute on Enter key
+        promptInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') executeQuery();
+        });
+
+        sendBtn.addEventListener('click', executeQuery);
+
+        async function executeQuery() {
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            // 1. Display User Message
+            appendMessage(prompt, 'user');
+            promptInput.value = '';
+            
+            // 2. Disable input while waiting
+            promptInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            // 3. Create Loading Indicator
+            const loadingId = 'loading-' + Date.now();
+            appendLoading(loadingId);
+
+            try {
+                // 4. Fire the payload to the Cloudflare API Worker
+                const response = await fetch(MIDDLEWARE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt }) 
+                });
+
+                const data = await response.json();
+
+                // Remove loading indicator
+                document.getElementById(loadingId).remove();
+
+                // 5. Display Artemis's Response (Rendered via marked.js for formatting)
+                if (response.ok) {
+                    appendMessage(marked.parse(data.response), 'artemis', true);
+                } else {
+                    appendMessage(`Error: ${data.error || 'Connection failed.'}`, 'artemis');
+                }
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                appendMessage(`System Failure: ${error.message}. Ensure Middleware URL is correct.`, 'artemis');
+            }
+
+            // 6. Re-enable input
+            promptInput.disabled = false;
+            sendBtn.disabled = false;
+            promptInput.focus();
+        }
+
+        function appendMessage(content, sender, isHTML = false) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            
+            if (sender === 'artemis' && isHTML) {
+                div.innerHTML = content; // marked.js returns HTML
+            } else {
+                div.textContent = content;
+            }
+            
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function appendLoading(id) {
+            const div = document.createElement('div');
+            div.className = `message artemis loading-text`;
+            div.id = id;
+            div.textContent = 'Artemis is analyzing the data lake...';
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
 </body>
 </html>
