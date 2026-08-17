@@ -1,0 +1,90 @@
+/* === XOALA COMMAND CENTER: MASTER STYLES === */
+
+/* Custom Scrollbar for a sleek look */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* The View Controller */
+.view-section {
+    display: none;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+.view-section.active { display: flex; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+    background: rgba(17, 17, 17, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border-color: rgba(221, 170, 51, 0.2);
+}
+
+/* Sidebar Navigation Active State */
+.nav-item { color: #888; border-left: 3px solid transparent; }
+.nav-item:hover { color: #fff; background: rgba(255,255,255,0.02); }
+.nav-item.active {
+    color: #F0D788;
+    background: rgba(221, 170, 51, 0.05);
+    border-left: 3px solid #DDAA33;
+}
+
+/* === THE SOVEREIGN LOGO MAGIC === */
+/* 1. We use CSS Masking to turn your black/white PNG into a pure CSS gradient */
+.xoala-logo {
+    width: 180px; 
+    height: 60px;
+    background: linear-gradient(145deg, #F0D788, #DDAA33);
+    -webkit-mask-image: url('https://raw.githubusercontent.com/ozz-test/xoala-commandcenter/refs/heads/main/xoala_logo-removebg-preview.png');
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: left center;
+}
+
+/* 2. The Liquid Shine Overlay */
+.liquid-shine {
+    position: relative;
+    filter: drop-shadow(0 0 10px rgba(221, 170, 51, 0.3));
+}
+.liquid-shine::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
+    transform: skewX(-20deg);
+    animation: shine 4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes shine {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+}
+
+/* === MARKDOWN FORMATTING (Artemis Chat) === */
+.markdown-body p { margin-bottom: 1em; }
+.markdown-body strong { color: #DDAA33; font-weight: 600; }
+.markdown-body pre { 
+    background: #050505; 
+    padding: 1rem; 
+    border-radius: 0.5rem; 
+    border: 1px solid rgba(255,255,255,0.1); 
+    overflow-x: auto; 
+    margin-top: 0.5rem; 
+}
+.markdown-body code { font-family: 'Courier New', Courier, monospace; color: #F0D788; }
+.markdown-body table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+.markdown-body th { border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem; background: rgba(255,255,255,0.02); text-align: left; color: #DDAA33; }
+.markdown-body td { border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; }
