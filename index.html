@@ -40,7 +40,8 @@
         </button>
 
         <div class="h-24 flex items-center justify-center border-b border-white/5 relative w-full">
-            <div class="logo-container liquid-shine w-[160px] h-[50px] relative transition-all duration-300">
+            <!-- Liquid-shine effect removed for cleaner aesthetic -->
+            <div class="logo-container w-[160px] h-[50px] relative transition-all duration-300">
                 <div class="xoala-logo w-full h-full"></div>
             </div>
         </div>
@@ -75,6 +76,17 @@
     <!-- Main Workspace -->
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)]">
         
+        <!-- Top Status Bar -->
+        <header class="h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10">
+            <!-- SOVEREIGN COMMAND text removed as requested -->
+            <div class="flex items-center space-x-4">
+                <div class="text-xs text-gray-400 font-medium">Admin User</div>
+                <div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg">
+                    <i class="ph ph-user text-gold text-lg"></i>
+                </div>
+            </div>
+        </header>
+
         <!-- View 1: Command Dashboard -->
         <section id="dashboard-view" class="view-section active p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full block">
@@ -189,7 +201,7 @@
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
 
-            <div class="flex-1 flex flex-col h-full relative">
+            <div class="flex-1 flex flex-col h-full relative bg-obsidian">
                 <div class="px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                     <div class="flex items-center space-x-4">
                         <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
