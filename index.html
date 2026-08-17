@@ -4,475 +4,190 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xoala Command Center | Sovereign</title>
-    <!-- Use marked.js to render Artemis's markdown formatting cleanly -->
+    
+    <!-- External Libraries (Top 1% Stack) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        :root {
-            /* Immutable Core Themes */
-            --bg-obsidian: #050505;
-            --gold-gradient: linear-gradient(145deg, #F0D788, #DDAA33);
-            --gold-solid: #E0C060;
-            --gold-glow: rgba(224, 192, 96, 0.15);
-            
-            /* UI Surface Variables */
-            --panel-glass: rgba(20, 20, 20, 0.6);
-            --border-subtle: rgba(255, 255, 255, 0.08);
-            --text-primary: #f2f2f2;
-            --text-muted: #8a8a8a;
-            
-            /* Typography */
-            --font-mono: 'Courier New', Courier, monospace;
-            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-obsidian);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* --- SIDEBAR NAVIGATION --- */
-        .sidebar {
-            width: 260px;
-            background: var(--panel-glass);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid var(--border-subtle);
-            display: flex;
-            flex-direction: column;
-            box-shadow: 2px 0 15px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
-
-        .brand {
-            padding: 30px 25px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .brand span {
-            background: var(--gold-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        .nav-items {
-            list-style: none;
-            padding: 20px 0;
-            margin: 0;
-            flex: 1;
-        }
-
-        .nav-items li {
-            padding: 15px 25px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-        }
-
-        .nav-items li:hover {
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .nav-items li.active {
-            color: var(--gold-solid);
-            background: var(--gold-glow);
-            border-right: 3px solid var(--gold-solid);
-        }
-
-        .sidebar-footer {
-            padding: 20px 25px;
-            border-top: 1px solid var(--border-subtle);
-        }
-
-        /* Native Cloudflare Access Logout Button */
-        .btn-logout {
-            display: block;
-            text-decoration: none;
-            text-align: center;
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--text-muted);
-            padding: 10px;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: all 0.3s;
-        }
-
-        .btn-logout:hover {
-            color: var(--bg-obsidian);
-            background: var(--text-primary);
-            border-color: var(--text-primary);
-        }
-
-        /* --- MAIN CONTENT AREA --- */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .top-bar {
-            height: 60px;
-            border-bottom: 1px solid var(--border-subtle);
-            display: flex;
-            align-items: center;
-            padding: 0 30px;
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            letter-spacing: 1px;
-        }
-
-        .status-dot {
-            height: 6px;
-            width: 6px;
-            background: var(--gold-gradient);
-            border-radius: 50%;
-            margin-right: 12px;
-            box-shadow: 0 0 10px var(--gold-solid);
-        }
-
-        /* View Container (Handles switching between Dashboard & Chat) */
-        .view-section {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding: 30px;
-            animation: fadeIn 0.4s ease forwards;
-        }
-
-        .view-section.active {
-            display: flex;
-            flex-direction: column;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- COMMAND DASHBOARD UI --- */
-        .dashboard-header {
-            font-size: 1.8rem;
-            font-weight: 300;
-            margin-bottom: 30px;
-            letter-spacing: -0.5px;
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-        }
-
-        .kpi-card {
-            background: var(--panel-glass);
-            border: 1px solid var(--border-subtle);
-            padding: 25px;
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-            background: var(--gold-gradient);
-            opacity: 0.5;
-        }
-
-        .kpi-title {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-        }
-
-        .kpi-value {
-            font-size: 2.5rem;
-            font-weight: 200;
-            color: var(--text-primary);
-            font-family: var(--font-mono);
-        }
-
-        .kpi-trend {
-            font-size: 0.8rem;
-            margin-top: 10px;
-            color: #4caf50;
-        }
-
-        /* --- ARTEMIS CHAT UI --- */
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-            padding-bottom: 20px;
-        }
-
-        .message {
-            max-width: 85%;
-            padding: 20px;
-            border-radius: 4px;
-            line-height: 1.6;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .message.user {
-            background: var(--panel-glass);
-            align-self: flex-end;
-            border: 1px solid var(--border-subtle);
-        }
-
-        .message.artemis {
-            background: rgba(224, 192, 96, 0.03);
-            align-self: flex-start;
-            border-left: 2px solid var(--gold-solid);
-            font-family: var(--font-sans);
-        }
-
-        .message.artemis strong {
-            color: var(--gold-solid);
-            letter-spacing: 1px;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-        }
-
-        /* Markdown Styling inside Chat */
-        .message.artemis pre { background: var(--bg-obsidian); padding: 15px; border: 1px solid var(--border-subtle); overflow-x: auto; border-radius: 4px;}
-        .message.artemis code { font-family: var(--font-mono); color: var(--gold-solid); }
-        .message.artemis table { border-collapse: collapse; width: 100%; margin-top: 15px; font-size: 0.9rem;}
-        .message.artemis th { border: 1px solid var(--border-subtle); padding: 10px; background: rgba(255,255,255,0.02); color: var(--gold-solid); text-align: left;}
-        .message.artemis td { border: 1px solid var(--border-subtle); padding: 10px; }
-
-        /* Input Area */
-        .input-area {
-            display: flex;
-            gap: 15px;
-            margin-top: 10px;
-        }
-
-        .terminal-input {
-            flex: 1;
-            background: var(--panel-glass);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-primary);
-            padding: 18px 20px;
-            font-family: var(--font-mono);
-            font-size: 0.95rem;
-            outline: none;
-            transition: all 0.3s;
-        }
-
-        .terminal-input:focus {
-            border-color: var(--gold-solid);
-            box-shadow: 0 0 15px var(--gold-glow);
-        }
-
-        .btn-send {
-            background: var(--gold-gradient);
-            color: var(--bg-obsidian);
-            border: none;
-            padding: 0 30px;
-            font-weight: 700;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            transition: opacity 0.3s;
-        }
-
-        .btn-send:hover { opacity: 0.9; }
-        .btn-send:disabled { background: var(--border-subtle); cursor: not-allowed; color: var(--text-muted); }
-        
-        .loading-text { font-style: italic; color: var(--gold-solid); opacity: 0.7;}
-    </style>
-</head>
-<body>
-
-    <!-- Sidebar Navigation -->
-    <div class="sidebar">
-        <div class="brand">Xoala <span>Terminal</span></div>
-        <ul class="nav-items" id="nav-menu">
-            <li class="active" data-target="dashboard-view">Command Dashboard</li>
-            <li data-target="artemis-view">Artemis AI Core</li>
-            <li>KYC Data Lake (Pending)</li>
-            <li>System Diagnostics</li>
-        </ul>
-        <div class="sidebar-footer">
-            <!-- Native Cloudflare Logout Endpoint -->
-            <a href="/cdn-cgi/access/logout" class="btn-logout">Disconnect</a>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <div class="top-bar">
-            <div class="status-dot"></div>
-            SYSTEM SECURE | CLOUDFLARE ZERO TRUST ACTIVE | OBSIDIAN PROTOCOL ENGAGED
-        </div>
-
-        <!-- 1. COMMAND DASHBOARD VIEW (Default) -->
-        <div id="dashboard-view" class="view-section active">
-            <div class="dashboard-header">Terminal Operations</div>
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-title">Active KYC Tickets</div>
-                    <div class="kpi-value">1,634</div>
-                    <div class="kpi-trend">▲ Synchronized via Data Lake</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Pipeline Integrity</div>
-                    <div class="kpi-value">99.8%</div>
-                    <div class="kpi-trend">System Optimal</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">High Risk Escalations</div>
-                    <div class="kpi-value">24</div>
-                    <div class="kpi-trend">Pending MLRO Review</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Artemis Core Status</div>
-                    <div class="kpi-value">ONLINE</div>
-                    <div class="kpi-trend">Latency: 42ms</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 2. ARTEMIS AI CHAT VIEW -->
-        <div id="artemis-view" class="view-section">
-            <div class="chat-container" id="chat-box">
-                <div class="message artemis">
-                    <strong>ARTEMIS:</strong><br><br>
-                    Terminal accessed. Security parameters verified. I am online and connected to the master data lake. Awaiting your query, master.
-                </div>
-            </div>
-
-            <div class="input-area">
-                <input type="text" id="prompt-input" class="terminal-input" placeholder="Initiate query protocol..." autocomplete="off">
-                <button id="send-btn" class="btn-send">Execute</button>
-            </div>
-        </div>
-    </div>
-
+    
+    <!-- Custom Tailwind Configuration -->
     <script>
-        // === XOALA COMMAND CENTER: INTERFACE LOGIC ===
-        
-        // Exact Middleware URL implemented
-        const MIDDLEWARE_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/'; 
-
-        // --- Navigation Logic ---
-        const navItems = document.querySelectorAll('.nav-items li[data-target]');
-        const viewSections = document.querySelectorAll('.view-section');
-
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                // Remove active class from all tabs
-                navItems.forEach(nav => nav.classList.remove('active'));
-                viewSections.forEach(view => view.classList.remove('active'));
-
-                // Add active class to clicked tab and corresponding view
-                item.classList.add('active');
-                document.getElementById(item.getAttribute('data-target')).classList.add('active');
-            });
-        });
-
-        // --- Artemis Chat Logic ---
-        const chatBox = document.getElementById('chat-box');
-        const promptInput = document.getElementById('prompt-input');
-        const sendBtn = document.getElementById('send-btn');
-
-        promptInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') executeQuery();
-        });
-
-        sendBtn.addEventListener('click', executeQuery);
-
-        async function executeQuery() {
-            const prompt = promptInput.value.trim();
-            if (!prompt) return;
-
-            // 1. Display User Message
-            appendMessage(prompt, 'user');
-            promptInput.value = '';
-            promptInput.disabled = true;
-            sendBtn.disabled = true;
-            
-            // 2. Create Loading Indicator
-            const loadingId = 'loading-' + Date.now();
-            appendLoading(loadingId);
-
-            try {
-                // 3. Fire payload to the Middleware Worker
-                const response = await fetch(MIDDLEWARE_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: prompt }) 
-                });
-
-                const data = await response.json();
-                document.getElementById(loadingId).remove();
-
-                // 4. Render Markdown Response
-                if (response.ok) {
-                    appendMessage(marked.parse(data.response), 'artemis', true);
-                } else {
-                    appendMessage(`System Error: ${data.error || 'Connection failed.'}`, 'artemis');
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#050505',
+                        surface: '#111111',
+                        panel: '#1a1a1a',
+                        gold: { DEFAULT: '#DDAA33', light: '#F0D788', dark: '#997722' },
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
+                    }
                 }
-
-            } catch (error) {
-                document.getElementById(loadingId).remove();
-                appendMessage(`Connection Failure: ${error.message}. Verify Middleware URL.`, 'artemis');
             }
-
-            promptInput.disabled = false;
-            sendBtn.disabled = false;
-            promptInput.focus();
-        }
-
-        function appendMessage(content, sender, isHTML = false) {
-            const div = document.createElement('div');
-            div.className = `message ${sender}`;
-            
-            if (sender === 'artemis' && isHTML) {
-                div.innerHTML = content;
-            } else {
-                div.textContent = content;
-            }
-            
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function appendLoading(id) {
-            const div = document.createElement('div');
-            div.className = `message artemis loading-text`;
-            div.id = id;
-            div.textContent = 'Artemis is analyzing the master data lake...';
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/master.css">
+</head>
+<body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-surface/80 backdrop-blur-xl border-r border-white/5 flex flex-col z-20 shadow-2xl relative">
+        <!-- Logo Area with CSS Masking & Liquid Shine -->
+        <div class="h-24 flex items-center px-8 border-b border-white/5 relative overflow-hidden">
+            <div class="logo-container liquid-shine">
+                <!-- We use CSS masking to perfectly apply the Sovereign Gold gradient to your PNG -->
+                <div class="xoala-logo"></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 py-8 px-4 space-y-2">
+            <button data-target="dashboard-view" class="nav-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300">
+                <i class="ph ph-squares-four text-xl"></i>
+                <span>Command Dashboard</span>
+            </button>
+            <button data-target="artemis-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300">
+                <i class="ph ph-brain text-xl"></i>
+                <span>Artemis AI Core</span>
+            </button>
+            <button disabled class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed">
+                <i class="ph ph-database text-xl"></i>
+                <span>KYC Data Lake</span>
+                <span class="ml-auto text-[10px] uppercase tracking-wider text-gray-500 border border-gray-700 px-2 py-0.5 rounded">Pending</span>
+            </button>
+            <button disabled class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed">
+                <i class="ph ph-activity text-xl"></i>
+                <span>System Diagnostics</span>
+            </button>
+        </nav>
+
+        <!-- Footer / Disconnect -->
+        <div class="p-4 border-t border-white/5">
+            <a href="/cdn-cgi/access/logout" class="group flex items-center justify-center space-x-2 w-full py-3 border border-gray-800 rounded-lg text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300 hover:border-gold hover:text-gold hover:bg-gold/5">
+                <i class="ph ph-power text-lg transition-transform group-hover:scale-110"></i>
+                <span>Disconnect</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-surface/40 via-obsidian to-obsidian">
+        
+        <!-- Top Status Bar -->
+        <header class="h-14 border-b border-white/5 flex items-center justify-between px-8 bg-surface/30 backdrop-blur-md">
+            <div class="flex items-center space-x-3 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+                <div class="h-2 w-2 rounded-full bg-gold shadow-[0_0_10px_rgba(221,170,51,0.5)] animate-pulse"></div>
+                <span>Zero Trust Active</span>
+                <span class="text-gray-700">|</span>
+                <span>Obsidian Protocol Engaged</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-xs text-gray-400">Admin User</div>
+                <div class="h-8 w-8 rounded-full bg-panel border border-white/10 flex items-center justify-center">
+                    <i class="ph ph-user text-gold"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- View 1: Dashboard -->
+        <section id="dashboard-view" class="view-section active p-10 overflow-y-auto">
+            <h1 class="text-3xl font-light tracking-tight text-white mb-8">Terminal Operations</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Active KYC Tickets</h3>
+                        <i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <div class="font-mono text-4xl text-white font-light mb-2">1,634</div>
+                    <div class="flex items-center space-x-1 text-xs text-emerald-400">
+                        <i class="ph ph-trend-up"></i>
+                        <span>Synchronized via Data Lake</span>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Pipeline Integrity</h3>
+                        <i class="ph ph-shield-check text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <div class="font-mono text-4xl text-white font-light mb-2">99.8<span class="text-2xl text-gray-500">%</span></div>
+                    <div class="flex items-center space-x-1 text-xs text-emerald-400">
+                        <i class="ph ph-check-circle"></i>
+                        <span>System Optimal</span>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-red-900"></div>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">High Risk Escalations</h3>
+                        <i class="ph ph-warning-octagon text-red-500 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <div class="font-mono text-4xl text-white font-light mb-2">24</div>
+                    <div class="flex items-center space-x-1 text-xs text-red-400">
+                        <i class="ph ph-clock"></i>
+                        <span>Pending MLRO Review</span>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-50"></div>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Artemis Core</h3>
+                        <i class="ph ph-cpu text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"></i>
+                    </div>
+                    <div class="font-mono text-3xl text-white font-light mb-2 mt-1">ONLINE</div>
+                    <div class="flex items-center space-x-1 text-xs text-blue-400">
+                        <i class="ph ph-lightning"></i>
+                        <span>Latency: 42ms</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 2: Artemis AI Core -->
+        <section id="artemis-view" class="view-section flex flex-col h-full hidden">
+            <!-- Chat History -->
+            <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+                <div class="flex items-start max-w-3xl">
+                    <div class="h-8 w-8 rounded bg-gold/10 border border-gold/20 flex items-center justify-center mr-4 mt-1 flex-shrink-0">
+                        <i class="ph ph-sparkle text-gold text-lg"></i>
+                    </div>
+                    <div class="bg-surface/50 border border-white/5 p-5 rounded-r-xl rounded-bl-xl shadow-lg">
+                        <div class="text-[10px] font-bold tracking-widest text-gold uppercase mb-2">Artemis Core</div>
+                        <div class="text-sm leading-relaxed text-gray-300">
+                            Terminal accessed. Security parameters verified. I am online and connected to the master data lake. Awaiting your query, master.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-6 bg-surface/80 backdrop-blur-md border-t border-white/5">
+                <div class="max-w-4xl mx-auto relative group">
+                    <input type="text" id="prompt-input" class="w-full bg-obsidian border border-gray-800 text-white text-sm font-mono rounded-lg pl-6 pr-32 py-4 outline-none transition-all duration-300 focus:border-gold/50 focus:shadow-[0_0_20px_rgba(221,170,51,0.1)] placeholder-gray-600" placeholder="Initiate query protocol..." autocomplete="off">
+                    <button id="send-btn" class="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 rounded transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Execute
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/api.js"></script>
 </body>
 </html>
