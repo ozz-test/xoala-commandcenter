@@ -1,4 +1,4 @@
-// === XOALA COMMAND CENTER: ARTEMIS API LOGIC (Chat History & Resync Engine) ===
+// === XOALA COMMAND CENTER: ARTEMIS API LOGIC ===
 
 const MIDDLEWARE_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev'; 
 
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSessions();
     loadSession(currentSessionId);
 
-    // --- Resync Data Lake Trigger ---
+    // --- Resync Data Lake ---
     resyncBtn.addEventListener('click', () => executeQuery("Resync the data lake and verify all tickets.", true));
 
     // --- New Chat Session ---
@@ -131,7 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 appendMessage(htmlResponse, 'artemis', true, selectedModel);
                 
                 if (data.lastSynced) {
-                    syncTimeBadge.textContent = data.lastSynced;
+                    const localTime = new Date(parseInt(data.lastSynced)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    syncTimeBadge.textContent = localTime;
+                    syncTimeBadge.classList.replace('text-white', 'text-gold');
                 }
             } else {
                 const errText = `System Error: ${data.error || 'Connection failed.'}`;
@@ -185,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="ph ph-sparkle text-gold text-lg animate-pulse"></i>
             </div>
             <div class="bg-surface/80 border border-white/5 p-6 rounded-2xl shadow-xl backdrop-blur-md flex items-center space-x-3">
-                <div class="text-xs font-mono text-gold tracking-widest uppercase">Artemis is analyzing HubSpot Data Lake</div>
+                <div class="text-xs font-mono text-gold tracking-widest uppercase">Artemis is analyzing Data Lake</div>
                 <div class="py-1 px-2"><div class="dot-pulse"></div></div>
             </div>
         `;
@@ -197,16 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
         chatSessionsList.innerHTML = '';
         sessions.forEach(session => {
             const btn = document.createElement('div');
-            btn.className = `group flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${session.id === currentSessionId ? 'bg-gold/10 text-gold border border-gold/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
+            btn.className = `group flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${session.id === currentSessionId ? 'bg-gold/10 text-gold border border-gold/30 shadow-inner' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
             
             btn.innerHTML = `
-                <div class="flex items-center space-x-2 truncate flex-1" onclick="switchSession('${session.id}')">
-                    <i class="ph ${session.pinned ? 'ph-push-pin-simple text-gold' : 'ph-chat-circle'} text-sm"></i>
+                <div class="flex items-center space-x-2 truncate flex-1" onclick="window.switchSession('${session.id}')">
+                    <i class="ph ${session.pinned ? 'ph-push-pin-simple text-gold' : 'ph-chat-circle'} text-sm flex-shrink-0"></i>
                     <span class="truncate">${session.title}</span>
                 </div>
-                <div class="hidden group-hover:flex items-center space-x-1 ml-2">
-                    <i class="ph ph-push-pin hover:text-gold p-1" onclick="event.stopPropagation(); togglePin('${session.id}')" title="Pin"></i>
-                    <i class="ph ph-trash hover:text-red-400 p-1" onclick="event.stopPropagation(); deleteSession('${session.id}')" title="Delete"></i>
+                <div class="hidden group-hover:flex items-center space-x-1 ml-2 bg-obsidian/80 px-1 rounded">
+                    <i class="ph ph-pencil-simple hover:text-blue-400 p-1" onclick="event.stopPropagation(); window.renameSession('${session.id}')" title="Rename"></i>
+                    <i class="ph ph-push-pin hover:text-gold p-1" onclick="event.stopPropagation(); window.togglePin('${session.id}')" title="Pin"></i>
+                    <i class="ph ph-trash hover:text-red-400 p-1" onclick="event.stopPropagation(); window.deleteSession('${session.id}')" title="Delete"></i>
                 </div>
             `;
             chatSessionsList.appendChild(btn);
@@ -217,6 +220,18 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSessionId = id;
         renderSessions();
         loadSession(id);
+    };
+
+    window.renameSession = function(id) {
+        const s = sessions.find(x => x.id === id);
+        if (s) {
+            const newName = prompt("Enter new chat name:", s.title);
+            if (newName && newName.trim() !== "") {
+                s.title = newName.trim();
+                saveSessions();
+                renderSessions();
+            }
+        }
     };
 
     window.togglePin = function(id) {
