@@ -122,11 +122,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
-            document.getElementById(loadingId).remove();
+            
+            // FIX: Safely check if element exists before removing to prevent UI crashes
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) loadingEl.remove();
+            
             if (isResync) resyncIcon.classList.remove('animate-spin');
 
             if (response.ok && data.status === 200) {
-                const htmlResponse = marked.parse(data.response);
+                // FIX: Fallback string mapping if AI returns undefined
+                const safeText = typeof data.response === 'string' ? data.response : "Data execution resulted in an unreadable payload.";
+                const htmlResponse = marked.parse(safeText);
+                
                 session.messages.push({ role: "artemis", text: htmlResponse, isHTML: true });
                 appendMessage(htmlResponse, 'artemis', true, selectedModel);
                 
@@ -145,7 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderSessions();
 
         } catch (error) {
-            document.getElementById(loadingId).remove();
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) loadingEl.remove();
+            
             if (isResync) resyncIcon.classList.remove('animate-spin');
             appendMessage(`Network Integrity Failure: ${error.message}`, 'artemis');
         }
