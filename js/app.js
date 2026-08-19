@@ -4,7 +4,7 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- FIX: UI NAVIGATION LOGIC (Prevents Blank Canvas Bugs) ---
+    // --- UI NAVIGATION LOGIC ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -21,16 +21,44 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.add('active');
             const targetId = item.getAttribute('data-target');
             const targetSection = document.getElementById(targetId);
+            
+            // Safe un-hide
             if(targetSection) {
                 targetSection.classList.remove('hidden');
-            }
-
-            // CRITICAL FIX: Force Chart.js to repaint when returning to the dashboard tab
-            if (targetId === 'dashboard-view') {
-                fetchDashboardData();
+                if (targetId === 'dashboard-view') {
+                    // Re-render charts so they don't blank out after display: none
+                    fetchDashboardData();
+                }
             }
         });
     });
+
+    // --- FIX: SIDEBAR TOGGLE LOGIC ---
+    const sidebar = document.getElementById('main-sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    const sidebarIcon = document.getElementById('sidebar-toggle-icon');
+    const navTexts = document.querySelectorAll('.nav-text');
+
+    if (sidebarToggleBtn) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            // Toggle container width
+            sidebar.classList.toggle('w-64');
+            sidebar.classList.toggle('w-20');
+            
+            // Toggle Text Visiblity
+            navTexts.forEach(txt => {
+                txt.classList.toggle('opacity-0');
+                txt.classList.toggle('hidden');
+            });
+            
+            // Flip Arrow Icon
+            if(sidebar.classList.contains('w-20')) {
+                sidebarIcon.classList.replace('ph-caret-left', 'ph-caret-right');
+            } else {
+                sidebarIcon.classList.replace('ph-caret-right', 'ph-caret-left');
+            }
+        });
+    }
 
     const dateElement = document.getElementById('current-date');
     if (dateElement) {
@@ -61,17 +89,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
-                // Update HTML Cards
-                document.getElementById('dash-total-tickets').textContent = data.stats.totalTickets.toLocaleString();
-                document.getElementById('dash-today-volume').textContent = data.stats.todayCount.toLocaleString();
-                
-                document.getElementById('dash-top-region').textContent = data.stats.topCountryToday.name;
-                document.getElementById('dash-top-region-count').textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
-                
-                document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
-                document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+                const totalTicketsEl = document.getElementById('dash-total-tickets');
+                const todayVolumeEl = document.getElementById('dash-today-volume');
+                const topRegionEl = document.getElementById('dash-top-region');
+                const topRegionCountEl = document.getElementById('dash-top-region-count');
+                const approvalRateEl = document.getElementById('dash-approval-rate');
+                const approvalVolEl = document.getElementById('dash-approval-vol');
 
-                // Update Daily Report Text
+                if(totalTicketsEl) totalTicketsEl.textContent = data.stats.totalTickets.toLocaleString();
+                if(todayVolumeEl) todayVolumeEl.textContent = data.stats.todayCount.toLocaleString();
+                if(topRegionEl) topRegionEl.textContent = data.stats.topCountryToday.name;
+                if(topRegionCountEl) topRegionCountEl.textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
+                if(approvalRateEl) approvalRateEl.textContent = data.stats.approvalRate.rate;
+                if(approvalVolEl) approvalVolEl.textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+
                 const reportEl = document.getElementById('daily-report-content');
                 if (reportEl) {
                     reportEl.innerHTML = `
@@ -81,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 }
 
-                // Render C-Suite Charts
                 renderCharts(data.stats.riskChart, data.stats.bottleneckChart);
             }
         } catch (error) {
@@ -97,19 +127,17 @@ document.addEventListener('DOMContentLoaded', () => {
         Chart.defaults.color = '#888';
         Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
-        // Risk Stratification Doughnut Chart
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
             if (riskChartInstance) riskChartInstance.destroy();
             
-            // Generate distinct colors based on risk labels
             const riskColors = riskData.labels.map(label => {
                 if (label === 'Critical') return '#ef4444'; // Red
                 if (label === 'High') return '#f97316'; // Orange
                 if (label === 'Medium') return '#DDAA33'; // Gold
                 if (label === 'Low') return '#10b981'; // Emerald
-                return '#333333'; // Unassessed/Grey
+                return '#333333'; // Unassessed
             });
 
             riskChartInstance = new Chart(riskCtx, {
@@ -134,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Stage Bottleneck Bar Chart
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
