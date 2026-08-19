@@ -4,7 +4,7 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- STABILIZED TAB NAVIGATION ---
+    // --- FIX 2: SAFE TAB NAVIGATION (No Layout Destruction) ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -12,14 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => {
             if (item.disabled) return;
             
+            // 1. Reset all button states
             navItems.forEach(nav => nav.classList.remove('active'));
             
-            // Wipe display states cleanly
+            // 2. Hide all sections cleanly using Tailwind 'hidden'
             viewSections.forEach(section => {
                 section.classList.add('hidden');
-                section.classList.remove('flex', 'block'); 
             });
             
+            // 3. Activate target
             item.classList.add('active');
             const targetId = item.getAttribute('data-target');
             const targetSection = document.getElementById(targetId);
@@ -27,20 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if(targetSection) {
                 targetSection.classList.remove('hidden');
                 
-                // Explicitly define layout behavior
-                if (targetId === 'artemis-view') {
-                    targetSection.classList.add('flex');
-                } else {
-                    targetSection.classList.add('block');
-                    if (targetId === 'dashboard-view') {
-                        fetchDashboardData(); // Force Chart Repaint
-                    }
+                // 4. Force Chart.js to repaint if dashboard is opened
+                if (targetId === 'dashboard-view') {
+                    fetchDashboardData(); 
                 }
             }
         });
     });
 
-    // --- ISOLATED SIDEBAR TOGGLE ---
+    // --- FIX 3: ISOLATED SIDEBAR TOGGLE ---
     const sidebar = document.getElementById('main-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     const sidebarIcon = document.getElementById('sidebar-toggle-icon');
@@ -48,13 +44,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', () => {
+            // Shrink container width only
             sidebar.classList.toggle('w-64');
             sidebar.classList.toggle('w-20');
             
+            // Hide text labels
             navTexts.forEach(txt => {
                 txt.classList.toggle('hidden');
             });
             
+            // Flip Arrow Icon
             if(sidebar.classList.contains('w-20')) {
                 sidebarIcon.classList.replace('ph-caret-left', 'ph-caret-right');
             } else {
