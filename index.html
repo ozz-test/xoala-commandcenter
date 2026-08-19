@@ -81,7 +81,7 @@
             </div>
         </header>
 
-        <!-- View 1: Command Dashboard (C-SUITE UPGRADE) -->
+        <!-- View 1: Command Dashboard -->
         <section id="dashboard-view" class="view-section active p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full block">
                 <div class="flex justify-between items-center mb-8 w-full">
@@ -92,7 +92,6 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
-                    <!-- Card 1: Total Tickets -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -105,7 +104,6 @@
                         </div>
                     </div>
 
-                    <!-- Card 2: Today's Volume -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -118,7 +116,6 @@
                         </div>
                     </div>
 
-                    <!-- Card 3: Top Jurisdiction (TODAY) -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -131,7 +128,6 @@
                         </div>
                     </div>
 
-                    <!-- Card 4: Approval Rate -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -146,12 +142,10 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-                    <!-- Risk Chart -->
                     <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
                         <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Risk Stratification</h3>
                         <div class="relative h-64 w-full"><canvas id="riskChart"></canvas></div>
                     </div>
-                    <!-- Bottleneck Chart -->
                     <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
                         <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Stage Bottlenecks</h3>
                         <div class="relative h-64 w-full"><canvas id="bottleneckChart"></canvas></div>
@@ -172,8 +166,9 @@
                     <h2 class="text-xl font-light text-gold flex items-center gap-2">
                         <i class="ph ph-article"></i> Executive Summary
                     </h2>
-                    <p class="text-gray-300 leading-relaxed text-sm font-sans">
-                        The Data Lake infrastructure is currently maintaining a steady ingestion flow. To perform deep-dive risk analytics on specific cohorts, please switch to the Artemis AI Core tab and issue a secure query to the analytical engine.
+                    <!-- Dynamic Live Text Injected Here -->
+                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">
+                        Synchronizing real-time Data Lake analytics...
                     </p>
                 </div>
             </div>
