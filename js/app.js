@@ -4,7 +4,7 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- UI NAVIGATION LOGIC ---
+    // --- STABLE TAB NAVIGATION & DISPLAY MANAGEMENT ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -15,46 +15,51 @@ document.addEventListener('DOMContentLoaded', () => {
             navItems.forEach(nav => nav.classList.remove('active'));
             viewSections.forEach(section => {
                 section.classList.add('hidden');
-                section.classList.remove('active'); 
+                section.classList.remove('flex'); // Remove flex override safely
             });
             
             item.classList.add('active');
             const targetId = item.getAttribute('data-target');
             const targetSection = document.getElementById(targetId);
             
-            // Safe un-hide
             if(targetSection) {
                 targetSection.classList.remove('hidden');
-                if (targetId === 'dashboard-view') {
-                    // Re-render charts so they don't blank out after display: none
-                    fetchDashboardData();
+                
+                // Explicitly apply correct layout display modes per view
+                if (targetId === 'artemis-view') {
+                    targetSection.classList.add('flex');
+                } else {
+                    targetSection.classList.add('flex-1');
+                    if (targetId === 'dashboard-view') {
+                        fetchDashboardData();
+                    }
                 }
             }
         });
     });
 
-    // --- FIX: SIDEBAR TOGGLE LOGIC ---
+    // --- ISOLATED SIDEBAR TOGGLE (Collapses text labels, preserves logo scaling) ---
     const sidebar = document.getElementById('main-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     const sidebarIcon = document.getElementById('sidebar-toggle-icon');
     const navTexts = document.querySelectorAll('.nav-text');
+    const logoContainer = document.querySelector('.logo-container');
 
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', () => {
-            // Toggle container width
             sidebar.classList.toggle('w-64');
             sidebar.classList.toggle('w-20');
             
-            // Toggle Text Visiblity
             navTexts.forEach(txt => {
-                txt.classList.toggle('opacity-0');
                 txt.classList.toggle('hidden');
             });
             
-            // Flip Arrow Icon
+            // Elegantly scale down the logo instead of hiding it completely
             if(sidebar.classList.contains('w-20')) {
+                if(logoContainer) logoContainer.style.transform = 'scale(0.55)';
                 sidebarIcon.classList.replace('ph-caret-left', 'ph-caret-right');
             } else {
+                if(logoContainer) logoContainer.style.transform = 'scale(1)';
                 sidebarIcon.classList.replace('ph-caret-right', 'ph-caret-left');
             }
         });
@@ -133,11 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (riskChartInstance) riskChartInstance.destroy();
             
             const riskColors = riskData.labels.map(label => {
-                if (label === 'Critical') return '#ef4444'; // Red
-                if (label === 'High') return '#f97316'; // Orange
-                if (label === 'Medium') return '#DDAA33'; // Gold
-                if (label === 'Low') return '#10b981'; // Emerald
-                return '#333333'; // Unassessed
+                if (label === 'Critical') return '#ef4444'; 
+                if (label === 'High') return '#f97316'; 
+                if (label === 'Medium') return '#DDAA33'; 
+                if (label === 'Low') return '#10b981'; 
+                return '#333333'; 
             });
 
             riskChartInstance = new Chart(riskCtx, {
