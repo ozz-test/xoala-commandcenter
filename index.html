@@ -38,9 +38,10 @@
             <i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i>
         </button>
 
-        <div class="h-24 flex items-center justify-center border-b border-white/5 relative w-full overflow-hidden">
-            <div class="logo-container w-[160px] h-[50px] relative">
-                <div class="xoala-logo w-full h-full"></div>
+        <div class="h-24 flex items-center justify-start pl-6 border-b border-white/5 w-full overflow-hidden">
+            <!-- FIX 3: Logo no longer scales, it simply truncates cleanly -->
+            <div class="logo-container w-[160px] h-[50px] flex-shrink-0">
+                <div class="xoala-logo w-[160px] h-full"></div>
             </div>
         </div>
 
@@ -157,7 +158,7 @@
         </section>
 
         <!-- View 2: Daily Report -->
-        <section id="daily-report-view" class="view-section hidden flex-1 p-10 overflow-y-auto w-full">
+        <section id="daily-report-view" class="view-section hidden block flex-1 p-10 overflow-y-auto w-full">
             <div class="max-w-5xl mx-auto w-full flex flex-col space-y-8">
                 <div class="flex justify-between items-end border-b border-white/10 pb-4">
                     <h1 class="text-3xl font-light tracking-tight text-white">Daily Operations Brief</h1>
@@ -175,8 +176,8 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core -->
-        <section id="artemis-view" class="view-section hidden flex-1 w-full h-full overflow-hidden">
+        <!-- View 3: Artemis AI Core (Restored Flex Layout Integrity) -->
+        <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg">
                     <i class="ph ph-plus text-base"></i><span>New Chat</span>
