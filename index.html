@@ -32,9 +32,7 @@
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
-    <!-- Main Sidebar -->
     <aside id="main-sidebar" class="sidebar-expanded bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
-        
         <button id="sidebar-toggle" class="absolute -right-3 top-8 bg-panel border border-white/10 rounded-full p-1 z-40 text-gray-400 hover:text-gold shadow-lg transition-colors">
             <i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i>
         </button>
@@ -72,10 +70,8 @@
         </div>
     </aside>
 
-    <!-- Main Workspace -->
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)]">
         
-        <!-- Top Status Bar -->
         <header class="h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10">
             <div class="flex items-center space-x-4">
                 <div class="text-xs text-gray-400 font-medium">Admin User</div>
@@ -85,62 +81,66 @@
             </div>
         </header>
 
-        <!-- View 1: Command Dashboard -->
+        <!-- View 1: Command Dashboard (LIVE WIRED) -->
         <section id="dashboard-view" class="view-section active p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full block">
                 <div class="flex justify-between items-center mb-8 w-full">
                     <h1 class="text-3xl font-light tracking-tight text-white">Terminal Operations</h1>
-                    <div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg">
-                        <i class="ph ph-user text-gold text-lg"></i>
+                    <div id="dashboard-refresh-btn" class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg cursor-pointer hover:bg-gold/10 transition-colors" title="Sync Analytics">
+                        <i class="ph ph-arrows-clockwise text-gold text-lg" id="dashboard-sync-icon"></i>
                     </div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
+                    <!-- Card 1: Total Tickets -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Active KYC Tickets</h3>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3>
                             <i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
-                        <div class="font-mono text-4xl text-white font-light mb-2">1,634</div>
+                        <div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div>
                         <div class="flex items-center space-x-1 text-xs text-emerald-400">
-                            <i class="ph ph-trend-up"></i><span>Synchronized via Data Lake</span>
+                            <i class="ph ph-trend-up"></i><span>Live from Data Lake</span>
                         </div>
                     </div>
 
+                    <!-- Card 2: Today's Volume (Replaces Pipeline Integrity) -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Pipeline Integrity</h3>
-                            <i class="ph ph-shield-check text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3>
+                            <i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
-                        <div class="font-mono text-4xl text-white font-light mb-2">99.8<span class="text-2xl text-gray-500">%</span></div>
+                        <div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div>
                         <div class="flex items-center space-x-1 text-xs text-emerald-400">
-                            <i class="ph ph-check-circle"></i><span>System Optimal</span>
+                            <i class="ph ph-check-circle"></i><span>Registrations (24h)</span>
                         </div>
                     </div>
 
+                    <!-- Card 3: Top Jurisdiction (Replaces High Risk) -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-red-900"></div>
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">High Risk Escalations</h3>
-                            <i class="ph ph-warning-octagon text-red-500 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Jurisdiction</h3>
+                            <i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
-                        <div class="font-mono text-4xl text-white font-light mb-2">24</div>
-                        <div class="flex items-center space-x-1 text-xs text-red-400">
-                            <i class="ph ph-clock"></i><span>Pending MLRO Review</span>
+                        <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
+                        <div class="flex items-center space-x-1 text-xs text-blue-400">
+                            <i class="ph ph-users"></i><span id="dash-top-region-count">Highest Volume Lead</span>
                         </div>
                     </div>
 
+                    <!-- Card 4: Status -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-50"></div>
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Artemis Core</h3>
-                            <i class="ph ph-cpu text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"></i>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Terminal Status</h3>
+                            <i class="ph ph-cpu text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"></i>
                         </div>
                         <div class="font-mono text-3xl text-white font-light mb-2 mt-1">ONLINE</div>
-                        <div class="flex items-center space-x-1 text-xs text-blue-400">
-                            <i class="ph ph-lightning"></i><span>Latency: 42ms</span>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400">
+                            <i class="ph ph-lightning"></i><span id="dash-latency">Latency: Optimal</span>
                         </div>
                     </div>
                 </div>
@@ -151,7 +151,7 @@
                         <div class="relative h-64 w-full"><canvas id="geoChart"></canvas></div>
                     </div>
                     <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
-                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Pipeline Volume (30D)</h3>
+                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Trailing Volume (7D)</h3>
                         <div class="relative h-64 w-full"><canvas id="trendChart"></canvas></div>
                     </div>
                 </div>
@@ -171,26 +171,14 @@
                         <i class="ph ph-article"></i> Executive Summary
                     </h2>
                     <p class="text-gray-300 leading-relaxed text-sm font-sans">
-                        System pipeline integrity remains optimal at 99.8%. The Data Lake successfully synchronized 1,634 active KYC tickets during the 00:00 PKT batch cycle. There are currently 24 escalations marked as high-risk requiring immediate MLRO review. No anomalies detected in global registration flows over the last 24 hours.
+                        The Data Lake infrastructure is currently maintaining a steady ingestion flow. To perform deep-dive risk analytics on specific cohorts, please switch to the Artemis AI Core tab and issue a secure query to the analytical engine.
                     </p>
-                    
-                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                        <div>
-                            <h4 class="text-xs uppercase text-gray-500 mb-1">Top Growth Region</h4>
-                            <div class="text-lg text-white">Cyprus (EU) <span class="text-emerald-400 text-sm ml-2">+12%</span></div>
-                        </div>
-                        <div>
-                            <h4 class="text-xs uppercase text-gray-500 mb-1">System Load</h4>
-                            <div class="text-lg text-white">Normal <span class="text-gray-400 text-sm ml-2">42ms latency</span></div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
 
         <!-- View 3: Artemis AI Core -->
         <section id="artemis-view" class="view-section flex h-full hidden w-full">
-            
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg">
                     <i class="ph ph-plus text-base"></i><span>New Chat</span>
@@ -215,7 +203,6 @@
                         </div>
                     </div>
                     
-                    <!-- 1:1 Model Naming Alignment -->
                     <select id="model-select" class="bg-obsidian border border-gray-700 text-gold text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg outline-none cursor-pointer hover:border-gold/50 transition-all shadow-lg focus:ring-1 focus:ring-gold">
                         <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
                         <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
