@@ -4,7 +4,7 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- STABLE TAB NAVIGATION & DISPLAY MANAGEMENT ---
+    // --- STABILIZED TAB NAVIGATION ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -13,9 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.disabled) return;
             
             navItems.forEach(nav => nav.classList.remove('active'));
+            
+            // Wipe display states cleanly
             viewSections.forEach(section => {
                 section.classList.add('hidden');
-                section.classList.remove('flex'); // Remove flex override safely
+                section.classList.remove('flex', 'block'); 
             });
             
             item.classList.add('active');
@@ -25,25 +27,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if(targetSection) {
                 targetSection.classList.remove('hidden');
                 
-                // Explicitly apply correct layout display modes per view
+                // Explicitly define layout behavior
                 if (targetId === 'artemis-view') {
                     targetSection.classList.add('flex');
                 } else {
-                    targetSection.classList.add('flex-1');
+                    targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') {
-                        fetchDashboardData();
+                        fetchDashboardData(); // Force Chart Repaint
                     }
                 }
             }
         });
     });
 
-    // --- ISOLATED SIDEBAR TOGGLE (Collapses text labels, preserves logo scaling) ---
+    // --- ISOLATED SIDEBAR TOGGLE ---
     const sidebar = document.getElementById('main-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     const sidebarIcon = document.getElementById('sidebar-toggle-icon');
     const navTexts = document.querySelectorAll('.nav-text');
-    const logoContainer = document.querySelector('.logo-container');
 
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', () => {
@@ -54,12 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 txt.classList.toggle('hidden');
             });
             
-            // Elegantly scale down the logo instead of hiding it completely
             if(sidebar.classList.contains('w-20')) {
-                if(logoContainer) logoContainer.style.transform = 'scale(0.55)';
                 sidebarIcon.classList.replace('ph-caret-left', 'ph-caret-right');
             } else {
-                if(logoContainer) logoContainer.style.transform = 'scale(1)';
                 sidebarIcon.classList.replace('ph-caret-right', 'ph-caret-left');
             }
         });
