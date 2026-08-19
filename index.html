@@ -46,7 +46,7 @@
         <nav class="flex-1 py-8 px-4 space-y-2 overflow-hidden">
             <button data-target="dashboard-view" class="nav-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300">
                 <i class="ph ph-squares-four text-xl flex-shrink-0"></i>
-                <span class="nav-text whitespace-nowrap">Command Dashboard</span>
+                <span class="nav-text whitespace-nowrap">Dashboard</span>
             </button>
             <button data-target="daily-report-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300">
                 <i class="ph ph-file-text text-xl flex-shrink-0"></i>
@@ -81,7 +81,7 @@
             </div>
         </header>
 
-        <!-- View 1: Command Dashboard (LIVE WIRED) -->
+        <!-- View 1: Command Dashboard (C-SUITE UPGRADE) -->
         <section id="dashboard-view" class="view-section active p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full block">
                 <div class="flex justify-between items-center mb-8 w-full">
@@ -105,7 +105,7 @@
                         </div>
                     </div>
 
-                    <!-- Card 2: Today's Volume (Replaces Pipeline Integrity) -->
+                    <!-- Card 2: Today's Volume -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -118,41 +118,43 @@
                         </div>
                     </div>
 
-                    <!-- Card 3: Top Jurisdiction (Replaces High Risk) -->
+                    <!-- Card 3: Top Jurisdiction (TODAY) -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Jurisdiction</h3>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3>
                             <i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                         <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
                         <div class="flex items-center space-x-1 text-xs text-blue-400">
-                            <i class="ph ph-users"></i><span id="dash-top-region-count">Highest Volume Lead</span>
+                            <i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span>
                         </div>
                     </div>
 
-                    <!-- Card 4: Status -->
+                    <!-- Card 4: Approval Rate -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Terminal Status</h3>
-                            <i class="ph ph-cpu text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"></i>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (30D)</h3>
+                            <i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
-                        <div class="font-mono text-3xl text-white font-light mb-2 mt-1">ONLINE</div>
+                        <div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div>
                         <div class="flex items-center space-x-1 text-xs text-emerald-400">
-                            <i class="ph ph-lightning"></i><span id="dash-latency">Latency: Optimal</span>
+                            <i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                    <!-- Risk Chart -->
                     <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
-                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Registrations by Country</h3>
-                        <div class="relative h-64 w-full"><canvas id="geoChart"></canvas></div>
+                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Risk Stratification</h3>
+                        <div class="relative h-64 w-full"><canvas id="riskChart"></canvas></div>
                     </div>
+                    <!-- Bottleneck Chart -->
                     <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
-                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Trailing Volume (7D)</h3>
-                        <div class="relative h-64 w-full"><canvas id="trendChart"></canvas></div>
+                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Stage Bottlenecks</h3>
+                        <div class="relative h-64 w-full"><canvas id="bottleneckChart"></canvas></div>
                     </div>
                 </div>
             </div>
