@@ -10,6 +10,11 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- NEW: SVG Map Engine CDNs -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -32,6 +37,17 @@
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
+        
+        /* Custom Tooltip Styling for the Geo Map */
+        .jvm-tooltip {
+            background-color: #1a1a1a !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #fff !important;
+            font-family: 'ui-monospace', monospace !important;
+            border-radius: 6px !important;
+            padding: 8px !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+        }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -54,15 +70,12 @@
             </div>
             <button id="close-drilldown-btn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"><i class="ph ph-x"></i></button>
         </div>
-        
-        <!-- Live Search Bar inside Panel -->
         <div class="px-4 py-3 border-b border-white/5 bg-black/20 flex-shrink-0">
             <div class="relative">
                 <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                <input type="text" id="drilldown-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-gold/50 transition-colors" placeholder="Search 500+ leads in real-time...">
+                <input type="text" id="drilldown-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-gold/50 transition-colors" placeholder="Search leads in real-time...">
             </div>
         </div>
-
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
 
@@ -105,12 +118,12 @@
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (30D)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span></div></div>
                 </div>
                 
-                <!-- FIX: The redundant global dashboard filter has been removed from here completely -->
                 <div class="flex justify-between items-end w-full mb-4">
-                    <h2 class="text-lg font-light tracking-tight text-white">Visual Analytics</h2>
+                    <h2 class="text-lg font-light tracking-tight text-white">Business Intelligence</h2>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                    <!-- RISK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Risk Stratification</h3>
@@ -121,6 +134,8 @@
                         </div>
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full canvas-glow flex-1" style="min-height: 220px;"><canvas id="riskChart"></canvas></div><div id="risk-legend" class="mt-6 flex flex-wrap justify-center gap-4"></div></div>
                     </div>
+                    
+                    <!-- BOTTLENECK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Stage Bottlenecks</h3>
@@ -130,6 +145,31 @@
                             </div>
                         </div>
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full flex-1" style="min-height: 220px;"><canvas id="bottleneckChart"></canvas></div><div id="bot-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div></div>
+                    </div>
+
+                    <!-- GEOGRAPHIC DISTRIBUTION (SVG CHOROPLETH) -->
+                    <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden">
+                        <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02] z-10 relative">
+                            <div class="flex items-center space-x-4">
+                                <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Geographic Distribution</h3>
+                                <!-- MACRO-REGION TOGGLES -->
+                                <div class="flex bg-black/40 border border-white/5 rounded-lg p-0.5" id="macro-region-toggles">
+                                    <button class="geo-region-btn active px-3 py-1 rounded text-[10px] font-mono tracking-widest text-white bg-white/10" data-region="ALL">GLOBAL</button>
+                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="EMEA">EMEA</button>
+                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="APAC">APAC</button>
+                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="LATAM">LATAM</button>
+                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="NA">NA</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5">
+                                <input type="date" id="geo-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="geo-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
+                                <button id="geo-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="geo-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button>
+                            </div>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col relative z-0 bg-[#0a0a0a]">
+                            <div id="geo-map" class="relative w-full flex-1" style="min-height: 400px; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2));"></div>
+                            <div id="geo-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -148,9 +188,7 @@
                         <h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-article"></i> Executive Summary</h2>
                         <div class="px-2 py-1 border border-emerald-500/30 bg-emerald-500/10 rounded text-[10px] font-mono text-emerald-400 uppercase">Live Data</div>
                     </div>
-                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">
-                        Awaiting data sync...
-                    </p>
+                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">Awaiting data sync...</p>
                 </div>
                 
                 <div class="flex justify-between items-end w-full mt-4">
@@ -185,7 +223,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core -->
+        <!-- View 3: Artemis AI Core (Unchanged) -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
