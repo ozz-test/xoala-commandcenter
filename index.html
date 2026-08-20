@@ -37,16 +37,16 @@
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
-    <!-- LEAD CONTEXT MENU (Micro-Interaction) -->
+    <!-- LEAD CONTEXT MENU -->
     <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
         <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors">
             <i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span>
         </button>
     </div>
 
-    <!-- DRILL-DOWN SLIDE PANEL -->
+    <!-- DRILL-DOWN SLIDE PANEL WITH LIVE SEARCH -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
-    <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-96 bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+    <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
             <div>
                 <h3 id="drilldown-title" class="text-gold font-light tracking-tight text-xl">Category View</h3>
@@ -54,6 +54,15 @@
             </div>
             <button id="close-drilldown-btn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"><i class="ph ph-x"></i></button>
         </div>
+        
+        <!-- Live Search Bar inside Panel -->
+        <div class="px-4 py-3 border-b border-white/5 bg-black/20 flex-shrink-0">
+            <div class="relative">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                <input type="text" id="drilldown-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-gold/50 transition-colors" placeholder="Search 500+ leads in real-time...">
+            </div>
+        </div>
+
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
 
@@ -81,29 +90,26 @@
             <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
         </header>
 
-        <!-- View 1: Dashboard (Unchanged) -->
+        <!-- View 1: Dashboard -->
         <section id="dashboard-view" class="view-section block flex-1 p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full block">
                 <div class="flex justify-between items-center mb-8 w-full">
                     <h1 class="text-3xl font-light tracking-tight text-white">Terminal Operations</h1>
                     <div id="dashboard-global-refresh-btn" class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg cursor-pointer hover:bg-gold/10 transition-colors" title="Sync Analytics"><i class="ph ph-arrows-clockwise text-gold text-lg" id="dashboard-global-sync-icon"></i></div>
                 </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div></div>
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div></div>
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div><div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div></div>
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (30D)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span></div></div>
                 </div>
+                
+                <!-- FIX: The redundant global dashboard filter has been removed from here completely -->
                 <div class="flex justify-between items-end w-full mb-4">
                     <h2 class="text-lg font-light tracking-tight text-white">Visual Analytics</h2>
-                    <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
-                        <div class="flex items-center space-x-2"><label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label><input type="date" id="dash-start-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer"></div>
-                        <div class="flex items-center space-x-2"><label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">To</label><input type="date" id="dash-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer"></div>
-                        <div class="w-px h-6 bg-white/10 mx-2"></div>
-                        <button id="dash-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2">Clear</button>
-                        <button id="dash-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1"><i class="ph ph-funnel" id="dash-sync-icon"></i><span>Filter</span></button>
-                    </div>
                 </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
@@ -137,7 +143,6 @@
                     <span class="text-gold font-mono text-sm tracking-widest" id="current-date"></span>
                 </div>
                 
-                <!-- RESTORED EXECUTIVE SUMMARY BLOCK -->
                 <div class="glass-card p-8 rounded-xl border border-white/5 space-y-4">
                     <div class="flex justify-between items-center">
                         <h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-article"></i> Executive Summary</h2>
@@ -163,7 +168,6 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead>
-                                <!-- UI FIX: Removed (Days) from headers -->
                                 <tr class="bg-white/5 border-b border-white/10 text-[11px] uppercase tracking-widest text-gray-400 font-mono">
                                     <th class="py-4 px-6 font-semibold w-2/5">Account Manager / Stage</th>
                                     <th class="py-4 px-6 font-semibold text-right">Total Tickets</th>
