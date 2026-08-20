@@ -48,6 +48,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
+    // --- GEOGRAPHIC MAPPING (ISO-2 Codes) ---
+    const countryToIsoMap = {
+        "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
+        "united states": "us", "usa": "us", "united states of america": "us",
+        "canada": "ca", "australia": "au", "germany": "de", "france": "fr", "spain": "es", "italy": "it",
+        "cyprus": "cy", "greece": "gr", "netherlands": "nl", "belgium": "be", "switzerland": "ch",
+        "united arab emirates": "ae", "uae": "ae", "singapore": "sg", "hong kong": "hk", "japan": "jp",
+        "india": "in", "pakistan": "pk", "malaysia": "my", "indonesia": "id", "brazil": "br",
+        "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", "estonia": "ee",
+        "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
+        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro",
+        "czechia": "cz", "czech republic": "cz", "bulgaria": "bg", "hungary": "hu", "austria": "at",
+        "malta": "mt", "luxembourg": "lu", "new zealand": "nz", "israel": "il", "china": "cn",
+        "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg",
+        "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
+        "russia": "cn", "taiwan": "tw"
+    };
+
+    const regionsMap = {
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'tw'],
+        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe'],
+        'NA': ['us', 'ca']
+    };
+
     // --- DRILL-DOWN PANEL & LIVE SEARCH LOGIC ---
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
@@ -55,16 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const drilldownList = document.getElementById('drilldown-list');
     const drilldownSearch = document.getElementById('drilldown-search');
     let currentDrilldownLeads = [];
+    let currentDrilldownIso = null;
 
-    const renderDrilldownList = (leads) => {
-        drilldownList.innerHTML = leads.map(name => `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors" title="${name}">${name}</li>`).join('');
+    const renderDrilldownList = (leads, isoCode = null) => {
+        const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '';
+        drilldownList.innerHTML = leads.map(name => `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors flex items-center" title="${name}">${flagHtml}${name}</li>`).join('');
     };
 
-    const openDrilldown = (title, leads) => {
+    const openDrilldown = (title, leads, isoCode = null) => {
         drilldownTitle.textContent = title;
         document.getElementById('drilldown-count').textContent = `${leads.length} Tickets Found`;
         currentDrilldownLeads = leads; 
-        renderDrilldownList(leads);
+        currentDrilldownIso = isoCode;
+        renderDrilldownList(leads, isoCode);
         
         if (drilldownSearch) drilldownSearch.value = ''; 
         drilldownOverlay.classList.remove('hidden');
@@ -76,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drilldownSearch.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             const filtered = currentDrilldownLeads.filter(l => l.toLowerCase().includes(term));
-            renderDrilldownList(filtered);
+            renderDrilldownList(filtered, currentDrilldownIso);
         });
     }
 
@@ -113,8 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const leadCell = e.target.closest('.lead-name-cell');
         if (leadCell) {
             currentTicketId = leadCell.getAttribute('data-ticket-id');
-            ctxMenu.style.top = `${e.pageY + 10}px`;
-            ctxMenu.style.left = `${e.pageX + 10}px`;
+            ctxMenu.style.top = `${e.pageY + 10}px`; ctxMenu.style.left = `${e.pageX + 10}px`;
             ctxMenu.classList.remove('hidden');
             e.stopPropagation();
         } else if (!e.target.closest('#lead-context-menu')) {
@@ -142,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'bg-red-500/10 text-red-400 border border-red-500/20';
     };
 
-    // --- TIME FORMATTER (e.g., 2.2 -> 2d 4h 48m) ---
     const formatTime = (decimalDays) => {
         const val = parseFloat(decimalDays);
         if (isNaN(val) || val <= 0) return "0m";
@@ -186,22 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch(DASHBOARD_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action: 'get_matrix_data',
-                    startDate: startEl.value, endDate: endEl.value,
-                    secret: 'system_dashboard_init', prompt: 'system', model: 'gemini-3.5-flash-lite'
-                })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_matrix_data', startDate: startEl.value, endDate: endEl.value, secret: 'system_dashboard_init', prompt: 'system', model: 'gemini-3.5-flash-lite' })
             });
 
             const responseData = await response.json();
-
-            if (responseData.status === 200 && responseData.data) {
-                renderMatrix(responseData.data);
-            } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
-            }
+            if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
+            else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
         } catch (error) {
             tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
         } finally {
@@ -235,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const trStg = document.createElement('tr');
                 trStg.className = `mgr-${mgrIndex}-child bg-transparent hover:bg-white/5 transition-colors cursor-pointer hidden group border-b border-white/5`;
                 trStg.innerHTML = `
-                    <td class="py-2 px-6 flex items-center space-x-2 pl-12"><i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i><span class="text-sm text-gray-400">${stg.stageName}</span></td>
+                    <td class="py-2 px-6 flex items-center space-x-2 pl-12 border-l-2 border-white/10 ml-6"><i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i><span class="text-sm text-gray-400">${stg.stageName}</span></td>
                     <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.tickets}</td>
                     <td class="py-2 px-6 text-right font-mono text-sm text-gray-500">${stg.introducer}</td>
                     <td class="py-2 px-6 text-right font-mono"><span class="px-2 py-0.5 rounded text-[10px] ${getHeatmapClass(stg.avgAging)}">${formatTime(stg.avgAging)}</span></td>
@@ -246,11 +263,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 stg.leads.forEach(lead => {
                     const trLead = document.createElement('tr');
                     trLead.className = `mgr-${mgrIndex}-child stg-${mgrIndex}-${stgIndex}-child bg-black/20 hidden`;
-                    
                     const introBadge = lead.introducer === 'Yes' ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Yes</span>` : `<span class="text-gray-600">-</span>`;
-
                     trLead.innerHTML = `
-                        <td class="py-1.5 px-6 pl-20 text-xs font-mono truncate max-w-xs cursor-pointer hover:text-white text-gray-400 transition-colors lead-name-cell" data-ticket-id="${lead.ticketId}" title="${lead.name}">- ${lead.name}</td>
+                        <td class="py-1.5 px-6 pl-20 border-l-2 border-white/5 text-xs font-mono truncate max-w-xs cursor-pointer hover:text-white text-gray-400 transition-colors lead-name-cell" data-ticket-id="${lead.ticketId}" title="${lead.name}">- ${lead.name}</td>
                         <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">-</td>
                         <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">${introBadge}</td>
                         <td class="py-1.5 px-6 text-right font-mono"><span class="px-2 py-[1px] rounded text-[10px] ${getHeatmapClass(lead.aging)}">${formatTime(lead.aging)}</span></td>
@@ -283,13 +298,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('matrix-refresh-btn').addEventListener('click', fetchMatrixData);
-    document.getElementById('matrix-clear-btn').addEventListener('click', () => {
-        document.getElementById('matrix-start-date').value = ''; document.getElementById('matrix-end-date').value = ''; fetchMatrixData(); 
-    });
+    document.getElementById('matrix-clear-btn').addEventListener('click', () => { document.getElementById('matrix-start-date').value = ''; document.getElementById('matrix-end-date').value = ''; fetchMatrixData(); });
 
     // --- DASHBOARD REAL-TIME ANALYTICS ---
-    let riskChartInstance = null; let bottleneckChartInstance = null;
-    let currentRiskData = null; let currentBotData = null;
+    let riskChartInstance = null; let bottleneckChartInstance = null; let geoMapInstance = null;
+    let currentRiskData = null; let currentBotData = null; let currentGeoData = null;
+    let currentRegionFilter = 'ALL';
 
     const fetchDashboardData = async () => {
         const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
@@ -297,20 +311,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const filters = {
             risk: { start: document.getElementById('risk-start-date').value, end: document.getElementById('risk-end-date').value },
-            bottleneck: { start: document.getElementById('bot-start-date').value, end: document.getElementById('bot-end-date').value }
+            bottleneck: { start: document.getElementById('bot-start-date').value, end: document.getElementById('bot-end-date').value },
+            geo: { start: document.getElementById('geo-start-date').value, end: document.getElementById('geo-end-date').value }
         };
 
         try {
             const response = await fetch(DASHBOARD_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get_dashboard_stats', filters: filters, prompt: 'system_dashboard_init', model: 'gemini-3.5-flash-lite', history: [] })
             });
-
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
-                currentRiskData = data.stats.riskChart; currentBotData = data.stats.bottleneckChart;
+                currentRiskData = data.stats.riskChart; currentBotData = data.stats.bottleneckChart; currentGeoData = data.stats.geoChart;
+                
                 document.getElementById('dash-total-tickets').textContent = data.stats.totalTickets.toLocaleString();
                 document.getElementById('dash-today-volume').textContent = data.stats.todayCount.toLocaleString();
                 document.getElementById('dash-top-region').textContent = data.stats.topCountryToday.name;
@@ -323,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications.`;
                 }
                 renderCharts(currentRiskData, currentBotData);
+                renderGeoMap(currentGeoData, currentRegionFilter);
             }
         } catch (error) { console.error("Dashboard Network Failure:", error); } 
         finally { if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); }
@@ -331,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderCharts = (riskData, bottleneckData) => {
         Chart.defaults.color = '#888'; Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
+        // Risk Chart
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
@@ -343,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('risk-legend').innerHTML = riskData.labels.map((lbl, i) => `<div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))"><span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span><span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span></div>`).join('');
         }
 
+        // Bottleneck Chart
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
@@ -357,9 +374,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- GEO SVG MAP RENDERER ---
+    const renderGeoMap = (geoData, regionFilter) => {
+        const mapEl = document.getElementById('geo-map');
+        if(!mapEl) return;
+        mapEl.innerHTML = ''; 
+
+        const mapDataObj = {};
+        const hoverData = {}; 
+
+        geoData.labels.forEach((countryName, i) => {
+            const cleanName = countryName.toLowerCase().trim();
+            const isoCode = countryToIsoMap[cleanName];
+            
+            if (isoCode) {
+                const codeUpper = isoCode.toUpperCase();
+                if (regionFilter === 'ALL' || (regionsMap[regionFilter] && regionsMap[regionFilter].includes(isoCode))) {
+                    mapDataObj[codeUpper] = geoData.data[i];
+                    hoverData[codeUpper] = { count: geoData.data[i], name: countryName, leads: geoData.leads[i], iso: isoCode };
+                }
+            }
+        });
+
+        geoMapInstance = new jsVectorMap({
+            selector: '#geo-map',
+            map: 'world',
+            backgroundColor: 'transparent',
+            zoomOnScroll: false,
+            regionStyle: {
+                initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 },
+                hover: { fill: '#F0D788', fillOpacity: 1 }
+            },
+            visualizeData: { scale: ['#0f3f2b', '#10b981'], values: mapDataObj },
+            onRegionTooltipShow(event, tooltip, code) {
+                if (hoverData[code]) {
+                    tooltip.text(`<div class="bg-surface border border-white/10 px-2 py-1 rounded text-xs font-mono"><img src="https://flagcdn.com/16x12/${hoverData[code].iso}.png" class="inline mr-1 rounded-sm"/> ${hoverData[code].name}: <span class="text-gold">${hoverData[code].count}</span></div>`, true);
+                } else event.preventDefault(); 
+            },
+            onRegionClick(event, code) {
+                if (hoverData[code]) openDrilldown(hoverData[code].name, hoverData[code].leads, hoverData[code].iso);
+            }
+        });
+
+        const totalInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
+        document.getElementById('geo-legend').innerHTML = `<div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center space-x-2"><span class="w-3 h-3 rounded-sm bg-gradient-to-r from-[#0f3f2b] to-[#10b981]"></span><span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span></div>`;
+    };
+
+    // --- WIDGET EVENT LISTENERS ---
     const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn'); if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
+    
     document.getElementById('risk-start-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-end-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-clear-btn').addEventListener('click', () => { document.getElementById('risk-start-date').value = ''; document.getElementById('risk-end-date').value = ''; fetchDashboardData(); }); document.getElementById('risk-export-btn').addEventListener('click', () => { if(currentRiskData) downloadCSV('Risk_Stratification', currentRiskData.labels, currentRiskData.data, currentRiskData.leads); });
+    
     document.getElementById('bot-start-date').addEventListener('change', fetchDashboardData); document.getElementById('bot-end-date').addEventListener('change', fetchDashboardData); document.getElementById('bot-clear-btn').addEventListener('click', () => { document.getElementById('bot-start-date').value = ''; document.getElementById('bot-end-date').value = ''; fetchDashboardData(); }); document.getElementById('bot-export-btn').addEventListener('click', () => { if(currentBotData) downloadCSV('Stage_Bottlenecks', currentBotData.labels, currentBotData.data, currentBotData.leads); });
+
+    document.getElementById('geo-start-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-end-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-clear-btn').addEventListener('click', () => { document.getElementById('geo-start-date').value = ''; document.getElementById('geo-end-date').value = ''; fetchDashboardData(); }); document.getElementById('geo-export-btn').addEventListener('click', () => { if(currentGeoData) downloadCSV('Geographic_Distribution', currentGeoData.labels, currentGeoData.data, currentGeoData.leads); });
+
+    // MACRO-REGION TOGGLES
+    document.querySelectorAll('.geo-region-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.geo-region-btn').forEach(b => {
+                b.classList.remove('active', 'text-white', 'bg-white/10');
+                b.classList.add('text-gray-500');
+            });
+            e.target.classList.remove('text-gray-500');
+            e.target.classList.add('active', 'text-white', 'bg-white/10');
+            currentRegionFilter = e.target.getAttribute('data-region');
+            if (currentGeoData) renderGeoMap(currentGeoData, currentRegionFilter);
+        });
+    });
 
     fetchDashboardData();
 });
