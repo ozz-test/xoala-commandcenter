@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(link);
     };
 
-    // --- MATRIX LOGIC (Keep exact same) ---
+    // --- MATRIX LOGIC (RESTORED) ---
     const setMatrixDefaultDates = () => {
         const now = new Date();
         const currentDay = now.getDay(); 
@@ -114,8 +114,124 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     setMatrixDefaultDates();
 
-    const fetchMatrixData = async () => { /* ... keep your existing fetchMatrixData implementation ... */ };
-    const renderMatrix = (matrixData) => { /* ... keep your existing renderMatrix implementation ... */ };
+    const fetchMatrixData = async () => {
+        const syncIcon = document.getElementById('matrix-sync-icon');
+        const tbody = document.getElementById('matrix-table-body');
+        const startEl = document.getElementById('matrix-start-date');
+        const endEl = document.getElementById('matrix-end-date');
+        
+        if(!startEl || !endEl || !tbody) return;
+
+        if (syncIcon) syncIcon.classList.add('animate-spin');
+        tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gold/50 font-mono text-xs animate-pulse">Running DAX Emulator...</td></tr>`;
+
+        try {
+            const response = await fetch(DASHBOARD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'get_matrix_data',
+                    startDate: startEl.value,
+                    endDate: endEl.value,
+                    secret: 'system_dashboard_init', 
+                    prompt: 'system', model: 'gemini-3.5-flash-lite'
+                })
+            });
+
+            const responseData = await response.json();
+
+            if (responseData.status === 200 && responseData.data) {
+                renderMatrix(responseData.data);
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error. Unable to calculate matrix.</td></tr>`;
+            }
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
+        } finally {
+            if (syncIcon) syncIcon.classList.remove('animate-spin');
+        }
+    };
+
+    const renderMatrix = (matrixData) => {
+        const tbody = document.getElementById('matrix-table-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        if (matrixData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">No tickets found in this date range.</td></tr>`;
+            return;
+        }
+
+        matrixData.forEach((mgr, mgrIndex) => {
+            const trMgr = document.createElement('tr');
+            trMgr.className = "bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group";
+            trMgr.innerHTML = `
+                <td class="py-3 px-6 font-semibold flex items-center space-x-2">
+                    <i class="ph ph-plus-square text-gold/50 group-hover:text-gold transition-colors"></i>
+                    <span>${mgr.managerName}</span>
+                </td>
+                <td class="py-3 px-6 text-right font-mono">${mgr.tickets}</td>
+                <td class="py-3 px-6 text-right font-mono">${mgr.introducer}</td>
+                <td class="py-3 px-6 text-right font-mono ${mgr.avgAging > 5 ? 'text-red-400' : 'text-gray-300'}">${mgr.avgAging}</td>
+                <td class="py-3 px-6 text-right font-mono text-gray-300">${mgr.avgDays}</td>
+            `;
+            tbody.appendChild(trMgr);
+
+            mgr.statuses.forEach((stg, stgIndex) => {
+                const trStg = document.createElement('tr');
+                trStg.className = `mgr-${mgrIndex}-child bg-transparent hover:bg-white/5 transition-colors cursor-pointer hidden group`;
+                trStg.innerHTML = `
+                    <td class="py-2 px-6 flex items-center space-x-2 pl-12">
+                        <i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i>
+                        <span class="text-sm text-gray-400">${stg.stageName}</span>
+                    </td>
+                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.tickets}</td>
+                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.introducer}</td>
+                    <td class="py-2 px-6 text-right font-mono text-sm ${stg.avgAging > 5 ? 'text-red-400' : 'text-gray-400'}">${stg.avgAging}</td>
+                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.avgDays}</td>
+                `;
+                tbody.appendChild(trStg);
+
+                stg.leads.forEach(lead => {
+                    const trLead = document.createElement('tr');
+                    trLead.className = `mgr-${mgrIndex}-child stg-${mgrIndex}-${stgIndex}-child bg-black/20 hidden`;
+                    trLead.innerHTML = `
+                        <td class="py-1 px-6 pl-20 text-xs text-gray-500 font-mono truncate max-w-xs" title="${lead.name}">- ${lead.name}</td>
+                        <td class="py-1 px-6 text-right font-mono text-xs text-gray-500">-</td>
+                        <td class="py-1 px-6 text-right font-mono text-xs text-gray-500">${lead.introducer}</td>
+                        <td class="py-1 px-6 text-right font-mono text-xs ${lead.aging > 5 ? 'text-red-500/70' : 'text-gray-500'}">${lead.aging}</td>
+                        <td class="py-1 px-6 text-right font-mono text-xs text-gray-500">${lead.daysSince}</td>
+                    `;
+                    tbody.appendChild(trLead);
+                });
+
+                trStg.addEventListener('click', () => {
+                    const leadRows = document.querySelectorAll(`.stg-${mgrIndex}-${stgIndex}-child`);
+                    const icon = trStg.querySelector('i');
+                    leadRows.forEach(r => r.classList.toggle('hidden'));
+                    if (icon.classList.contains('ph-caret-right')) icon.classList.replace('ph-caret-right', 'ph-caret-down');
+                    else icon.classList.replace('ph-caret-down', 'ph-caret-right');
+                });
+            });
+
+            trMgr.addEventListener('click', () => {
+                const statusRows = document.querySelectorAll(`.mgr-${mgrIndex}-child`);
+                const icon = trMgr.querySelector('i');
+                statusRows.forEach(r => {
+                    if (!r.classList.contains('hidden') || r.classList.contains('stg-')) {
+                         r.classList.add('hidden');
+                    } else if (!r.classList.contains('stg-')) {
+                         r.classList.remove('hidden'); 
+                    }
+                });
+                document.querySelectorAll(`.mgr-${mgrIndex}-child .ph-caret-down`).forEach(i => i.classList.replace('ph-caret-down', 'ph-caret-right'));
+                
+                if (icon.classList.contains('ph-plus-square')) icon.classList.replace('ph-plus-square', 'ph-minus-square');
+                else icon.classList.replace('ph-minus-square', 'ph-plus-square');
+            });
+        });
+    };
+
     document.getElementById('matrix-refresh-btn').addEventListener('click', fetchMatrixData);
     document.getElementById('matrix-clear-btn').addEventListener('click', () => {
         document.getElementById('matrix-start-date').value = '';
@@ -181,6 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Chart.defaults.color = '#888';
         Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
+        const formattedRiskLabels = riskData.labels.map((label, i) => `${label} (${riskData.data[i]})`);
+        const formattedBottleneckLabels = bottleneckData.labels.map((label, i) => `${label} (${bottleneckData.data[i]})`);
+
         // --- RISK CHART (PIE) ---
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
@@ -209,14 +328,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: {
                     devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
                     responsive: true, maintainAspectRatio: false, cutout: '75%',
-                    plugins: { legend: { display: false } }, // Hidden native legend
+                    plugins: { legend: { display: false } },
                     onClick: (e, elements) => {
                         if (elements.length > 0) openDrilldown(riskData.labels[elements[0].index], riskData.leads[elements[0].index]);
                     }
                 }
             });
 
-            // Custom HTML Legend
             const riskLegendEl = document.getElementById('risk-legend');
             riskLegendEl.innerHTML = riskData.labels.map((lbl, i) => `
                 <div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))">
@@ -232,13 +350,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
             if (bottleneckChartInstance) bottleneckChartInstance.destroy();
             
-            // Linear Gradients for premium glow
             const gradients = bottleneckData.labels.map((_, i) => {
                 const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300);
                 const colors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
                 const baseColor = colors[i % colors.length];
                 gradient.addColorStop(0, baseColor);
-                gradient.addColorStop(1, '#111111'); // Fades into the background
+                gradient.addColorStop(1, '#111111'); 
                 return gradient;
             });
             
@@ -258,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     responsive: true, maintainAspectRatio: false,
                     scales: {
                         y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } },
-                        x: { grid: { display: false }, ticks: { display: false } } // Hide native X labels
+                        x: { grid: { display: false }, ticks: { display: false } }
                     },
                     plugins: { legend: { display: false } },
                     onClick: (e, elements) => {
@@ -267,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Custom HTML Legend (replaces ugly tilted X-axis labels)
             const botLegendEl = document.getElementById('bot-legend');
             const bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
             botLegendEl.innerHTML = bottleneckData.labels.map((lbl, i) => `
@@ -281,7 +397,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- WIDGET EVENT LISTENERS ---
-    document.getElementById('dashboard-global-refresh-btn').addEventListener('click', fetchDashboardData);
+    const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn');
+    if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
     
     document.getElementById('risk-start-date').addEventListener('change', fetchDashboardData);
     document.getElementById('risk-end-date').addEventListener('change', fetchDashboardData);
