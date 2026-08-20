@@ -86,9 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if(!startEl || !endEl || !tbody) return;
 
-        const startDate = startEl.value;
-        const endDate = endEl.value;
-
         if (syncIcon) syncIcon.classList.add('animate-spin');
         tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gold/50 font-mono text-xs animate-pulse">Running DAX Emulator...</td></tr>`;
 
@@ -98,8 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'get_matrix_data',
-                    startDate: startDate,
-                    endDate: endDate,
+                    startDate: startEl.value,
+                    endDate: endEl.value,
                     secret: 'system_dashboard_init', 
                     prompt: 'system', model: 'gemini-3.5-flash-lite'
                 })
@@ -204,8 +201,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let bottleneckChartInstance = null;
 
     const fetchDashboardData = async () => {
-        const syncIcon = document.getElementById('dashboard-sync-icon');
+        const syncIcon = document.getElementById('dash-sync-icon');
+        const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
+        const startEl = document.getElementById('dash-start-date');
+        const endEl = document.getElementById('dash-end-date');
+
         if (syncIcon) syncIcon.classList.add('animate-spin');
+        if (globalSyncIcon) globalSyncIcon.classList.add('animate-spin');
+
+        let startDate = startEl ? startEl.value : "";
+        let endDate = endEl ? endEl.value : "";
 
         try {
             const response = await fetch(DASHBOARD_API_URL, {
@@ -213,6 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'get_dashboard_stats',
+                    startDate: startDate,
+                    endDate: endDate,
                     prompt: 'system_dashboard_init', 
                     model: 'gemini-3.5-flash-lite',
                     history: []
@@ -253,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(totalTicketsEl) totalTicketsEl.textContent = "ERR";
         } finally {
             if (syncIcon) syncIcon.classList.remove('animate-spin');
+            if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin');
         }
     };
 
@@ -260,6 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
         Chart.defaults.color = '#888';
         Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
+        // FIX: Inject data values directly into the labels so they render in legends/axes automatically
+        const formattedRiskLabels = riskData.labels.map((label, i) => `${label} (${riskData.data[i]})`);
+        const formattedBottleneckLabels = bottleneckData.labels.map((label, i) => `${label} (${bottleneckData.data[i]})`);
+
+        // --- RISK CHART ---
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
@@ -276,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             riskChartInstance = new Chart(riskCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: riskData.labels,
+                    labels: formattedRiskLabels,
                     datasets: [{
                         data: riskData.data,
                         backgroundColor: riskColors,
@@ -285,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }]
                 },
                 options: {
+                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, // FIX: Forces Retina resolution (removes blur)
                     responsive: true,
                     maintainAspectRatio: false,
                     cutout: '75%',
@@ -295,22 +309,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // --- BOTTLENECK CHART ---
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
             if (bottleneckChartInstance) bottleneckChartInstance.destroy();
+            
+            // Multi-color palette for bar chart
+            const barColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
+            
             bottleneckChartInstance = new Chart(bottleneckCtx, {
                 type: 'bar',
                 data: {
-                    labels: bottleneckData.labels,
+                    labels: formattedBottleneckLabels,
                     datasets: [{
                         label: 'Tickets',
                         data: bottleneckData.data,
-                        backgroundColor: '#DDAA33',
+                        backgroundColor: barColors,
                         borderRadius: 4
                     }]
                 },
                 options: {
+                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, // FIX: Anti-blur
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -323,21 +343,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- EVENT LISTENERS ---
     const matrixRefreshBtn = document.getElementById('matrix-refresh-btn');
     if (matrixRefreshBtn) matrixRefreshBtn.addEventListener('click', fetchMatrixData);
     
-    // NEW: Clear Button Logic
     const matrixClearBtn = document.getElementById('matrix-clear-btn');
     if (matrixClearBtn) {
         matrixClearBtn.addEventListener('click', () => {
             document.getElementById('matrix-start-date').value = '';
             document.getElementById('matrix-end-date').value = '';
-            fetchMatrixData(); // Instantly fetch all-time data
+            fetchMatrixData(); 
         });
     }
     
-    const dashRefreshBtn = document.getElementById('dashboard-refresh-btn');
+    const dashRefreshBtn = document.getElementById('dash-refresh-btn');
     if (dashRefreshBtn) dashRefreshBtn.addEventListener('click', fetchDashboardData);
+
+    const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn');
+    if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
+
+    const dashClearBtn = document.getElementById('dash-clear-btn');
+    if (dashClearBtn) {
+        dashClearBtn.addEventListener('click', () => {
+            document.getElementById('dash-start-date').value = '';
+            document.getElementById('dash-end-date').value = '';
+            fetchDashboardData(); 
+        });
+    }
     
     fetchDashboardData();
 });
