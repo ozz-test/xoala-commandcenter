@@ -35,65 +35,74 @@
             15% { transform: translateX(400%) skewX(-25deg); }
             100% { transform: translateX(400%) skewX(-25deg); }
         }
-        .animate-liquid-shine {
-            animation: liquid-shine 5s infinite;
-        }
+        .animate-liquid-shine { animation: liquid-shine 5s infinite; }
+        .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
+        
+        /* Custom Scrollbar for side panel */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
     </style>
-    
     <link rel="stylesheet" href="css/master.css">
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
+    <!-- DRILL-DOWN SLIDE PANEL -->
+    <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-96 bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+        <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
+            <div>
+                <h3 id="drilldown-title" class="text-gold font-light tracking-tight text-xl">Category View</h3>
+                <p id="drilldown-count" class="text-xs text-gray-400 font-mono mt-1">-- Tickets Found</p>
+            </div>
+            <button id="close-drilldown-btn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+            <ul id="drilldown-list" class="space-y-1"></ul>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
-        
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer">
             <i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i>
         </button>
-
         <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
             <div class="logo-container w-[160px] h-[50px] relative overflow-hidden rounded">
                 <div class="xoala-logo w-full h-full relative z-10 bg-no-repeat bg-contain bg-left"></div>
                 <div class="absolute top-0 left-0 h-full w-[45px] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full animate-liquid-shine z-20 pointer-events-none mix-blend-overlay"></div>
             </div>
         </div>
-
         <nav class="flex-1 py-8 px-4 space-y-2 overflow-hidden">
             <button data-target="dashboard-view" class="nav-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden">
-                <i class="ph ph-squares-four text-xl flex-shrink-0"></i>
-                <span class="nav-text whitespace-nowrap">Dashboard</span>
+                <i class="ph ph-squares-four text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Dashboard</span>
             </button>
             <button data-target="daily-report-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden">
-                <i class="ph ph-file-text text-xl flex-shrink-0"></i>
-                <span class="nav-text whitespace-nowrap">Daily Report</span>
+                <i class="ph ph-file-text text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Daily Report</span>
             </button>
             <button data-target="artemis-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden">
-                <i class="ph ph-brain text-xl flex-shrink-0"></i>
-                <span class="nav-text whitespace-nowrap">Artemis AI Core</span>
+                <i class="ph ph-brain text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Artemis AI Core</span>
             </button>
             <button disabled class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed overflow-hidden">
-                <i class="ph ph-database text-xl flex-shrink-0"></i>
-                <span class="nav-text whitespace-nowrap">KYC Data Lake</span>
+                <i class="ph ph-database text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">KYC Data Lake</span>
             </button>
         </nav>
-
         <div class="p-4 border-t border-white/5 overflow-hidden">
             <a href="/cdn-cgi/access/logout" class="group flex items-center justify-center space-x-2 w-full py-3 border border-gray-800 rounded-lg text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300 hover:border-gold hover:text-gold hover:bg-gold/5">
-                <i class="ph ph-power text-lg transition-transform group-hover:scale-110 flex-shrink-0"></i>
-                <span class="nav-text whitespace-nowrap">Disconnect</span>
+                <i class="ph ph-power text-lg transition-transform group-hover:scale-110 flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Disconnect</span>
             </a>
         </div>
     </aside>
 
     <!-- Main Workspace -->
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)] overflow-hidden">
-        
         <header class="flex-none h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10">
             <div class="flex items-center space-x-4">
                 <div class="text-xs text-gray-400 font-medium">Admin User</div>
-                <div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg">
-                    <i class="ph ph-user text-gold text-lg"></i>
-                </div>
+                <div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div>
             </div>
         </header>
 
@@ -108,6 +117,7 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
+                    <!-- Stat Cards -->
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -115,11 +125,8 @@
                             <i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                         <div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400">
-                            <i class="ph ph-trend-up"></i><span>Live from Data Lake</span>
-                        </div>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div>
                     </div>
-
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -127,11 +134,8 @@
                             <i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                         <div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400">
-                            <i class="ph ph-check-circle"></i><span>Registrations (24h)</span>
-                        </div>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div>
                     </div>
-
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -139,11 +143,8 @@
                             <i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                         <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-blue-400">
-                            <i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span>
-                        </div>
+                        <div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div>
                     </div>
-
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
                         <div class="flex justify-between items-start mb-4">
@@ -151,67 +152,64 @@
                             <i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                         <div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400">
-                            <i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dashboard Chart Filters -->
-                <div class="flex justify-between items-end w-full mb-4">
-                    <h2 class="text-lg font-light tracking-tight text-white">Visual Analytics</h2>
-                    <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
-                        <div class="flex items-center space-x-2">
-                            <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label>
-                            <input type="date" id="dash-start-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">To</label>
-                            <input type="date" id="dash-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
-                        </div>
-                        <div class="w-px h-6 bg-white/10 mx-2"></div>
-                        <button id="dash-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2" title="View All-Time Data">Clear</button>
-                        <button id="dash-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1 shadow-[0_0_10px_rgba(221,170,51,0.1)] hover:shadow-[0_0_15px_rgba(221,170,51,0.3)]">
-                            <i class="ph ph-funnel" id="dash-sync-icon"></i><span>Filter</span>
-                        </button>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span></div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-                    <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl relative">
-                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Risk Stratification</h3>
-                        <!-- Wrapper forces strict dimensions to prevent canvas stretching/blurring -->
-                        <div class="relative w-full" style="height: 250px;"><canvas id="riskChart"></canvas></div>
+                    <!-- RISK WIDGET -->
+                    <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
+                        <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
+                            <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Risk Stratification</h3>
+                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5">
+                                <input type="date" id="risk-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
+                                <span class="text-[10px] text-gray-600">-</span>
+                                <input type="date" id="risk-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
+                                <button id="risk-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white" title="Clear"><i class="ph ph-x-circle"></i></button>
+                                <button id="risk-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]" title="Export CSV"><i class="ph ph-download-simple"></i></button>
+                            </div>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col">
+                            <div class="relative w-full canvas-glow flex-1" style="min-height: 220px;"><canvas id="riskChart"></canvas></div>
+                            <div id="risk-legend" class="mt-6 flex flex-wrap justify-center gap-4"></div>
+                        </div>
                     </div>
-                    <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl relative">
-                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Stage Bottlenecks</h3>
-                        <div class="relative w-full" style="height: 250px;"><canvas id="bottleneckChart"></canvas></div>
+
+                    <!-- BOTTLENECK WIDGET -->
+                    <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
+                        <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
+                            <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Stage Bottlenecks</h3>
+                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5">
+                                <input type="date" id="bot-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
+                                <span class="text-[10px] text-gray-600">-</span>
+                                <input type="date" id="bot-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
+                                <button id="bot-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white" title="Clear"><i class="ph ph-x-circle"></i></button>
+                                <button id="bot-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]" title="Export CSV"><i class="ph ph-download-simple"></i></button>
+                            </div>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col">
+                            <div class="relative w-full flex-1" style="min-height: 220px;"><canvas id="bottleneckChart"></canvas></div>
+                            <div id="bot-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- View 2: Daily Report (Matrix Dashboard) -->
+        <!-- (Keep this exactly the same as previous) -->
         <section id="daily-report-view" class="view-section hidden block flex-1 p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full flex flex-col space-y-8">
-                
                 <div class="flex justify-between items-end border-b border-white/10 pb-4">
                     <h1 class="text-3xl font-light tracking-tight text-white">Daily Operations Brief</h1>
                     <span class="text-gold font-mono text-sm tracking-widest" id="current-date"></span>
                 </div>
-
                 <div class="glass-card p-8 rounded-xl border border-white/5 space-y-6">
-                    <h2 class="text-xl font-light text-gold flex items-center gap-2">
-                        <i class="ph ph-article"></i> Executive Summary
-                    </h2>
-                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">
-                        Synchronizing real-time Data Lake analytics...
-                    </p>
+                    <h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-article"></i> Executive Summary</h2>
+                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">Synchronizing real-time Data Lake analytics...</p>
                 </div>
-                
                 <div class="flex justify-between items-end w-full mt-4">
                     <h2 class="text-2xl font-light tracking-tight text-white">Pipeline Accountability Matrix</h2>
-                    
                     <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
                         <div class="flex items-center space-x-2">
                             <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label>
@@ -222,13 +220,12 @@
                             <input type="date" id="matrix-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
                         </div>
                         <div class="w-px h-6 bg-white/10 mx-2"></div>
-                        <button id="matrix-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2" title="View All-Time Data">Clear</button>
+                        <button id="matrix-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2">Clear</button>
                         <button id="matrix-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1 shadow-[0_0_10px_rgba(221,170,51,0.1)] hover:shadow-[0_0_15px_rgba(221,170,51,0.3)]">
                             <i class="ph ph-funnel" id="matrix-sync-icon"></i><span>Filter</span>
                         </button>
                     </div>
                 </div>
-                
                 <div class="glass-card rounded-xl border border-white/5 overflow-hidden shadow-2xl">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -247,65 +244,42 @@
                         </table>
                     </div>
                 </div>
-
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core -->
+        <!-- View 3: Artemis AI Core (Keep exact same) -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
-                <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg">
-                    <i class="ph ph-plus text-base"></i><span>New Chat</span>
-                </button>
+                <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
                 <div class="text-[10px] font-mono tracking-widest text-gray-500 uppercase mb-2 px-2">Recent Sessions</div>
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
-
             <div class="flex-1 flex flex-col h-full relative bg-obsidian overflow-hidden">
                 <div class="flex-none px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                     <div class="flex items-center space-x-4">
-                        <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
-                            <i class="ph ph-sparkle text-gold text-base"></i>
-                            <span>ARTEMIS CORE</span>
-                        </div>
+                        <div class="flex items-center space-x-2 text-xs font-mono text-gray-400"><i class="ph ph-sparkle text-gold text-base"></i><span>ARTEMIS CORE</span></div>
                         <div class="flex items-center space-x-2 bg-obsidian border border-white/10 px-3 py-1.5 rounded-lg text-[11px] font-mono text-gray-400 shadow-inner">
-                            <i class="ph ph-database text-emerald-400"></i>
-                            <span>Synced: <strong id="sync-time-badge" class="text-white">Validating...</strong></span>
-                            <button id="resync-btn" class="ml-2 text-gray-400 hover:text-gold transition-colors bg-surface px-2 py-0.5 rounded border border-white/10 flex items-center space-x-1 text-[10px]" title="Force refresh data lake cache">
-                                <i class="ph ph-arrows-clockwise" id="resync-icon"></i><span>Resync</span>
-                            </button>
+                            <i class="ph ph-database text-emerald-400"></i><span>Synced: <strong id="sync-time-badge" class="text-white">Validating...</strong></span>
+                            <button id="resync-btn" class="ml-2 text-gray-400 hover:text-gold transition-colors bg-surface px-2 py-0.5 rounded border border-white/10 flex items-center space-x-1 text-[10px]" title="Force refresh"><i class="ph ph-arrows-clockwise" id="resync-icon"></i><span>Resync</span></button>
                         </div>
                     </div>
-                    
                     <select id="model-select" class="bg-obsidian border border-gray-700 text-gold text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg outline-none cursor-pointer hover:border-gold/50 transition-all shadow-lg focus:ring-1 focus:ring-gold">
                         <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
                         <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-                        <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
-                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
                     </select>
                 </div>
-
                 <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide"></div>
-
                 <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5">
                     <div class="max-w-4xl mx-auto bg-obsidian/80 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 focus-within:bg-obsidian transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
-                        <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-500" placeholder="Ask Artemis to analyze tickets, query flags, or review data..." autocomplete="off"></textarea>
-                        
+                        <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-500" placeholder="Ask Artemis to analyze tickets, query flags, or review data..."></textarea>
                         <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
                             <div class="flex items-center space-x-3">
-                                <label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5" title="Upload Document">
-                                    <i class="ph ph-plus-circle text-base"></i>
-                                    <span id="file-name-label">Add File</span>
-                                    <input type="file" id="file-input" class="hidden" accept=".csv,.txt,.pdf">
+                                <label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5">
+                                    <i class="ph ph-plus-circle text-base"></i><span id="file-name-label">Add File</span><input type="file" id="file-input" class="hidden" accept=".csv,.txt,.pdf">
                                 </label>
-                                <button id="mic-btn" type="button" class="text-gray-400 hover:text-gold p-2 rounded-lg transition-colors bg-surface/50 border border-white/5 flex items-center space-x-1 text-xs font-mono">
-                                    <i class="ph ph-microphone text-base" id="mic-icon"></i><span id="mic-status">Voice</span>
-                                </button>
+                                <button id="mic-btn" class="text-gray-400 hover:text-gold p-2 rounded-lg transition-colors bg-surface/50 border border-white/5 flex items-center space-x-1 text-xs font-mono"><i class="ph ph-microphone text-base" id="mic-icon"></i><span id="mic-status">Voice</span></button>
                             </div>
-                            <button id="send-btn" class="bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 py-2.5 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(224,192,96,0.4)] disabled:opacity-50 flex items-center space-x-2">
-                                <span>Execute</span><i class="ph ph-paper-plane-right font-bold text-sm"></i>
-                            </button>
+                            <button id="send-btn" class="bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 py-2.5 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(224,192,96,0.4)] disabled:opacity-50 flex items-center space-x-2"><span>Execute</span><i class="ph ph-paper-plane-right font-bold text-sm"></i></button>
                         </div>
                     </div>
                 </div>
