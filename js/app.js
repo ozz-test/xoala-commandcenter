@@ -28,8 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') fetchDashboardData(); 
                     if (targetId === 'daily-report-view') {
-                        fetchDashboardData(); // Refreshes the summary
-                        fetchMatrixData();    // Refreshes the table
+                        fetchDashboardData(); 
+                        fetchMatrixData();    
                     }
                 }
             }
@@ -222,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
-                // Dashboard Elements
                 const totalTicketsEl = document.getElementById('dash-total-tickets');
                 const todayVolumeEl = document.getElementById('dash-today-volume');
                 const topRegionEl = document.getElementById('dash-top-region');
@@ -237,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(approvalRateEl) approvalRateEl.textContent = data.stats.approvalRate.rate;
                 if(approvalVolEl) approvalVolEl.textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
 
-                // FIX: Restored Executive Summary Injection
                 const reportEl = document.getElementById('daily-report-content');
                 if (reportEl) {
                     reportEl.innerHTML = `
@@ -327,6 +325,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const matrixRefreshBtn = document.getElementById('matrix-refresh-btn');
     if (matrixRefreshBtn) matrixRefreshBtn.addEventListener('click', fetchMatrixData);
+    
+    // NEW: Clear Button Logic
+    const matrixClearBtn = document.getElementById('matrix-clear-btn');
+    if (matrixClearBtn) {
+        matrixClearBtn.addEventListener('click', () => {
+            document.getElementById('matrix-start-date').value = '';
+            document.getElementById('matrix-end-date').value = '';
+            fetchMatrixData(); // Instantly fetch all-time data
+        });
+    }
     
     const dashRefreshBtn = document.getElementById('dashboard-refresh-btn');
     if (dashRefreshBtn) dashRefreshBtn.addEventListener('click', fetchDashboardData);
