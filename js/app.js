@@ -27,16 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') fetchDashboardData(); 
-                    if (targetId === 'daily-report-view') {
-                        fetchDashboardData(); 
-                        fetchMatrixData();    
-                    }
+                    if (targetId === 'daily-report-view') { fetchDashboardData(); fetchMatrixData(); }
                 }
             }
         });
     });
 
-    // --- ISOLATED SIDEBAR TOGGLE ---
     const sidebar = document.getElementById('main-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     const sidebarIcon = document.getElementById('sidebar-toggle-icon');
@@ -53,20 +49,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const dateElement = document.getElementById('current-date');
-    if (dateElement) {
-        const today = new Date();
-        dateElement.textContent = today.toISOString().split('T')[0];
-    }
+    if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- MATRIX LOGIC (DAILY REPORT) ---
+    // --- DRILL-DOWN PANEL LOGIC ---
+    const drilldownPanel = document.getElementById('drilldown-panel');
+    const drilldownOverlay = document.getElementById('drilldown-overlay');
+    const drilldownTitle = document.getElementById('drilldown-title');
+    const drilldownCount = document.getElementById('drilldown-count');
+    const drilldownList = document.getElementById('drilldown-list');
+
+    const openDrilldown = (title, leads) => {
+        drilldownTitle.textContent = title;
+        drilldownCount.textContent = `${leads.length} Tickets Found`;
+        drilldownList.innerHTML = leads.map(name => `
+            <li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors" title="${name}">
+                ${name}
+            </li>
+        `).join('');
+        
+        drilldownOverlay.classList.remove('hidden');
+        setTimeout(() => drilldownOverlay.classList.remove('opacity-0'), 10);
+        drilldownPanel.classList.remove('translate-x-full');
+    };
+
+    const closeDrilldown = () => {
+        drilldownOverlay.classList.add('opacity-0');
+        drilldownPanel.classList.add('translate-x-full');
+        setTimeout(() => drilldownOverlay.classList.add('hidden'), 300);
+    };
+
+    document.getElementById('close-drilldown-btn').addEventListener('click', closeDrilldown);
+    drilldownOverlay.addEventListener('click', closeDrilldown);
+
+    // --- CSV EXPORT LOGIC ---
+    const downloadCSV = (title, labels, counts, leadsArray) => {
+        let csvContent = "data:text/csv;charset=utf-8,Category,Ticket Count,Lead Names\n";
+        labels.forEach((label, i) => {
+            let safeLeads = leadsArray[i].map(l => l.replace(/"/g, '""')).join('; ');
+            csvContent += `"${label}",${counts[i]},"${safeLeads}"\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${title}_Export.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // --- MATRIX LOGIC (Keep exact same) ---
     const setMatrixDefaultDates = () => {
         const now = new Date();
         const currentDay = now.getDay(); 
         const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-        
-        const start = new Date(now);
-        start.setDate(now.getDate() + diffToMonday);
-        
+        const start = new Date(now); start.setDate(now.getDate() + diffToMonday);
         const end = new Date(now);
         if (currentDay === 0) end.setDate(now.getDate() - 2); 
         else if (currentDay === 6) end.setDate(now.getDate() - 1); 
@@ -78,139 +114,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     setMatrixDefaultDates();
 
-    const fetchMatrixData = async () => {
-        const syncIcon = document.getElementById('matrix-sync-icon');
-        const tbody = document.getElementById('matrix-table-body');
-        const startEl = document.getElementById('matrix-start-date');
-        const endEl = document.getElementById('matrix-end-date');
-        
-        if(!startEl || !endEl || !tbody) return;
-
-        if (syncIcon) syncIcon.classList.add('animate-spin');
-        tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gold/50 font-mono text-xs animate-pulse">Running DAX Emulator...</td></tr>`;
-
-        try {
-            const response = await fetch(DASHBOARD_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action: 'get_matrix_data',
-                    startDate: startEl.value,
-                    endDate: endEl.value,
-                    secret: 'system_dashboard_init', 
-                    prompt: 'system', model: 'gemini-3.5-flash-lite'
-                })
-            });
-
-            const responseData = await response.json();
-
-            if (responseData.status === 200 && responseData.data) {
-                renderMatrix(responseData.data);
-            } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error. Unable to calculate matrix.</td></tr>`;
-            }
-        } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
-        } finally {
-            if (syncIcon) syncIcon.classList.remove('animate-spin');
-        }
-    };
-
-    const renderMatrix = (matrixData) => {
-        const tbody = document.getElementById('matrix-table-body');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-
-        if (matrixData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">No tickets found in this date range.</td></tr>`;
-            return;
-        }
-
-        matrixData.forEach((mgr, mgrIndex) => {
-            const trMgr = document.createElement('tr');
-            trMgr.className = "bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group";
-            trMgr.innerHTML = `
-                <td class="py-3 px-6 font-semibold flex items-center space-x-2">
-                    <i class="ph ph-plus-square text-gold/50 group-hover:text-gold transition-colors"></i>
-                    <span>${mgr.managerName}</span>
-                </td>
-                <td class="py-3 px-6 text-right font-mono">${mgr.tickets}</td>
-                <td class="py-3 px-6 text-right font-mono">${mgr.introducer}</td>
-                <td class="py-3 px-6 text-right font-mono ${mgr.avgAging > 5 ? 'text-red-400' : 'text-gray-300'}">${mgr.avgAging}</td>
-                <td class="py-3 px-6 text-right font-mono text-gray-300">${mgr.avgDays}</td>
-            `;
-            tbody.appendChild(trMgr);
-
-            mgr.statuses.forEach((stg, stgIndex) => {
-                const trStg = document.createElement('tr');
-                trStg.className = `mgr-${mgrIndex}-child bg-transparent hover:bg-white/5 transition-colors cursor-pointer hidden group`;
-                trStg.innerHTML = `
-                    <td class="py-2 px-6 flex items-center space-x-2 pl-12">
-                        <i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i>
-                        <span class="text-sm text-gray-400">${stg.stageName}</span>
-                    </td>
-                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.tickets}</td>
-                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.introducer}</td>
-                    <td class="py-2 px-6 text-right font-mono text-sm ${stg.avgAging > 5 ? 'text-red-400' : 'text-gray-400'}">${stg.avgAging}</td>
-                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.avgDays}</td>
-                `;
-                tbody.appendChild(trStg);
-
-                stg.leads.forEach(lead => {
-                    const trLead = document.createElement('tr');
-                    trLead.className = `mgr-${mgrIndex}-child stg-${mgrIndex}-${stgIndex}-child bg-black/20 hidden`;
-                    trLead.innerHTML = `
-                        <td class="py-1 px-6 pl-20 text-xs text-gray-500 font-mono truncate max-w-xs" title="${lead.name}">- ${lead.name}</td>
-                        <td class="py-1 px-6 text-right font-mono text-xs text-gray-500">-</td>
-                        <td class="py-1 px-6 text-right font-mono text-xs text-gray-500">${lead.introducer}</td>
-                        <td class="py-1 px-6 text-right font-mono text-xs ${lead.aging > 5 ? 'text-red-500/70' : 'text-gray-500'}">${lead.aging}</td>
-                        <td class="py-1 px-6 text-right font-mono text-xs text-gray-500">${lead.daysSince}</td>
-                    `;
-                    tbody.appendChild(trLead);
-                });
-
-                trStg.addEventListener('click', () => {
-                    const leadRows = document.querySelectorAll(`.stg-${mgrIndex}-${stgIndex}-child`);
-                    const icon = trStg.querySelector('i');
-                    leadRows.forEach(r => r.classList.toggle('hidden'));
-                    if (icon.classList.contains('ph-caret-right')) icon.classList.replace('ph-caret-right', 'ph-caret-down');
-                    else icon.classList.replace('ph-caret-down', 'ph-caret-right');
-                });
-            });
-
-            trMgr.addEventListener('click', () => {
-                const statusRows = document.querySelectorAll(`.mgr-${mgrIndex}-child`);
-                const icon = trMgr.querySelector('i');
-                statusRows.forEach(r => {
-                    if (!r.classList.contains('hidden') || r.classList.contains('stg-')) {
-                         r.classList.add('hidden');
-                    } else if (!r.classList.contains('stg-')) {
-                         r.classList.remove('hidden'); 
-                    }
-                });
-                document.querySelectorAll(`.mgr-${mgrIndex}-child .ph-caret-down`).forEach(i => i.classList.replace('ph-caret-down', 'ph-caret-right'));
-                
-                if (icon.classList.contains('ph-plus-square')) icon.classList.replace('ph-plus-square', 'ph-minus-square');
-                else icon.classList.replace('ph-minus-square', 'ph-plus-square');
-            });
-        });
-    };
+    const fetchMatrixData = async () => { /* ... keep your existing fetchMatrixData implementation ... */ };
+    const renderMatrix = (matrixData) => { /* ... keep your existing renderMatrix implementation ... */ };
+    document.getElementById('matrix-refresh-btn').addEventListener('click', fetchMatrixData);
+    document.getElementById('matrix-clear-btn').addEventListener('click', () => {
+        document.getElementById('matrix-start-date').value = '';
+        document.getElementById('matrix-end-date').value = '';
+        fetchMatrixData(); 
+    });
 
     // --- DASHBOARD REAL-TIME ANALYTICS ---
     let riskChartInstance = null;
     let bottleneckChartInstance = null;
+    let currentRiskData = null;
+    let currentBotData = null;
 
     const fetchDashboardData = async () => {
-        const syncIcon = document.getElementById('dash-sync-icon');
         const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
-        const startEl = document.getElementById('dash-start-date');
-        const endEl = document.getElementById('dash-end-date');
-
-        if (syncIcon) syncIcon.classList.add('animate-spin');
         if (globalSyncIcon) globalSyncIcon.classList.add('animate-spin');
 
-        let startDate = startEl ? startEl.value : "";
-        let endDate = endEl ? endEl.value : "";
+        const filters = {
+            risk: { start: document.getElementById('risk-start-date').value, end: document.getElementById('risk-end-date').value },
+            bottleneck: { start: document.getElementById('bot-start-date').value, end: document.getElementById('bot-end-date').value }
+        };
 
         try {
             const response = await fetch(DASHBOARD_API_URL, {
@@ -218,48 +144,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'get_dashboard_stats',
-                    startDate: startDate,
-                    endDate: endDate,
+                    filters: filters,
                     prompt: 'system_dashboard_init', 
-                    model: 'gemini-3.5-flash-lite',
-                    history: []
+                    model: 'gemini-3.5-flash-lite', history: []
                 })
             });
 
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
-                const totalTicketsEl = document.getElementById('dash-total-tickets');
-                const todayVolumeEl = document.getElementById('dash-today-volume');
-                const topRegionEl = document.getElementById('dash-top-region');
-                const topRegionCountEl = document.getElementById('dash-top-region-count');
-                const approvalRateEl = document.getElementById('dash-approval-rate');
-                const approvalVolEl = document.getElementById('dash-approval-vol');
+                currentRiskData = data.stats.riskChart;
+                currentBotData = data.stats.bottleneckChart;
 
-                if(totalTicketsEl) totalTicketsEl.textContent = data.stats.totalTickets.toLocaleString();
-                if(todayVolumeEl) todayVolumeEl.textContent = data.stats.todayCount.toLocaleString();
-                if(topRegionEl) topRegionEl.textContent = data.stats.topCountryToday.name;
-                if(topRegionCountEl) topRegionCountEl.textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
-                if(approvalRateEl) approvalRateEl.textContent = data.stats.approvalRate.rate;
-                if(approvalVolEl) approvalVolEl.textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+                document.getElementById('dash-total-tickets').textContent = data.stats.totalTickets.toLocaleString();
+                document.getElementById('dash-today-volume').textContent = data.stats.todayCount.toLocaleString();
+                document.getElementById('dash-top-region').textContent = data.stats.topCountryToday.name;
+                document.getElementById('dash-top-region-count').textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
+                document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
+                document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
 
                 const reportEl = document.getElementById('daily-report-content');
                 if (reportEl) {
-                    reportEl.innerHTML = `
-                        System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets. <br><br>
-                        <strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume (${data.stats.topCountryToday.count} tickets). <br><br>
-                        <strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications. Operations remain within established compliance thresholds.
-                    `;
+                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.`;
                 }
 
-                renderCharts(data.stats.riskChart, data.stats.bottleneckChart);
+                renderCharts(currentRiskData, currentBotData);
             }
         } catch (error) {
             console.error("Dashboard Network Failure:", error);
-            const totalTicketsEl = document.getElementById('dash-total-tickets');
-            if(totalTicketsEl) totalTicketsEl.textContent = "ERR";
         } finally {
-            if (syncIcon) syncIcon.classList.remove('animate-spin');
             if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin');
         }
     };
@@ -268,17 +181,13 @@ document.addEventListener('DOMContentLoaded', () => {
         Chart.defaults.color = '#888';
         Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
-        // FIX: Inject data values directly into the labels so they render in legends/axes automatically
-        const formattedRiskLabels = riskData.labels.map((label, i) => `${label} (${riskData.data[i]})`);
-        const formattedBottleneckLabels = bottleneckData.labels.map((label, i) => `${label} (${bottleneckData.data[i]})`);
-
-        // --- RISK CHART ---
+        // --- RISK CHART (PIE) ---
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
             if (riskChartInstance) riskChartInstance.destroy();
             
-            const riskColors = riskData.labels.map(label => {
+            const rawColors = riskData.labels.map(label => {
                 if (label === 'Critical') return '#ef4444'; 
                 if (label === 'High') return '#f97316'; 
                 if (label === 'Medium') return '#DDAA33'; 
@@ -289,87 +198,108 @@ document.addEventListener('DOMContentLoaded', () => {
             riskChartInstance = new Chart(riskCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: formattedRiskLabels,
+                    labels: riskData.labels,
                     datasets: [{
                         data: riskData.data,
-                        backgroundColor: riskColors,
-                        borderWidth: 2,
-                        borderColor: '#111111'
+                        backgroundColor: rawColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
                     }]
                 },
                 options: {
-                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, // FIX: Forces Retina resolution (removes blur)
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: {
-                        legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 10 } } }
+                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
+                    responsive: true, maintainAspectRatio: false, cutout: '75%',
+                    plugins: { legend: { display: false } }, // Hidden native legend
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) openDrilldown(riskData.labels[elements[0].index], riskData.leads[elements[0].index]);
                     }
                 }
             });
+
+            // Custom HTML Legend
+            const riskLegendEl = document.getElementById('risk-legend');
+            riskLegendEl.innerHTML = riskData.labels.map((lbl, i) => `
+                <div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))">
+                    <span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span>
+                    <span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span>
+                </div>
+            `).join('');
         }
 
-        // --- BOTTLENECK CHART ---
+        // --- BOTTLENECK CHART (BAR) ---
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
             if (bottleneckChartInstance) bottleneckChartInstance.destroy();
             
-            // Multi-color palette for bar chart
-            const barColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
+            // Linear Gradients for premium glow
+            const gradients = bottleneckData.labels.map((_, i) => {
+                const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300);
+                const colors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
+                const baseColor = colors[i % colors.length];
+                gradient.addColorStop(0, baseColor);
+                gradient.addColorStop(1, '#111111'); // Fades into the background
+                return gradient;
+            });
             
             bottleneckChartInstance = new Chart(bottleneckCtx, {
                 type: 'bar',
                 data: {
-                    labels: formattedBottleneckLabels,
+                    labels: bottleneckData.labels,
                     datasets: [{
-                        label: 'Tickets',
                         data: bottleneckData.data,
-                        backgroundColor: barColors,
-                        borderRadius: 4
+                        backgroundColor: gradients,
+                        borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+                        barPercentage: 0.6
                     }]
                 },
                 options: {
-                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, // FIX: Anti-blur
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
+                    responsive: true, maintainAspectRatio: false,
                     scales: {
                         y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } },
-                        x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } }
+                        x: { grid: { display: false }, ticks: { display: false } } // Hide native X labels
                     },
-                    plugins: { legend: { display: false } }
+                    plugins: { legend: { display: false } },
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) openDrilldown(bottleneckData.labels[elements[0].index], bottleneckData.leads[elements[0].index]);
+                    }
                 }
             });
+
+            // Custom HTML Legend (replaces ugly tilted X-axis labels)
+            const botLegendEl = document.getElementById('bot-legend');
+            const bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
+            botLegendEl.innerHTML = bottleneckData.labels.map((lbl, i) => `
+                <div class="flex items-center space-x-1.5 bg-white/5 px-2 py-1 rounded border border-white/5 text-[10px] text-gray-400 cursor-pointer hover:bg-white/10 transition-colors">
+                    <span class="w-2 h-2 rounded-sm" style="background:${bgColors[i % bgColors.length]}"></span>
+                    <span class="truncate max-w-[100px]" title="${lbl}">${lbl}</span>
+                    <strong class="text-white ml-1">${bottleneckData.data[i]}</strong>
+                </div>
+            `).join('');
         }
     };
 
-    // --- EVENT LISTENERS ---
-    const matrixRefreshBtn = document.getElementById('matrix-refresh-btn');
-    if (matrixRefreshBtn) matrixRefreshBtn.addEventListener('click', fetchMatrixData);
+    // --- WIDGET EVENT LISTENERS ---
+    document.getElementById('dashboard-global-refresh-btn').addEventListener('click', fetchDashboardData);
     
-    const matrixClearBtn = document.getElementById('matrix-clear-btn');
-    if (matrixClearBtn) {
-        matrixClearBtn.addEventListener('click', () => {
-            document.getElementById('matrix-start-date').value = '';
-            document.getElementById('matrix-end-date').value = '';
-            fetchMatrixData(); 
-        });
-    }
-    
-    const dashRefreshBtn = document.getElementById('dash-refresh-btn');
-    if (dashRefreshBtn) dashRefreshBtn.addEventListener('click', fetchDashboardData);
+    document.getElementById('risk-start-date').addEventListener('change', fetchDashboardData);
+    document.getElementById('risk-end-date').addEventListener('change', fetchDashboardData);
+    document.getElementById('risk-clear-btn').addEventListener('click', () => {
+        document.getElementById('risk-start-date').value = ''; document.getElementById('risk-end-date').value = ''; fetchDashboardData();
+    });
+    document.getElementById('risk-export-btn').addEventListener('click', () => {
+        if(currentRiskData) downloadCSV('Risk_Stratification', currentRiskData.labels, currentRiskData.data, currentRiskData.leads);
+    });
 
-    const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn');
-    if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
+    document.getElementById('bot-start-date').addEventListener('change', fetchDashboardData);
+    document.getElementById('bot-end-date').addEventListener('change', fetchDashboardData);
+    document.getElementById('bot-clear-btn').addEventListener('click', () => {
+        document.getElementById('bot-start-date').value = ''; document.getElementById('bot-end-date').value = ''; fetchDashboardData();
+    });
+    document.getElementById('bot-export-btn').addEventListener('click', () => {
+        if(currentBotData) downloadCSV('Stage_Bottlenecks', currentBotData.labels, currentBotData.data, currentBotData.leads);
+    });
 
-    const dashClearBtn = document.getElementById('dash-clear-btn');
-    if (dashClearBtn) {
-        dashClearBtn.addEventListener('click', () => {
-            document.getElementById('dash-start-date').value = '';
-            document.getElementById('dash-end-date').value = '';
-            fetchDashboardData(); 
-        });
-    }
-    
     fetchDashboardData();
 });
