@@ -1,4 +1,3 @@
-
 // === XOALA COMMAND CENTER: CORE APP & DASHBOARD LOGIC ===
 
 const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev'; 
@@ -28,7 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') fetchDashboardData(); 
-                    if (targetId === 'daily-report-view') fetchMatrixData(); 
+                    if (targetId === 'daily-report-view') {
+                        fetchDashboardData(); // Refreshes the summary
+                        fetchMatrixData();    // Refreshes the table
+                    }
                 }
             }
         });
@@ -220,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
+                // Dashboard Elements
                 const totalTicketsEl = document.getElementById('dash-total-tickets');
                 const todayVolumeEl = document.getElementById('dash-today-volume');
                 const topRegionEl = document.getElementById('dash-top-region');
@@ -233,6 +236,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(topRegionCountEl) topRegionCountEl.textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
                 if(approvalRateEl) approvalRateEl.textContent = data.stats.approvalRate.rate;
                 if(approvalVolEl) approvalVolEl.textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+
+                // FIX: Restored Executive Summary Injection
+                const reportEl = document.getElementById('daily-report-content');
+                if (reportEl) {
+                    reportEl.innerHTML = `
+                        System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets. <br><br>
+                        <strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume (${data.stats.topCountryToday.count} tickets). <br><br>
+                        <strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications. Operations remain within established compliance thresholds.
+                    `;
+                }
 
                 renderCharts(data.stats.riskChart, data.stats.bottleneckChart);
             }
