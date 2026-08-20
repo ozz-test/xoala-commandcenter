@@ -48,13 +48,12 @@
     <!-- Sidebar -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
         
-        <!-- FIX: Moved toggle button down to top-32 (128px) so it clears the logo area entirely -->
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer">
             <i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i>
         </button>
 
-        <!-- FIX: Logo Header is strictly locked to w-64. It will float over the workspace when sidebar minimizes -->
-        <div class="h-24 w-64 flex-none flex items-center justify-start pl-6 border-b border-white/5 relative z-50">
+        <!-- FIX: Added bg-surface/95, border-r, and shadow directly to this container so the grey background never shrinks -->
+        <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
             <div class="logo-container w-[160px] h-[50px] relative overflow-hidden rounded">
                 <div class="xoala-logo w-full h-full relative z-10 bg-no-repeat bg-contain bg-left"></div>
                 <!-- LIQUID SHINE EFFECT -->
