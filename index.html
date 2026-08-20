@@ -32,10 +32,6 @@
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
-        
-        /* Sparkle Animation for AI Summary */
-        @keyframes pulse-gold { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; color: #DDAA33; } }
-        .ai-processing { animation: pulse-gold 1.5s infinite; }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -85,7 +81,7 @@
             <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
         </header>
 
-        <!-- View 1: Dashboard -->
+        <!-- View 1: Dashboard (Unchanged) -->
         <section id="dashboard-view" class="view-section block flex-1 p-10 overflow-y-auto w-full">
             <div class="max-w-7xl mx-auto w-full block">
                 <div class="flex justify-between items-center mb-8 w-full">
@@ -141,13 +137,13 @@
                     <span class="text-gold font-mono text-sm tracking-widest" id="current-date"></span>
                 </div>
                 
-                <!-- AI EXECUTIVE SUMMARY BLOCK -->
+                <!-- RESTORED EXECUTIVE SUMMARY BLOCK -->
                 <div class="glass-card p-8 rounded-xl border border-white/5 space-y-4">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-sparkle"></i> Artemis AI Summary</h2>
-                        <div class="px-2 py-1 border border-gold/30 bg-gold/10 rounded text-[10px] font-mono text-gold uppercase">Auto-Generated</div>
+                        <h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-article"></i> Executive Summary</h2>
+                        <div class="px-2 py-1 border border-emerald-500/30 bg-emerald-500/10 rounded text-[10px] font-mono text-emerald-400 uppercase">Live Data</div>
                     </div>
-                    <p id="matrix-ai-summary" class="text-gray-300 leading-relaxed text-sm font-sans">
+                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">
                         Awaiting data sync...
                     </p>
                 </div>
@@ -167,12 +163,13 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead>
+                                <!-- UI FIX: Removed (Days) from headers -->
                                 <tr class="bg-white/5 border-b border-white/10 text-[11px] uppercase tracking-widest text-gray-400 font-mono">
                                     <th class="py-4 px-6 font-semibold w-2/5">Account Manager / Stage</th>
                                     <th class="py-4 px-6 font-semibold text-right">Total Tickets</th>
                                     <th class="py-4 px-6 font-semibold text-right">Introducer</th>
-                                    <th class="py-4 px-6 font-semibold text-right">Avg Queue Aging (Days)</th>
-                                    <th class="py-4 px-6 font-semibold text-right">Avg Days Since App</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Avg Queue Aging</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Avg Time Since App</th>
                                 </tr>
                             </thead>
                             <tbody id="matrix-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200">
