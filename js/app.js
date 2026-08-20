@@ -4,20 +4,18 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- TAB NAVIGATION ---
+    // --- STABILIZED TAB NAVIGATION ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             if (item.disabled) return;
-            
             navItems.forEach(nav => nav.classList.remove('active'));
             viewSections.forEach(section => {
                 section.classList.add('hidden');
                 section.classList.remove('flex', 'block'); 
             });
-            
             item.classList.add('active');
             const targetId = item.getAttribute('data-target');
             const targetSection = document.getElementById(targetId);
@@ -29,13 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') fetchDashboardData(); 
-                    if (targetId === 'daily-report-view') fetchMatrixData(); // Load Matrix automatically
+                    if (targetId === 'daily-report-view') fetchMatrixData(); 
                 }
             }
         });
     });
 
-    // --- SIDEBAR TOGGLE ---
+    // --- ISOLATED SIDEBAR TOGGLE ---
     const sidebar = document.getElementById('main-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     const sidebarIcon = document.getElementById('sidebar-toggle-icon');
@@ -51,31 +49,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+        const today = new Date();
+        dateElement.textContent = today.toISOString().split('T')[0];
+    }
+
     // --- MATRIX LOGIC (DAILY REPORT) ---
-    
-    // Default Dates: Current Week (Mon to Current Working Day)
     const setMatrixDefaultDates = () => {
         const now = new Date();
-        const currentDay = now.getDay(); // 0=Sun, 1=Mon
+        const currentDay = now.getDay(); 
         const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
         
         const start = new Date(now);
         start.setDate(now.getDate() + diffToMonday);
         
         const end = new Date(now);
-        if (currentDay === 0) end.setDate(now.getDate() - 2); // If Sun, show till Fri
-        else if (currentDay === 6) end.setDate(now.getDate() - 1); // If Sat, show till Fri
+        if (currentDay === 0) end.setDate(now.getDate() - 2); 
+        else if (currentDay === 6) end.setDate(now.getDate() - 1); 
         
-        document.getElementById('matrix-start-date').value = start.toISOString().split('T')[0];
-        document.getElementById('matrix-end-date').value = end.toISOString().split('T')[0];
+        const startEl = document.getElementById('matrix-start-date');
+        const endEl = document.getElementById('matrix-end-date');
+        if(startEl) startEl.value = start.toISOString().split('T')[0];
+        if(endEl) endEl.value = end.toISOString().split('T')[0];
     };
     setMatrixDefaultDates();
 
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
-        const startDate = document.getElementById('matrix-start-date').value;
-        const endDate = document.getElementById('matrix-end-date').value;
+        const startEl = document.getElementById('matrix-start-date');
+        const endEl = document.getElementById('matrix-end-date');
+        
+        if(!startEl || !endEl || !tbody) return;
+
+        const startDate = startEl.value;
+        const endDate = endEl.value;
 
         if (syncIcon) syncIcon.classList.add('animate-spin');
         tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gold/50 font-mono text-xs animate-pulse">Running DAX Emulator...</td></tr>`;
@@ -88,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     action: 'get_matrix_data',
                     startDate: startDate,
                     endDate: endDate,
-                    secret: 'system_dashboard_init', // Ghost auth bypass
+                    secret: 'system_dashboard_init', 
                     prompt: 'system', model: 'gemini-3.5-flash-lite'
                 })
             });
@@ -109,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderMatrix = (matrixData) => {
         const tbody = document.getElementById('matrix-table-body');
+        if(!tbody) return;
         tbody.innerHTML = '';
 
         if (matrixData.length === 0) {
@@ -117,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         matrixData.forEach((mgr, mgrIndex) => {
-            // Level 1: Account Manager Row
             const trMgr = document.createElement('tr');
             trMgr.className = "bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group";
             trMgr.innerHTML = `
@@ -133,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.appendChild(trMgr);
 
             mgr.statuses.forEach((stg, stgIndex) => {
-                // Level 2: Status Row
                 const trStg = document.createElement('tr');
                 trStg.className = `mgr-${mgrIndex}-child bg-transparent hover:bg-white/5 transition-colors cursor-pointer hidden group`;
                 trStg.innerHTML = `
@@ -148,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 tbody.appendChild(trStg);
 
-                // Level 3: Lead Detail Row
                 stg.leads.forEach(lead => {
                     const trLead = document.createElement('tr');
                     trLead.className = `mgr-${mgrIndex}-child stg-${mgrIndex}-${stgIndex}-child bg-black/20 hidden`;
@@ -162,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     tbody.appendChild(trLead);
                 });
 
-                // Toggling Logic for Statuses -> Leads
                 trStg.addEventListener('click', () => {
                     const leadRows = document.querySelectorAll(`.stg-${mgrIndex}-${stgIndex}-child`);
                     const icon = trStg.querySelector('i');
@@ -172,19 +178,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Toggling Logic for Managers -> Statuses
             trMgr.addEventListener('click', () => {
                 const statusRows = document.querySelectorAll(`.mgr-${mgrIndex}-child`);
                 const icon = trMgr.querySelector('i');
                 statusRows.forEach(r => {
-                    // Hide everything below it as well
                     if (!r.classList.contains('hidden') || r.classList.contains('stg-')) {
                          r.classList.add('hidden');
                     } else if (!r.classList.contains('stg-')) {
-                         r.classList.remove('hidden'); // Only reveal level 2
+                         r.classList.remove('hidden'); 
                     }
                 });
-                // Reset all level 2 icons
                 document.querySelectorAll(`.mgr-${mgrIndex}-child .ph-caret-down`).forEach(i => i.classList.replace('ph-caret-down', 'ph-caret-right'));
                 
                 if (icon.classList.contains('ph-plus-square')) icon.classList.replace('ph-plus-square', 'ph-minus-square');
@@ -193,18 +196,126 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // --- MAIN DASHBOARD LOGIC (Keep existing unchanged) ---
-    // (Ensure your previous fetchDashboardData and renderCharts functions are pasted back here)
-    
+    // --- DASHBOARD REAL-TIME ANALYTICS ---
+    let riskChartInstance = null;
+    let bottleneckChartInstance = null;
+
     const fetchDashboardData = async () => {
-        // Your previous logic goes here
+        const syncIcon = document.getElementById('dashboard-sync-icon');
+        if (syncIcon) syncIcon.classList.add('animate-spin');
+
+        try {
+            const response = await fetch(DASHBOARD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'get_dashboard_stats',
+                    prompt: 'system_dashboard_init', 
+                    model: 'gemini-3.5-flash-lite',
+                    history: []
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 200 && data.stats) {
+                const totalTicketsEl = document.getElementById('dash-total-tickets');
+                const todayVolumeEl = document.getElementById('dash-today-volume');
+                const topRegionEl = document.getElementById('dash-top-region');
+                const topRegionCountEl = document.getElementById('dash-top-region-count');
+                const approvalRateEl = document.getElementById('dash-approval-rate');
+                const approvalVolEl = document.getElementById('dash-approval-vol');
+
+                if(totalTicketsEl) totalTicketsEl.textContent = data.stats.totalTickets.toLocaleString();
+                if(todayVolumeEl) todayVolumeEl.textContent = data.stats.todayCount.toLocaleString();
+                if(topRegionEl) topRegionEl.textContent = data.stats.topCountryToday.name;
+                if(topRegionCountEl) topRegionCountEl.textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
+                if(approvalRateEl) approvalRateEl.textContent = data.stats.approvalRate.rate;
+                if(approvalVolEl) approvalVolEl.textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+
+                renderCharts(data.stats.riskChart, data.stats.bottleneckChart);
+            }
+        } catch (error) {
+            console.error("Dashboard Network Failure:", error);
+            const totalTicketsEl = document.getElementById('dash-total-tickets');
+            if(totalTicketsEl) totalTicketsEl.textContent = "ERR";
+        } finally {
+            if (syncIcon) syncIcon.classList.remove('animate-spin');
+        }
     };
 
     const renderCharts = (riskData, bottleneckData) => {
-        // Your previous logic goes here
+        Chart.defaults.color = '#888';
+        Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
+
+        const riskCanvas = document.getElementById('riskChart');
+        if (riskCanvas) {
+            const riskCtx = riskCanvas.getContext('2d');
+            if (riskChartInstance) riskChartInstance.destroy();
+            
+            const riskColors = riskData.labels.map(label => {
+                if (label === 'Critical') return '#ef4444'; 
+                if (label === 'High') return '#f97316'; 
+                if (label === 'Medium') return '#DDAA33'; 
+                if (label === 'Low') return '#10b981'; 
+                return '#333333'; 
+            });
+
+            riskChartInstance = new Chart(riskCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: riskData.labels,
+                    datasets: [{
+                        data: riskData.data,
+                        backgroundColor: riskColors,
+                        borderWidth: 2,
+                        borderColor: '#111111'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        const bottleneckCanvas = document.getElementById('bottleneckChart');
+        if (bottleneckCanvas) {
+            const bottleneckCtx = bottleneckCanvas.getContext('2d');
+            if (bottleneckChartInstance) bottleneckChartInstance.destroy();
+            bottleneckChartInstance = new Chart(bottleneckCtx, {
+                type: 'bar',
+                data: {
+                    labels: bottleneckData.labels,
+                    datasets: [{
+                        label: 'Tickets',
+                        data: bottleneckData.data,
+                        backgroundColor: '#DDAA33',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
     };
 
-    document.getElementById('matrix-refresh-btn').addEventListener('click', fetchMatrixData);
-    document.getElementById('dashboard-refresh-btn').addEventListener('click', fetchDashboardData);
+    const matrixRefreshBtn = document.getElementById('matrix-refresh-btn');
+    if (matrixRefreshBtn) matrixRefreshBtn.addEventListener('click', fetchMatrixData);
+    
+    const dashRefreshBtn = document.getElementById('dashboard-refresh-btn');
+    if (dashRefreshBtn) dashRefreshBtn.addEventListener('click', fetchDashboardData);
+    
     fetchDashboardData();
 });
