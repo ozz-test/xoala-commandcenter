@@ -28,6 +28,19 @@
             }
         }
     </script>
+    
+    <style>
+        /* Custom Liquid Shine Animation for Logo */
+        @keyframes liquid-shine {
+            0% { transform: translateX(-150%) skewX(-25deg); }
+            15% { transform: translateX(400%) skewX(-25deg); }
+            100% { transform: translateX(400%) skewX(-25deg); }
+        }
+        .animate-liquid-shine {
+            animation: liquid-shine 5s infinite;
+        }
+    </style>
+    
     <link rel="stylesheet" href="css/master.css">
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
@@ -38,9 +51,12 @@
             <i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i>
         </button>
 
-        <div class="h-24 flex items-center justify-start pl-6 border-b border-white/5 w-full overflow-hidden">
-            <div class="logo-container w-[160px] h-[50px] flex-shrink-0">
-                <div class="xoala-logo w-[160px] h-full"></div>
+        <!-- FIX: overflow-visible allows logo to spill over when sidebar shrinks to w-20 -->
+        <div class="h-24 flex items-center justify-start pl-6 border-b border-white/5 w-full overflow-visible z-50">
+            <div class="logo-container w-[160px] h-[50px] flex-shrink-0 relative overflow-hidden rounded">
+                <div class="xoala-logo w-full h-full relative z-10"></div>
+                <!-- LIQUID SHINE EFFECT -->
+                <div class="absolute top-0 left-0 h-full w-[45px] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full animate-liquid-shine z-20 pointer-events-none mix-blend-overlay"></div>
             </div>
         </div>
 
@@ -165,7 +181,6 @@
                     <span class="text-gold font-mono text-sm tracking-widest" id="current-date"></span>
                 </div>
 
-                <!-- RESTORED EXECUTIVE SUMMARY -->
                 <div class="glass-card p-8 rounded-xl border border-white/5 space-y-6">
                     <h2 class="text-xl font-light text-gold flex items-center gap-2">
                         <i class="ph ph-article"></i> Executive Summary
@@ -178,7 +193,6 @@
                 <div class="flex justify-between items-end w-full mt-4">
                     <h2 class="text-2xl font-light tracking-tight text-white">Pipeline Accountability Matrix</h2>
                     
-                    <!-- Interactive Date Range Filter -->
                     <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
                         <div class="flex items-center space-x-2">
                             <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label>
