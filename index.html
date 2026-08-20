@@ -39,7 +39,6 @@
         </button>
 
         <div class="h-24 flex items-center justify-start pl-6 border-b border-white/5 w-full overflow-hidden">
-            <!-- FIX 3: Logo no longer scales, it simply truncates cleanly -->
             <div class="logo-container w-[160px] h-[50px] flex-shrink-0">
                 <div class="xoala-logo w-[160px] h-full"></div>
             </div>
@@ -157,26 +156,53 @@
             </div>
         </section>
 
-        <!-- View 2: Daily Report -->
+        <!-- View 2: Daily Report (Matrix Dashboard) -->
         <section id="daily-report-view" class="view-section hidden block flex-1 p-10 overflow-y-auto w-full">
-            <div class="max-w-5xl mx-auto w-full flex flex-col space-y-8">
+            <div class="max-w-7xl mx-auto w-full flex flex-col space-y-8">
+                
                 <div class="flex justify-between items-end border-b border-white/10 pb-4">
-                    <h1 class="text-3xl font-light tracking-tight text-white">Daily Operations Brief</h1>
-                    <span class="text-gold font-mono text-sm tracking-widest" id="current-date"></span>
+                    <h1 class="text-3xl font-light tracking-tight text-white">Pipeline Accountability Matrix</h1>
+                    
+                    <!-- Interactive Date Range Filter -->
+                    <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label>
+                            <input type="date" id="matrix-start-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">To</label>
+                            <input type="date" id="matrix-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
+                        </div>
+                        <div class="w-px h-6 bg-white/10 mx-2"></div>
+                        <button id="matrix-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1">
+                            <i class="ph ph-funnel" id="matrix-sync-icon"></i><span>Filter</span>
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="glass-card p-8 rounded-xl border border-white/5 space-y-6">
-                    <h2 class="text-xl font-light text-gold flex items-center gap-2">
-                        <i class="ph ph-article"></i> Executive Summary
-                    </h2>
-                    <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">
-                        Synchronizing real-time Data Lake analytics...
-                    </p>
+                <div class="glass-card rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-white/5 border-b border-white/10 text-[11px] uppercase tracking-widest text-gray-400 font-mono">
+                                    <th class="py-4 px-6 font-semibold w-2/5">Account Manager / Stage</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Total Tickets</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Introducer</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Avg Queue Aging (Days)</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Avg Days Since App</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matrix-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200">
+                                <tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">Waiting for Data Lake Synchronization...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Restored Flex Layout Integrity) -->
+        <!-- View 3: Artemis AI Core -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg">
