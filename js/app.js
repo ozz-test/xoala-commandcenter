@@ -121,7 +121,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (num <= 1) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
         if (num <= 3) return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
         if (num <= 5) return 'bg-orange-500/10 text-orange-400 border border-orange-500/20';
-        return 'bg-red-500/10 text-red-400 border border-red-500/20'; // >5 is Critical Red
+        return 'bg-red-500/10 text-red-400 border border-red-500/20';
+    };
+
+    // --- TIME FORMATTER (Converts 2.2 days -> 2d 4h 48m) ---
+    const formatTime = (decimalDays) => {
+        const val = parseFloat(decimalDays);
+        if (!val || isNaN(val) || val === 0) return "0m";
+        const d = Math.floor(val);
+        const h = Math.floor((val - d) * 24);
+        const m = Math.round(((val - d) * 24 - h) * 60);
+        let parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0) parts.push(`${h}h`);
+        if (m > 0 || parts.length === 0) parts.push(`${m}m`);
+        return parts.join(' ');
     };
 
     // --- MATRIX LOGIC ---
@@ -144,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
-        const aiSummaryText = document.getElementById('matrix-ai-summary');
         
         const startEl = document.getElementById('matrix-start-date');
         const endEl = document.getElementById('matrix-end-date');
@@ -152,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (syncIcon) syncIcon.classList.add('animate-spin');
         tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gold/50 font-mono text-xs animate-pulse">Running DAX Emulator...</td></tr>`;
-        if (aiSummaryText) { aiSummaryText.classList.add('ai-processing'); aiSummaryText.textContent = "Artemis is analyzing pipeline integrity..."; }
 
         try {
             const response = await fetch(DASHBOARD_API_URL, {
@@ -169,13 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (responseData.status === 200 && responseData.data) {
                 renderMatrix(responseData.data);
-                if (aiSummaryText) {
-                    aiSummaryText.classList.remove('ai-processing');
-                    aiSummaryText.textContent = responseData.aiBrief;
-                }
             } else {
                 tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
-                if (aiSummaryText) { aiSummaryText.classList.remove('ai-processing'); aiSummaryText.textContent = "AI Analysis Failed. Server disconnected."; }
             }
         } catch (error) {
             tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
@@ -201,8 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="py-3 px-6 font-semibold flex items-center space-x-2"><i class="ph ph-plus-square text-gold/50 group-hover:text-gold transition-colors"></i><span>${mgr.managerName}</span></td>
                 <td class="py-3 px-6 text-right font-mono">${mgr.tickets}</td>
                 <td class="py-3 px-6 text-right font-mono text-gray-400">${mgr.introducer}</td>
-                <td class="py-3 px-6 text-right font-mono"><span class="px-2 py-0.5 rounded ${getHeatmapClass(mgr.avgAging)}">${mgr.avgAging}</span></td>
-                <td class="py-3 px-6 text-right font-mono text-gray-300">${mgr.avgDays}</td>
+                <td class="py-3 px-6 text-right font-mono"><span class="px-2 py-0.5 rounded text-[11px] ${getHeatmapClass(mgr.avgAging)}">${formatTime(mgr.avgAging)}</span></td>
+                <td class="py-3 px-6 text-right font-mono text-gray-300">${formatTime(mgr.avgDays)}</td>
             `;
             tbody.appendChild(trMgr);
 
@@ -210,23 +217,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 const trStg = document.createElement('tr');
                 trStg.className = `mgr-${mgrIndex}-child bg-transparent hover:bg-white/5 transition-colors cursor-pointer hidden group border-b border-white/5`;
                 trStg.innerHTML = `
-                    <td class="py-2 px-6 flex items-center space-x-2 pl-12"><i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i><span class="text-sm text-gray-400">${stg.stageName}</span></td>
+                    <td class="py-2 px-6 flex items-center space-x-2 pl-12 border-l-2 border-white/10 ml-6"><i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i><span class="text-sm text-gray-400">${stg.stageName}</span></td>
                     <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.tickets}</td>
                     <td class="py-2 px-6 text-right font-mono text-sm text-gray-500">${stg.introducer}</td>
-                    <td class="py-2 px-6 text-right font-mono"><span class="px-2 py-0.5 rounded text-[11px] ${getHeatmapClass(stg.avgAging)}">${stg.avgAging}</span></td>
-                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-500">${stg.avgDays}</td>
+                    <td class="py-2 px-6 text-right font-mono"><span class="px-2 py-0.5 rounded text-[10px] ${getHeatmapClass(stg.avgAging)}">${formatTime(stg.avgAging)}</span></td>
+                    <td class="py-2 px-6 text-right font-mono text-sm text-gray-500">${formatTime(stg.avgDays)}</td>
                 `;
                 tbody.appendChild(trStg);
 
                 stg.leads.forEach(lead => {
                     const trLead = document.createElement('tr');
                     trLead.className = `mgr-${mgrIndex}-child stg-${mgrIndex}-${stgIndex}-child bg-black/20 hidden`;
+                    
+                    // UI FIX: Introducer Badges
+                    const introBadge = lead.introducer === 'Yes' ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Yes</span>` : `<span class="text-gray-600">-</span>`;
+
                     trLead.innerHTML = `
-                        <td class="py-1.5 px-6 pl-20 text-xs font-mono truncate max-w-xs cursor-pointer hover:text-white text-gray-400 transition-colors lead-name-cell" data-ticket-id="${lead.ticketId}" title="${lead.name}">- ${lead.name}</td>
+                        <td class="py-1.5 px-6 pl-20 border-l-2 border-white/5 text-xs font-mono truncate max-w-xs cursor-pointer hover:text-white text-gray-400 transition-colors lead-name-cell" data-ticket-id="${lead.ticketId}" title="${lead.name}">- ${lead.name}</td>
                         <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">-</td>
-                        <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">${lead.introducer}</td>
-                        <td class="py-1.5 px-6 text-right font-mono"><span class="px-2 py-[1px] rounded text-[10px] ${getHeatmapClass(lead.aging)}">${lead.aging}</span></td>
-                        <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">${lead.daysSince}</td>
+                        <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">${introBadge}</td>
+                        <td class="py-1.5 px-6 text-right font-mono"><span class="px-2 py-[1px] rounded text-[10px] ${getHeatmapClass(lead.aging)}">${formatTime(lead.aging)}</span></td>
+                        <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">${formatTime(lead.daysSince)}</td>
                     `;
                     tbody.appendChild(trLead);
                 });
@@ -289,6 +300,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('dash-top-region-count').textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
                 document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
                 document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+
+                // UI FIX: Restored Standard Executive Summary Template
+                const reportEl = document.getElementById('daily-report-content');
+                if (reportEl) {
+                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications.`;
+                }
+
                 renderCharts(currentRiskData, currentBotData);
             }
         } catch (error) { console.error("Dashboard Network Failure:", error); } 
