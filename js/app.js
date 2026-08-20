@@ -48,20 +48,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- DRILL-DOWN PANEL LOGIC ---
+    // --- DRILL-DOWN PANEL & LIVE SEARCH LOGIC ---
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
     const drilldownList = document.getElementById('drilldown-list');
+    const drilldownSearch = document.getElementById('drilldown-search');
+    let currentDrilldownLeads = [];
+
+    const renderDrilldownList = (leads) => {
+        drilldownList.innerHTML = leads.map(name => `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors" title="${name}">${name}</li>`).join('');
+    };
 
     const openDrilldown = (title, leads) => {
         drilldownTitle.textContent = title;
         document.getElementById('drilldown-count').textContent = `${leads.length} Tickets Found`;
-        drilldownList.innerHTML = leads.map(name => `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors" title="${name}">${name}</li>`).join('');
+        currentDrilldownLeads = leads; 
+        renderDrilldownList(leads);
+        
+        if (drilldownSearch) drilldownSearch.value = ''; 
         drilldownOverlay.classList.remove('hidden');
         setTimeout(() => drilldownOverlay.classList.remove('opacity-0'), 10);
         drilldownPanel.classList.remove('translate-x-full');
     };
+
+    if (drilldownSearch) {
+        drilldownSearch.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = currentDrilldownLeads.filter(l => l.toLowerCase().includes(term));
+            renderDrilldownList(filtered);
+        });
+    }
 
     const closeDrilldown = () => {
         drilldownOverlay.classList.add('opacity-0');
@@ -118,16 +135,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- HEATMAP ALGORITHM ---
     const getHeatmapClass = (val) => {
         const num = parseFloat(val);
+        if (isNaN(num)) return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
         if (num <= 1) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
         if (num <= 3) return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
         if (num <= 5) return 'bg-orange-500/10 text-orange-400 border border-orange-500/20';
         return 'bg-red-500/10 text-red-400 border border-red-500/20';
     };
 
-    // --- TIME FORMATTER (Converts 2.2 days -> 2d 4h 48m) ---
+    // --- TIME FORMATTER (e.g., 2.2 -> 2d 4h 48m) ---
     const formatTime = (decimalDays) => {
         const val = parseFloat(decimalDays);
-        if (!val || isNaN(val) || val === 0) return "0m";
+        if (isNaN(val) || val <= 0) return "0m";
         const d = Math.floor(val);
         const h = Math.floor((val - d) * 24);
         const m = Math.round(((val - d) * 24 - h) * 60);
@@ -217,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const trStg = document.createElement('tr');
                 trStg.className = `mgr-${mgrIndex}-child bg-transparent hover:bg-white/5 transition-colors cursor-pointer hidden group border-b border-white/5`;
                 trStg.innerHTML = `
-                    <td class="py-2 px-6 flex items-center space-x-2 pl-12 border-l-2 border-white/10 ml-6"><i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i><span class="text-sm text-gray-400">${stg.stageName}</span></td>
+                    <td class="py-2 px-6 flex items-center space-x-2 pl-12"><i class="ph ph-caret-right text-gray-600 group-hover:text-gold transition-colors text-xs"></i><span class="text-sm text-gray-400">${stg.stageName}</span></td>
                     <td class="py-2 px-6 text-right font-mono text-sm text-gray-400">${stg.tickets}</td>
                     <td class="py-2 px-6 text-right font-mono text-sm text-gray-500">${stg.introducer}</td>
                     <td class="py-2 px-6 text-right font-mono"><span class="px-2 py-0.5 rounded text-[10px] ${getHeatmapClass(stg.avgAging)}">${formatTime(stg.avgAging)}</span></td>
@@ -229,11 +247,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const trLead = document.createElement('tr');
                     trLead.className = `mgr-${mgrIndex}-child stg-${mgrIndex}-${stgIndex}-child bg-black/20 hidden`;
                     
-                    // UI FIX: Introducer Badges
                     const introBadge = lead.introducer === 'Yes' ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Yes</span>` : `<span class="text-gray-600">-</span>`;
 
                     trLead.innerHTML = `
-                        <td class="py-1.5 px-6 pl-20 border-l-2 border-white/5 text-xs font-mono truncate max-w-xs cursor-pointer hover:text-white text-gray-400 transition-colors lead-name-cell" data-ticket-id="${lead.ticketId}" title="${lead.name}">- ${lead.name}</td>
+                        <td class="py-1.5 px-6 pl-20 text-xs font-mono truncate max-w-xs cursor-pointer hover:text-white text-gray-400 transition-colors lead-name-cell" data-ticket-id="${lead.ticketId}" title="${lead.name}">- ${lead.name}</td>
                         <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">-</td>
                         <td class="py-1.5 px-6 text-right font-mono text-xs text-gray-600">${introBadge}</td>
                         <td class="py-1.5 px-6 text-right font-mono"><span class="px-2 py-[1px] rounded text-[10px] ${getHeatmapClass(lead.aging)}">${formatTime(lead.aging)}</span></td>
@@ -301,12 +318,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
                 document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
 
-                // UI FIX: Restored Standard Executive Summary Template
                 const reportEl = document.getElementById('daily-report-content');
                 if (reportEl) {
                     reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications.`;
                 }
-
                 renderCharts(currentRiskData, currentBotData);
             }
         } catch (error) { console.error("Dashboard Network Failure:", error); } 
