@@ -30,7 +30,6 @@
     </script>
 
     <style>
-        /* Custom Liquid Shine Animation for Logo */
         @keyframes liquid-shine {
             0% { transform: translateX(-150%) skewX(-25deg); }
             15% { transform: translateX(400%) skewX(-25deg); }
@@ -103,8 +102,8 @@
             <div class="max-w-7xl mx-auto w-full block">
                 <div class="flex justify-between items-center mb-8 w-full">
                     <h1 class="text-3xl font-light tracking-tight text-white">Terminal Operations</h1>
-                    <div id="dashboard-refresh-btn" class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg cursor-pointer hover:bg-gold/10 transition-colors" title="Sync Analytics">
-                        <i class="ph ph-arrows-clockwise text-gold text-lg" id="dashboard-sync-icon"></i>
+                    <div id="dashboard-global-refresh-btn" class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg cursor-pointer hover:bg-gold/10 transition-colors" title="Sync Analytics">
+                        <i class="ph ph-arrows-clockwise text-gold text-lg" id="dashboard-global-sync-icon"></i>
                     </div>
                 </div>
                 
@@ -158,14 +157,35 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-                    <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
-                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Risk Stratification</h3>
-                        <div class="relative h-64 w-full"><canvas id="riskChart"></canvas></div>
+                <!-- Dashboard Chart Filters -->
+                <div class="flex justify-between items-end w-full mb-4">
+                    <h2 class="text-lg font-light tracking-tight text-white">Visual Analytics</h2>
+                    <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label>
+                            <input type="date" id="dash-start-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">To</label>
+                            <input type="date" id="dash-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
+                        </div>
+                        <div class="w-px h-6 bg-white/10 mx-2"></div>
+                        <button id="dash-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2" title="View All-Time Data">Clear</button>
+                        <button id="dash-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1 shadow-[0_0_10px_rgba(221,170,51,0.1)] hover:shadow-[0_0_15px_rgba(221,170,51,0.3)]">
+                            <i class="ph ph-funnel" id="dash-sync-icon"></i><span>Filter</span>
+                        </button>
                     </div>
-                    <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl">
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                    <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl relative">
+                        <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Risk Stratification</h3>
+                        <!-- Wrapper forces strict dimensions to prevent canvas stretching/blurring -->
+                        <div class="relative w-full" style="height: 250px;"><canvas id="riskChart"></canvas></div>
+                    </div>
+                    <div class="glass-card p-6 rounded-xl border border-white/5 shadow-2xl relative">
                         <h3 class="text-sm tracking-widest text-gray-400 font-semibold mb-6 uppercase">Stage Bottlenecks</h3>
-                        <div class="relative h-64 w-full"><canvas id="bottleneckChart"></canvas></div>
+                        <div class="relative w-full" style="height: 250px;"><canvas id="bottleneckChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -202,12 +222,7 @@
                             <input type="date" id="matrix-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
                         </div>
                         <div class="w-px h-6 bg-white/10 mx-2"></div>
-                        
-                        <!-- CLEAR BUTTON -->
-                        <button id="matrix-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2" title="View All-Time Data">
-                            Clear
-                        </button>
-                        
+                        <button id="matrix-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2" title="View All-Time Data">Clear</button>
                         <button id="matrix-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1 shadow-[0_0_10px_rgba(221,170,51,0.1)] hover:shadow-[0_0_15px_rgba(221,170,51,0.3)]">
                             <i class="ph ph-funnel" id="matrix-sync-icon"></i><span>Filter</span>
                         </button>
