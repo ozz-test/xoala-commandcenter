@@ -52,11 +52,9 @@
             <i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i>
         </button>
 
-        <!-- FIX: Added bg-surface/95, border-r, and shadow directly to this container so the grey background never shrinks -->
         <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
             <div class="logo-container w-[160px] h-[50px] relative overflow-hidden rounded">
                 <div class="xoala-logo w-full h-full relative z-10 bg-no-repeat bg-contain bg-left"></div>
-                <!-- LIQUID SHINE EFFECT -->
                 <div class="absolute top-0 left-0 h-full w-[45px] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full animate-liquid-shine z-20 pointer-events-none mix-blend-overlay"></div>
             </div>
         </div>
@@ -204,7 +202,13 @@
                             <input type="date" id="matrix-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer">
                         </div>
                         <div class="w-px h-6 bg-white/10 mx-2"></div>
-                        <button id="matrix-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1">
+                        
+                        <!-- CLEAR BUTTON -->
+                        <button id="matrix-clear-btn" class="text-gray-500 hover:text-white transition-colors text-[10px] uppercase tracking-widest font-bold px-2" title="View All-Time Data">
+                            Clear
+                        </button>
+                        
+                        <button id="matrix-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1 shadow-[0_0_10px_rgba(221,170,51,0.1)] hover:shadow-[0_0_15px_rgba(221,170,51,0.3)]">
                             <i class="ph ph-funnel" id="matrix-sync-icon"></i><span>Filter</span>
                         </button>
                     </div>
