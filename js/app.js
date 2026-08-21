@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- GEOGRAPHIC MAPPING (ISO-2 Codes for Flag API & Map) ---
+    // --- EXPANDED OFFSHORE DICTIONARY ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -63,13 +63,22 @@ document.addEventListener('DOMContentLoaded', () => {
         "malta": "mt", "luxembourg": "lu", "new zealand": "nz", "israel": "il", "china": "cn",
         "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg",
         "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
-        "russia": "cn", "taiwan": "tw"
+        
+        // FINTECH & FX OFFSHORE HUBS
+        "bvi": "vg", "british virgin islands": "vg", "virgin islands, british": "vg",
+        "cayman islands": "ky", "st. vincent and the grenadines": "vc", "saint vincent and the grenadines": "vc", "svg": "vc",
+        "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
+        "curacao": "cw", "curaçao": "cw", "vanuatu": "vu", "marshall islands": "mh",
+        "antigua and barbuda": "ag", "gibraltar": "gi", "isle of man": "im", 
+        "bermuda": "bm", "jersey": "je", "guernsey": "gg", "st kitts and nevis": "kn", "saint kitts and nevis": "kn",
+        "saint lucia": "lc", "st lucia": "lc", "georgia": "ge", "armenia": "am",
+        "russia": "ru", "russian federation": "ru", "korea, republic of": "kr", "taiwan, province of china": "tw", "macao": "mo", "macau": "mo"
     };
 
     const regionsMap = {
-        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'tw'],
-        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe'],
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'tw', 'vu', 'mh', 'mo'],
+        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'vc', 'bs', 'bz', 'cw', 'ag', 'bm', 'kn', 'lc'],
         'NA': ['us', 'ca']
     };
 
@@ -346,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderCharts = (riskData, bottleneckData) => {
         Chart.defaults.color = '#888'; Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
+        // Risk Chart
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
@@ -358,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('risk-legend').innerHTML = riskData.labels.map((lbl, i) => `<div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))"><span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span><span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span></div>`).join('');
         }
 
+        // Bottleneck Chart
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
@@ -372,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- GEO SVG MAP & TABLE RENDERER ---
+    // --- GEO SVG MAP RENDERER & UNMAPPED DIAGNOSTICS ---
     const renderGeoMap = (geoData, regionFilter) => {
         const mapEl = document.getElementById('geo-map');
         if(!mapEl) return;
@@ -380,8 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const mapDataObj = {};
         const hoverData = {}; 
+        let unmappedCount = 0;
+        let unmappedDetails = {};
 
-        // Filter and Build Map Array
         geoData.labels.forEach((countryName, i) => {
             const cleanName = countryName.toLowerCase().trim();
             const isoCode = countryToIsoMap[cleanName];
@@ -392,8 +404,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     mapDataObj[codeUpper] = geoData.data[i];
                     hoverData[codeUpper] = { count: geoData.data[i], name: countryName, leads: geoData.leads[i], iso: isoCode };
                 }
+            } else {
+                unmappedCount += geoData.data[i];
+                unmappedDetails[countryName] = geoData.data[i];
             }
         });
+
+        // Diagnostic Console Output for the Admin
+        if (unmappedCount > 0) {
+            console.warn(`⚠️ [DIAGNOSTIC] ${unmappedCount} Tickets Unmapped in the Data Lake.`);
+            console.table(unmappedDetails);
+        }
 
         geoMapInstance = new jsVectorMap({
             selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
@@ -408,27 +429,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const totalInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
-        document.getElementById('geo-legend').innerHTML = `<div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center space-x-2"><span class="w-3 h-3 rounded-sm bg-gradient-to-r from-[#0f3f2b] to-[#10b981]"></span><span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span></div>`;
+        
+        // Render Legend with dynamic Unmapped Warning Badge
+        const unmappedBadgeHtml = unmappedCount > 0 
+            ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see exactly which strings are failing, or click to view in Table" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` 
+            : '';
 
-        // NEW: Populate Full Data Table (Includes unmapped/unknown countries)
+        document.getElementById('geo-legend').innerHTML = `<div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center space-x-2"><span class="w-3 h-3 rounded-sm bg-gradient-to-r from-[#0f3f2b] to-[#10b981]"></span><span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span>${unmappedBadgeHtml}</div>`;
+
+        // Populate the Data Table with EVERYTHING (including unmapped)
         const geoTbody = document.getElementById('geo-table-body');
         if (geoTbody) {
             geoTbody.innerHTML = geoData.labels.map((countryName, idx) => {
                 const count = geoData.data[idx];
                 const isoCode = countryToIsoMap[countryName.toLowerCase().trim()];
-                const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-gray-600"><i class="ph ph-flag"></i></span>';
+                const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph ph-warning-circle"></i></span>';
                 
                 return `
-                    <tr class="bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" onclick="document.getElementById('geo-map').dispatchEvent(new CustomEvent('geo-click', {detail: '${idx}'}))">
+                    <tr class="bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
                         <td class="py-2 px-4 flex items-center">${flagHtml}<span class="text-gray-300 capitalize">${countryName}</span></td>
                         <td class="py-2 px-4 text-right font-mono text-gold">${count}</td>
                     </tr>
                 `;
             }).join('');
 
-            // Add click listeners to table rows to open drill-down
-            const rows = geoTbody.querySelectorAll('tr');
-            rows.forEach((row, i) => {
+            geoTbody.querySelectorAll('tr').forEach((row, i) => {
                 row.addEventListener('click', () => {
                     const countryName = geoData.labels[i];
                     const isoCode = countryToIsoMap[countryName.toLowerCase().trim()] || null;
@@ -442,18 +467,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const geoWidget = document.getElementById('geo-widget-container');
     const geoFullscreenBtn = document.getElementById('geo-fullscreen-btn');
     const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
+    const geoCloseFsBtn = document.getElementById('geo-close-fs-btn');
     
-    if (geoFullscreenBtn) {
-        geoFullscreenBtn.addEventListener('click', () => {
-            geoWidget.classList.toggle('fixed'); geoWidget.classList.toggle('inset-4');
-            geoWidget.classList.toggle('z-[300]'); geoWidget.classList.toggle('shadow-[0_0_50px_rgba(0,0,0,0.8)]');
-            
-            if (geoWidget.classList.contains('fixed')) geoFullscreenIcon.classList.replace('ph-corners-out', 'ph-corners-in');
-            else geoFullscreenIcon.classList.replace('ph-corners-in', 'ph-corners-out');
-            
-            setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 300);
-        });
-    }
+    // FIX: True DOM-breaking Fullscreen Toggle
+    const toggleFullscreen = () => {
+        const isFS = geoWidget.classList.contains('fixed');
+        if (isFS) {
+            geoWidget.classList.remove('fixed', 'inset-0', 'z-[9999]', 'w-screen', 'h-screen', 'rounded-none', 'bg-obsidian/95', 'backdrop-blur-3xl');
+            geoWidget.classList.add('rounded-xl', 'relative', 'bg-surface');
+            geoFullscreenBtn.classList.remove('hidden');
+            geoCloseFsBtn.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            document.getElementById('geo-map-container').style.height = 'auto'; 
+        } else {
+            geoWidget.classList.remove('rounded-xl', 'relative', 'bg-surface');
+            geoWidget.classList.add('fixed', 'inset-0', 'z-[9999]', 'w-screen', 'h-screen', 'rounded-none', 'bg-obsidian/95', 'backdrop-blur-3xl');
+            geoFullscreenBtn.classList.add('hidden');
+            geoCloseFsBtn.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden'); // Lock background scrolling
+            document.getElementById('geo-map-container').style.height = 'calc(100vh - 100px)'; // Stretch map down
+        }
+        setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 300);
+    };
+
+    if (geoFullscreenBtn) geoFullscreenBtn.addEventListener('click', toggleFullscreen);
+    if (geoCloseFsBtn) geoCloseFsBtn.addEventListener('click', toggleFullscreen);
 
     const geoViewToggleBtn = document.getElementById('geo-view-toggle-btn');
     const geoViewToggleIcon = document.getElementById('geo-view-toggle-icon');
@@ -481,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('geo-start-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-end-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-clear-btn').addEventListener('click', () => { document.getElementById('geo-start-date').value = ''; document.getElementById('geo-end-date').value = ''; fetchDashboardData(); }); document.getElementById('geo-export-btn').addEventListener('click', () => { if(currentGeoData) downloadCSV('Geographic_Distribution', currentGeoData.labels, currentGeoData.data, currentGeoData.leads); });
 
-    // MACRO-REGION TOGGLES
     document.querySelectorAll('.geo-region-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.geo-region-btn').forEach(b => {
