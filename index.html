@@ -36,10 +36,7 @@
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
-        
         .jvm-tooltip { background-color: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; font-family: 'ui-monospace', monospace !important; border-radius: 6px !important; padding: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; }
-        
-        /* FIX: Hide Congested Native Buttons & Enable Map Panning Physics */
         .jvm-zoom-btn { display: none !important; }
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
@@ -48,14 +45,12 @@
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
-    <!-- LEAD CONTEXT MENU -->
     <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
         <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors">
             <i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span>
         </button>
     </div>
 
-    <!-- DRILL-DOWN SLIDE PANEL -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
     <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
@@ -74,7 +69,6 @@
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
 
-    <!-- Sidebar -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer"><i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i></button>
         <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
@@ -92,7 +86,6 @@
         <div class="p-4 border-t border-white/5 overflow-hidden"><a href="/cdn-cgi/access/logout" class="group flex items-center justify-center space-x-2 w-full py-3 border border-gray-800 rounded-lg text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300 hover:border-gold hover:text-gold hover:bg-gold/5"><i class="ph ph-power text-lg transition-transform group-hover:scale-110 flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Disconnect</span></a></div>
     </aside>
 
-    <!-- Main Workspace -->
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)] overflow-hidden">
         <header class="flex-none h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10">
             <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
@@ -107,10 +100,38 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div></div>
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div></div>
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div><div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div></div>
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (30D)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span></div></div>
+                    <!-- FIX: Added dynamic date tracking below each stat -->
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
+                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
+                        <div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div>
+                        <div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div>
+                    </div>
+                    
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
+                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
+                        <div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div>
+                        <div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
+                    </div>
+                    
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
+                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
+                        <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
+                        <div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div>
+                        <div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
+                    </div>
+                    
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
+                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (30D)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
+                        <div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div>
+                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Resolved: --</span></div>
+                        <div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
+                    </div>
                 </div>
                 
                 <div class="flex justify-between items-end w-full mb-4">
@@ -140,8 +161,6 @@
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full flex-1" style="min-height: 220px;"><canvas id="bottleneckChart"></canvas></div><div id="bot-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div></div>
                     </div>
 
-                    <!-- GEOGRAPHIC DISTRIBUTION WIDGET -->
-                    <!-- FIX: Target Element for Native Browser Fullscreen -->
                     <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden transition-all duration-300">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02] z-10 relative">
                             <div class="flex items-center space-x-4">
@@ -168,16 +187,12 @@
                         </div>
                         
                         <div id="geo-map-container" class="p-6 flex-1 flex flex-col relative z-0 bg-[#0a0a0a] transition-all">
-                            <!-- FIX: Floating Map Control Dock -->
                             <div class="absolute bottom-6 left-6 flex flex-col space-y-2 z-20">
                                 <button id="map-zoom-in" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom In"><i class="ph ph-plus"></i></button>
                                 <button id="map-zoom-out" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom Out"><i class="ph ph-minus"></i></button>
                                 <button id="map-reset" class="w-8 h-8 mt-2 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Reset View"><i class="ph ph-arrows-clockwise"></i></button>
                             </div>
-                            
                             <div id="geo-map" class="relative w-full flex-1" style="min-height: 400px; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2));"></div>
-                            
-                            <!-- FIX: Heat-Bar Legend -->
                             <div id="geo-legend" class="mt-4 flex flex-col items-center justify-center gap-1 z-10 relative"></div>
                         </div>
 
