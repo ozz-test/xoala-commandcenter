@@ -4,7 +4,6 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- STABILIZED TAB NAVIGATION ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -12,9 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => {
             if (item.disabled) return;
             navItems.forEach(nav => nav.classList.remove('active'));
-            viewSections.forEach(section => {
-                section.classList.add('hidden'); section.classList.remove('flex', 'block'); 
-            });
+            viewSections.forEach(section => { section.classList.add('hidden'); section.classList.remove('flex', 'block'); });
             item.classList.add('active');
             const targetId = item.getAttribute('data-target');
             const targetSection = document.getElementById(targetId);
@@ -48,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- EXPANDED GEOGRAPHIC DICTIONARY ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -85,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'NA': ['us', 'ca']
     };
 
-    // --- DRILL-DOWN PANEL & LIVE SEARCH LOGIC ---
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -111,12 +106,19 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => drilldownOverlay.classList.remove('opacity-0'), 10);
         drilldownPanel.classList.remove('translate-x-full');
 
-        // Micro-Animation: Select region on map
         if (isoCode && geoMapInstance) {
             geoMapInstance.clearSelectedRegions();
             geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]);
         }
     };
+
+    if (drilldownSearch) {
+        drilldownSearch.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = currentDrilldownLeads.filter(l => l.toLowerCase().includes(term));
+            renderDrilldownList(filtered, currentDrilldownIso);
+        });
+    }
 
     const closeDrilldown = () => {
         drilldownOverlay.classList.add('opacity-0');
@@ -128,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('close-drilldown-btn').addEventListener('click', closeDrilldown);
     drilldownOverlay.addEventListener('click', closeDrilldown);
 
-    // --- CSV EXPORT LOGIC ---
     const downloadCSV = (title, labels, counts, leadsArray) => {
         let csvContent = "data:text/csv;charset=utf-8,Category,Ticket Count,Lead Names\n";
         labels.forEach((label, i) => {
@@ -143,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click(); document.body.removeChild(link);
     };
 
-    // --- CONTEXT MENU (COPY HUBSPOT ID) ---
     const ctxMenu = document.getElementById('lead-context-menu');
     const ctxCopyText = document.getElementById('ctx-copy-text');
     let currentTicketId = null;
@@ -170,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- HEATMAP ALGORITHM & TIME FORMATTER ---
     const getHeatmapClass = (val) => {
         const num = parseFloat(val);
         if (isNaN(num)) return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
@@ -193,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.join(' ');
     };
 
-    // --- MATRIX LOGIC ---
     const setMatrixDefaultDates = () => {
         const now = new Date();
         const currentDay = now.getDay(); 
@@ -213,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
-        
         const startEl = document.getElementById('matrix-start-date');
         const endEl = document.getElementById('matrix-end-date');
         if(!startEl || !endEl || !tbody) return;
@@ -226,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get_matrix_data', startDate: startEl.value, endDate: endEl.value, secret: 'system_dashboard_init', prompt: 'system', model: 'gemini-3.5-flash-lite' })
             });
-
             const responseData = await response.json();
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
@@ -343,6 +339,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
                 document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
 
+                // FIX: Dynamic date injection for the top cards
+                const date1 = document.getElementById('dash-today-date1'); if (date1) date1.textContent = data.stats.todayDate;
+                const date2 = document.getElementById('dash-today-date2'); if (date2) date2.textContent = data.stats.todayDate;
+                const date3 = document.getElementById('dash-approval-dates'); if (date3) date3.textContent = `${data.stats.approvalRate.startDate} TO ${data.stats.approvalRate.endDate}`;
+
+                const reportEl = document.getElementById('daily-report-content');
+                if (reportEl) {
+                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications.`;
+                }
                 renderCharts(currentRiskData, currentBotData);
                 renderGeoMap(currentGeoData, currentRegionFilter);
             }
@@ -379,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- GEO SVG MAP RENDERER & DIAGNOSTICS ---
     const renderGeoMap = (geoData, regionFilter) => {
         const mapEl = document.getElementById('geo-map');
         if(!mapEl) return;
@@ -388,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapDataObj = {};
         const hoverData = {}; 
         let unmappedCount = 0;
-        let unmappedDetails = {};
 
         geoData.labels.forEach((countryName, i) => {
             const cleanName = countryName.toLowerCase().trim();
@@ -402,11 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 unmappedCount += geoData.data[i];
-                unmappedDetails[countryName] = geoData.data[i];
             }
         });
 
-        // FIX: Enabled Tactile Drag by initializing scale slightly above 1
         geoMapInstance = new jsVectorMap({
             selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
             focusOn: { x: 0.5, y: 0.5, scale: 1.05 }, 
@@ -428,11 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let maxCount = Math.max(...Object.values(mapDataObj));
         if (maxCount === -Infinity) maxCount = 0;
 
-        const unmappedBadgeHtml = unmappedCount > 0 
-            ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see unmapped countries" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` 
-            : '';
+        const unmappedBadgeHtml = unmappedCount > 0 ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see unmapped countries" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` : '';
 
-        // FIX: High-end glowing gradient heat-bar legend
         document.getElementById('geo-legend').innerHTML = `
             <div class="flex flex-col items-center w-full">
                 <div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center justify-center space-x-2">
@@ -463,19 +461,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             geoTbody.querySelectorAll('.geo-table-row').forEach((row, i) => {
                 const isoCode = row.getAttribute('data-iso');
-                
-                row.addEventListener('click', () => {
-                    const countryName = geoData.labels[i];
-                    openDrilldown(countryName, geoData.leads[i], isoCode);
-                });
-                
-                // FIX: Micro-Animation - Hovering table row highlights country on map
-                row.addEventListener('mouseenter', () => {
-                    if (isoCode && geoMapInstance) geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]);
-                });
-                row.addEventListener('mouseleave', () => {
-                    if (isoCode && geoMapInstance) geoMapInstance.clearSelectedRegions();
-                });
+                row.addEventListener('click', () => { const countryName = geoData.labels[i]; openDrilldown(countryName, geoData.leads[i], isoCode); });
+                row.addEventListener('mouseenter', () => { if (isoCode && geoMapInstance) geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]); });
+                row.addEventListener('mouseleave', () => { if (isoCode && geoMapInstance) geoMapInstance.clearSelectedRegions(); });
             });
         }
     };
@@ -486,12 +474,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
     const geoCloseFsBtn = document.getElementById('geo-close-fs-btn');
     
-    // Custom Map Controls (Floating Dock)
     document.getElementById('map-zoom-in').addEventListener('click', () => { const btn = document.querySelector('.jvm-zoomin'); if(btn) btn.click(); });
     document.getElementById('map-zoom-out').addEventListener('click', () => { const btn = document.querySelector('.jvm-zoomout'); if(btn) btn.click(); });
     document.getElementById('map-reset').addEventListener('click', () => { if(geoMapInstance) geoMapInstance.reset(); });
 
-    // FIX: Native Browser Fullscreen API
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             if (geoWidget.requestFullscreen) geoWidget.requestFullscreen();
@@ -542,7 +528,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- WIDGET EVENT LISTENERS ---
     const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn'); if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
     
     document.getElementById('risk-start-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-end-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-clear-btn').addEventListener('click', () => { document.getElementById('risk-start-date').value = ''; document.getElementById('risk-end-date').value = ''; fetchDashboardData(); }); document.getElementById('risk-export-btn').addEventListener('click', () => { if(currentRiskData) downloadCSV('Risk_Stratification', currentRiskData.labels, currentRiskData.data, currentRiskData.leads); });
@@ -553,9 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.geo-region-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.geo-region-btn').forEach(b => {
-                b.classList.remove('active', 'text-white', 'bg-white/10'); b.classList.add('text-gray-500');
-            });
+            document.querySelectorAll('.geo-region-btn').forEach(b => { b.classList.remove('active', 'text-white', 'bg-white/10'); b.classList.add('text-gray-500'); });
             e.target.classList.remove('text-gray-500'); e.target.classList.add('active', 'text-white', 'bg-white/10');
             currentRegionFilter = e.target.getAttribute('data-region');
             if (currentGeoData) renderGeoMap(currentGeoData, currentRegionFilter);
