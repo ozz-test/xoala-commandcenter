@@ -36,18 +36,44 @@
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
+        
+        /* Map Tooltip Overrides */
         .jvm-tooltip { background-color: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; font-family: 'ui-monospace', monospace !important; border-radius: 6px !important; padding: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; }
+        
+        /* FIX: Map Drag & Drop Cursor Mechanics */
+        .jvm-container { cursor: grab !important; }
+        .jvm-container:active { cursor: grabbing !important; }
+        
+        /* FIX: Premium Zoom Buttons */
+        .jvm-zoom-btn {
+            background-color: #111111 !important;
+            border: 1px solid rgba(221, 170, 51, 0.3) !important;
+            color: #DDAA33 !important;
+            width: 28px !important;
+            height: 28px !important;
+            line-height: 26px !important;
+            text-align: center !important;
+            border-radius: 6px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+        }
+        .jvm-zoom-btn:hover {
+            background-color: rgba(221, 170, 51, 0.1) !important;
+            box-shadow: 0 0 10px rgba(221, 170, 51, 0.3) !important;
+        }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
+    <!-- LEAD CONTEXT MENU -->
     <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
         <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors">
             <i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span>
         </button>
     </div>
 
+    <!-- DRILL-DOWN SLIDE PANEL WITH LIVE SEARCH -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
     <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
@@ -66,6 +92,7 @@
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
 
+    <!-- Sidebar -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer"><i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i></button>
         <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
@@ -83,6 +110,7 @@
         <div class="p-4 border-t border-white/5 overflow-hidden"><a href="/cdn-cgi/access/logout" class="group flex items-center justify-center space-x-2 w-full py-3 border border-gray-800 rounded-lg text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300 hover:border-gold hover:text-gold hover:bg-gold/5"><i class="ph ph-power text-lg transition-transform group-hover:scale-110 flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Disconnect</span></a></div>
     </aside>
 
+    <!-- Main Workspace -->
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)] overflow-hidden">
         <header class="flex-none h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10">
             <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
@@ -108,6 +136,8 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                    
+                    <!-- RISK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Risk Stratification</h3>
@@ -119,6 +149,7 @@
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full canvas-glow flex-1" style="min-height: 220px;"><canvas id="riskChart"></canvas></div><div id="risk-legend" class="mt-6 flex flex-wrap justify-center gap-4"></div></div>
                     </div>
                     
+                    <!-- BOTTLENECK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Stage Bottlenecks</h3>
@@ -130,16 +161,20 @@
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full flex-1" style="min-height: 220px;"><canvas id="bottleneckChart"></canvas></div><div id="bot-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div></div>
                     </div>
 
-                    <!-- GEOGRAPHIC DISTRIBUTION (SVG CHOROPLETH) -->
-                    <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden transition-all duration-300">
+                    <!-- GEOGRAPHIC DISTRIBUTION WIDGET -->
+                    <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden bg-surface transition-all duration-300">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02] z-10 relative">
                             <div class="flex items-center space-x-4">
                                 <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase flex items-center space-x-2">
                                     <span>Geographic Distribution</span>
                                     <button id="geo-view-toggle-btn" class="ml-2 text-gray-500 hover:text-gold transition-colors" title="Switch to Table View"><i class="ph ph-list-dashes text-lg" id="geo-view-toggle-icon"></i></button>
                                     <button id="geo-fullscreen-btn" class="text-gray-500 hover:text-white transition-colors" title="Expand Fullscreen"><i class="ph ph-corners-out text-lg" id="geo-fullscreen-icon"></i></button>
-                                    <!-- FIX: Dedicated X button for Fullscreen exit -->
-                                    <button id="geo-close-fs-btn" class="hidden text-gray-500 hover:text-red-400 transition-colors ml-2" title="Close Fullscreen"><i class="ph ph-x text-lg"></i></button>
+                                    
+                                    <!-- FIX: Highly Visible Glowing Red Close Button -->
+                                    <button id="geo-close-fs-btn" class="hidden bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all ml-4 px-3 py-1.5 rounded flex items-center space-x-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]" title="Close Fullscreen">
+                                        <i class="ph ph-x-circle text-lg"></i>
+                                        <span class="text-[10px] font-mono uppercase tracking-widest font-bold">Close Map</span>
+                                    </button>
                                 </h3>
                                 <div class="flex bg-black/40 border border-white/5 rounded-lg p-0.5" id="macro-region-toggles">
                                     <button class="geo-region-btn active px-3 py-1 rounded text-[10px] font-mono tracking-widest text-white bg-white/10" data-region="ALL">GLOBAL</button>
