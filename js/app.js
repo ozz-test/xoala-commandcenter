@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- GEOGRAPHIC MAPPING (ISO-2 Codes) ---
+    // --- GEOGRAPHIC MAPPING (ISO-2 Codes for Flag API & Map) ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- HEATMAP ALGORITHM ---
+    // --- HEATMAP ALGORITHM & TIME FORMATTER ---
     const getHeatmapClass = (val) => {
         const num = parseFloat(val);
         if (isNaN(num)) return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
@@ -346,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderCharts = (riskData, bottleneckData) => {
         Chart.defaults.color = '#888'; Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
-        // Risk Chart
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
@@ -359,7 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('risk-legend').innerHTML = riskData.labels.map((lbl, i) => `<div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))"><span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span><span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span></div>`).join('');
         }
 
-        // Bottleneck Chart
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
@@ -374,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- GEO SVG MAP RENDERER ---
+    // --- GEO SVG MAP & TABLE RENDERER ---
     const renderGeoMap = (geoData, regionFilter) => {
         const mapEl = document.getElementById('geo-map');
         if(!mapEl) return;
@@ -383,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapDataObj = {};
         const hoverData = {}; 
 
+        // Filter and Build Map Array
         geoData.labels.forEach((countryName, i) => {
             const cleanName = countryName.toLowerCase().trim();
             const isoCode = countryToIsoMap[cleanName];
@@ -397,28 +396,81 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         geoMapInstance = new jsVectorMap({
-            selector: '#geo-map',
-            map: 'world',
-            backgroundColor: 'transparent',
-            zoomOnScroll: false,
-            regionStyle: {
-                initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 },
-                hover: { fill: '#F0D788', fillOpacity: 1 }
-            },
+            selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
+            regionStyle: { initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 }, hover: { fill: '#F0D788', fillOpacity: 1 } },
             visualizeData: { scale: ['#0f3f2b', '#10b981'], values: mapDataObj },
             onRegionTooltipShow(event, tooltip, code) {
                 if (hoverData[code]) {
                     tooltip.text(`<div class="bg-surface border border-white/10 px-2 py-1 rounded text-xs font-mono"><img src="https://flagcdn.com/16x12/${hoverData[code].iso}.png" class="inline mr-1 rounded-sm"/> ${hoverData[code].name}: <span class="text-gold">${hoverData[code].count}</span></div>`, true);
                 } else event.preventDefault(); 
             },
-            onRegionClick(event, code) {
-                if (hoverData[code]) openDrilldown(hoverData[code].name, hoverData[code].leads, hoverData[code].iso);
-            }
+            onRegionClick(event, code) { if (hoverData[code]) openDrilldown(hoverData[code].name, hoverData[code].leads, hoverData[code].iso); }
         });
 
         const totalInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
         document.getElementById('geo-legend').innerHTML = `<div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center space-x-2"><span class="w-3 h-3 rounded-sm bg-gradient-to-r from-[#0f3f2b] to-[#10b981]"></span><span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span></div>`;
+
+        // NEW: Populate Full Data Table (Includes unmapped/unknown countries)
+        const geoTbody = document.getElementById('geo-table-body');
+        if (geoTbody) {
+            geoTbody.innerHTML = geoData.labels.map((countryName, idx) => {
+                const count = geoData.data[idx];
+                const isoCode = countryToIsoMap[countryName.toLowerCase().trim()];
+                const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-gray-600"><i class="ph ph-flag"></i></span>';
+                
+                return `
+                    <tr class="bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" onclick="document.getElementById('geo-map').dispatchEvent(new CustomEvent('geo-click', {detail: '${idx}'}))">
+                        <td class="py-2 px-4 flex items-center">${flagHtml}<span class="text-gray-300 capitalize">${countryName}</span></td>
+                        <td class="py-2 px-4 text-right font-mono text-gold">${count}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Add click listeners to table rows to open drill-down
+            const rows = geoTbody.querySelectorAll('tr');
+            rows.forEach((row, i) => {
+                row.addEventListener('click', () => {
+                    const countryName = geoData.labels[i];
+                    const isoCode = countryToIsoMap[countryName.toLowerCase().trim()] || null;
+                    openDrilldown(countryName, geoData.leads[i], isoCode);
+                });
+            });
+        }
     };
+
+    // --- GEO WIDGET TOGGLES (FULLSCREEN & TABLE/MAP) ---
+    const geoWidget = document.getElementById('geo-widget-container');
+    const geoFullscreenBtn = document.getElementById('geo-fullscreen-btn');
+    const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
+    
+    if (geoFullscreenBtn) {
+        geoFullscreenBtn.addEventListener('click', () => {
+            geoWidget.classList.toggle('fixed'); geoWidget.classList.toggle('inset-4');
+            geoWidget.classList.toggle('z-[300]'); geoWidget.classList.toggle('shadow-[0_0_50px_rgba(0,0,0,0.8)]');
+            
+            if (geoWidget.classList.contains('fixed')) geoFullscreenIcon.classList.replace('ph-corners-out', 'ph-corners-in');
+            else geoFullscreenIcon.classList.replace('ph-corners-in', 'ph-corners-out');
+            
+            setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 300);
+        });
+    }
+
+    const geoViewToggleBtn = document.getElementById('geo-view-toggle-btn');
+    const geoViewToggleIcon = document.getElementById('geo-view-toggle-icon');
+    const geoMapContainer = document.getElementById('geo-map-container');
+    const geoTableContainer = document.getElementById('geo-table-container');
+
+    if (geoViewToggleBtn) {
+        geoViewToggleBtn.addEventListener('click', () => {
+            geoMapContainer.classList.toggle('hidden'); geoTableContainer.classList.toggle('hidden');
+            if (geoMapContainer.classList.contains('hidden')) {
+                geoViewToggleIcon.classList.replace('ph-list-dashes', 'ph-globe'); geoViewToggleBtn.title = "Switch to Map View";
+            } else {
+                geoViewToggleIcon.classList.replace('ph-globe', 'ph-list-dashes'); geoViewToggleBtn.title = "Switch to Table View";
+                if (geoMapInstance) geoMapInstance.updateSize();
+            }
+        });
+    }
 
     // --- WIDGET EVENT LISTENERS ---
     const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn'); if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
@@ -433,11 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.geo-region-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.geo-region-btn').forEach(b => {
-                b.classList.remove('active', 'text-white', 'bg-white/10');
-                b.classList.add('text-gray-500');
+                b.classList.remove('active', 'text-white', 'bg-white/10'); b.classList.add('text-gray-500');
             });
-            e.target.classList.remove('text-gray-500');
-            e.target.classList.add('active', 'text-white', 'bg-white/10');
+            e.target.classList.remove('text-gray-500'); e.target.classList.add('active', 'text-white', 'bg-white/10');
             currentRegionFilter = e.target.getAttribute('data-region');
             if (currentGeoData) renderGeoMap(currentGeoData, currentRegionFilter);
         });
