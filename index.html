@@ -37,30 +37,12 @@
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
         
-        /* Map Tooltip Overrides */
         .jvm-tooltip { background-color: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; font-family: 'ui-monospace', monospace !important; border-radius: 6px !important; padding: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; }
         
-        /* FIX: Map Drag & Drop Cursor Mechanics */
+        /* FIX: Hide Congested Native Buttons & Enable Map Panning Physics */
+        .jvm-zoom-btn { display: none !important; }
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
-        
-        /* FIX: Premium Zoom Buttons */
-        .jvm-zoom-btn {
-            background-color: #111111 !important;
-            border: 1px solid rgba(221, 170, 51, 0.3) !important;
-            color: #DDAA33 !important;
-            width: 28px !important;
-            height: 28px !important;
-            line-height: 26px !important;
-            text-align: center !important;
-            border-radius: 6px !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
-        }
-        .jvm-zoom-btn:hover {
-            background-color: rgba(221, 170, 51, 0.1) !important;
-            box-shadow: 0 0 10px rgba(221, 170, 51, 0.3) !important;
-        }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -73,7 +55,7 @@
         </button>
     </div>
 
-    <!-- DRILL-DOWN SLIDE PANEL WITH LIVE SEARCH -->
+    <!-- DRILL-DOWN SLIDE PANEL -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
     <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
@@ -136,8 +118,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-                    
-                    <!-- RISK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Risk Stratification</h3>
@@ -149,7 +129,6 @@
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full canvas-glow flex-1" style="min-height: 220px;"><canvas id="riskChart"></canvas></div><div id="risk-legend" class="mt-6 flex flex-wrap justify-center gap-4"></div></div>
                     </div>
                     
-                    <!-- BOTTLENECK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Stage Bottlenecks</h3>
@@ -162,18 +141,16 @@
                     </div>
 
                     <!-- GEOGRAPHIC DISTRIBUTION WIDGET -->
-                    <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden bg-surface transition-all duration-300">
+                    <!-- FIX: Target Element for Native Browser Fullscreen -->
+                    <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden transition-all duration-300">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02] z-10 relative">
                             <div class="flex items-center space-x-4">
                                 <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase flex items-center space-x-2">
                                     <span>Geographic Distribution</span>
                                     <button id="geo-view-toggle-btn" class="ml-2 text-gray-500 hover:text-gold transition-colors" title="Switch to Table View"><i class="ph ph-list-dashes text-lg" id="geo-view-toggle-icon"></i></button>
-                                    <button id="geo-fullscreen-btn" class="text-gray-500 hover:text-white transition-colors" title="Expand Fullscreen"><i class="ph ph-corners-out text-lg" id="geo-fullscreen-icon"></i></button>
-                                    
-                                    <!-- FIX: Highly Visible Glowing Red Close Button -->
+                                    <button id="geo-fullscreen-btn" class="text-gray-500 hover:text-white transition-colors" title="Expand Native Fullscreen"><i class="ph ph-corners-out text-lg" id="geo-fullscreen-icon"></i></button>
                                     <button id="geo-close-fs-btn" class="hidden bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all ml-4 px-3 py-1.5 rounded flex items-center space-x-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]" title="Close Fullscreen">
-                                        <i class="ph ph-x-circle text-lg"></i>
-                                        <span class="text-[10px] font-mono uppercase tracking-widest font-bold">Close Map</span>
+                                        <i class="ph ph-x-circle text-lg"></i><span class="text-[10px] font-mono uppercase tracking-widest font-bold">Close Map</span>
                                     </button>
                                 </h3>
                                 <div class="flex bg-black/40 border border-white/5 rounded-lg p-0.5" id="macro-region-toggles">
@@ -191,8 +168,17 @@
                         </div>
                         
                         <div id="geo-map-container" class="p-6 flex-1 flex flex-col relative z-0 bg-[#0a0a0a] transition-all">
+                            <!-- FIX: Floating Map Control Dock -->
+                            <div class="absolute bottom-6 left-6 flex flex-col space-y-2 z-20">
+                                <button id="map-zoom-in" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom In"><i class="ph ph-plus"></i></button>
+                                <button id="map-zoom-out" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom Out"><i class="ph ph-minus"></i></button>
+                                <button id="map-reset" class="w-8 h-8 mt-2 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Reset View"><i class="ph ph-arrows-clockwise"></i></button>
+                            </div>
+                            
                             <div id="geo-map" class="relative w-full flex-1" style="min-height: 400px; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2));"></div>
-                            <div id="geo-legend" class="mt-4 flex flex-wrap justify-center items-center gap-3"></div>
+                            
+                            <!-- FIX: Heat-Bar Legend -->
+                            <div id="geo-legend" class="mt-4 flex flex-col items-center justify-center gap-1 z-10 relative"></div>
                         </div>
 
                         <div id="geo-table-container" class="hidden p-6 flex-1 flex flex-col relative z-0 bg-surface overflow-hidden">
@@ -263,7 +249,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Unchanged) -->
+        <!-- View 3: Artemis AI Core -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
