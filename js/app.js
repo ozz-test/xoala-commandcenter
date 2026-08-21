@@ -71,8 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "bermuda": "bm", "jersey": "je", "guernsey": "gg", "st kitts and nevis": "kn", "saint kitts and nevis": "kn",
         "saint lucia": "lc", "st lucia": "lc", "georgia": "ge", "armenia": "am",
         "russia": "ru", "russian federation": "ru", "korea, republic of": "kr", "taiwan, province of china": "tw", "macao": "mo", "macau": "mo",
-        
-        // NEW ADDITIONS FROM DIAGNOSTIC
         "comoros": "km", "costa rica": "cr", "panama": "pa", "slovakia": "sk", "dominica": "dm",
         "oman": "om", "algeria": "dz", "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz",
         "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
@@ -112,20 +110,19 @@ document.addEventListener('DOMContentLoaded', () => {
         drilldownOverlay.classList.remove('hidden');
         setTimeout(() => drilldownOverlay.classList.remove('opacity-0'), 10);
         drilldownPanel.classList.remove('translate-x-full');
-    };
 
-    if (drilldownSearch) {
-        drilldownSearch.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = currentDrilldownLeads.filter(l => l.toLowerCase().includes(term));
-            renderDrilldownList(filtered, currentDrilldownIso);
-        });
-    }
+        // Micro-Animation: Select region on map
+        if (isoCode && geoMapInstance) {
+            geoMapInstance.clearSelectedRegions();
+            geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]);
+        }
+    };
 
     const closeDrilldown = () => {
         drilldownOverlay.classList.add('opacity-0');
         drilldownPanel.classList.add('translate-x-full');
         setTimeout(() => drilldownOverlay.classList.add('hidden'), 300);
+        if (geoMapInstance) geoMapInstance.clearSelectedRegions();
     };
 
     document.getElementById('close-drilldown-btn').addEventListener('click', closeDrilldown);
@@ -346,10 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
                 document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
 
-                const reportEl = document.getElementById('daily-report-content');
-                if (reportEl) {
-                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications.`;
-                }
                 renderCharts(currentRiskData, currentBotData);
                 renderGeoMap(currentGeoData, currentRegionFilter);
             }
@@ -360,7 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderCharts = (riskData, bottleneckData) => {
         Chart.defaults.color = '#888'; Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
-        // Risk Chart
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
@@ -373,7 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('risk-legend').innerHTML = riskData.labels.map((lbl, i) => `<div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))"><span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span><span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span></div>`).join('');
         }
 
-        // Bottleneck Chart
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
@@ -415,14 +406,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if (unmappedCount > 0) {
-            console.warn(`⚠️ [DIAGNOSTIC] ${unmappedCount} Tickets Unmapped in the Data Lake.`);
-            console.table(unmappedDetails);
-        }
-
+        // FIX: Enabled Tactile Drag by initializing scale slightly above 1
         geoMapInstance = new jsVectorMap({
             selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
-            regionStyle: { initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 }, hover: { fill: '#F0D788', fillOpacity: 1 } },
+            focusOn: { x: 0.5, y: 0.5, scale: 1.05 }, 
+            regionStyle: { 
+                initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 }, 
+                hover: { fill: '#F0D788', fillOpacity: 1 },
+                selected: { fill: '#F0D788', fillOpacity: 1 }
+            },
             visualizeData: { scale: ['#0f3f2b', '#10b981'], values: mapDataObj },
             onRegionTooltipShow(event, tooltip, code) {
                 if (hoverData[code]) {
@@ -433,11 +425,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const totalInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
+        let maxCount = Math.max(...Object.values(mapDataObj));
+        if (maxCount === -Infinity) maxCount = 0;
+
         const unmappedBadgeHtml = unmappedCount > 0 
             ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see unmapped countries" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` 
             : '';
 
-        document.getElementById('geo-legend').innerHTML = `<div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center space-x-2"><span class="w-3 h-3 rounded-sm bg-gradient-to-r from-[#0f3f2b] to-[#10b981]"></span><span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span>${unmappedBadgeHtml}</div>`;
+        // FIX: High-end glowing gradient heat-bar legend
+        document.getElementById('geo-legend').innerHTML = `
+            <div class="flex flex-col items-center w-full">
+                <div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center justify-center space-x-2">
+                    <span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span>${unmappedBadgeHtml}
+                </div>
+                <div class="flex items-center space-x-3 w-64 mt-2">
+                    <span class="text-[10px] text-gray-500 font-mono">1</span>
+                    <div class="h-2 flex-1 rounded-full bg-gradient-to-r from-[#0f3f2b] to-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.2)]"></div>
+                    <span class="text-[10px] text-emerald-400 font-mono font-bold">${maxCount}</span>
+                </div>
+            </div>
+        `;
 
         const geoTbody = document.getElementById('geo-table-body');
         if (geoTbody) {
@@ -447,49 +454,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph ph-warning-circle"></i></span>';
                 
                 return `
-                    <tr class="bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                    <tr class="geo-table-row bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" data-iso="${isoCode || ''}">
                         <td class="py-2 px-4 flex items-center">${flagHtml}<span class="text-gray-300 capitalize">${countryName}</span></td>
                         <td class="py-2 px-4 text-right font-mono text-gold">${count}</td>
                     </tr>
                 `;
             }).join('');
 
-            geoTbody.querySelectorAll('tr').forEach((row, i) => {
+            geoTbody.querySelectorAll('.geo-table-row').forEach((row, i) => {
+                const isoCode = row.getAttribute('data-iso');
+                
                 row.addEventListener('click', () => {
                     const countryName = geoData.labels[i];
-                    const isoCode = countryToIsoMap[countryName.toLowerCase().trim()] || null;
                     openDrilldown(countryName, geoData.leads[i], isoCode);
+                });
+                
+                // FIX: Micro-Animation - Hovering table row highlights country on map
+                row.addEventListener('mouseenter', () => {
+                    if (isoCode && geoMapInstance) geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]);
+                });
+                row.addEventListener('mouseleave', () => {
+                    if (isoCode && geoMapInstance) geoMapInstance.clearSelectedRegions();
                 });
             });
         }
     };
 
-    // --- GEO WIDGET TOGGLES (FULLSCREEN & VIEW) ---
+    // --- GEO WIDGET CONTROLS & NATIVE FULLSCREEN ---
     const geoWidget = document.getElementById('geo-widget-container');
     const geoFullscreenBtn = document.getElementById('geo-fullscreen-btn');
     const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
     const geoCloseFsBtn = document.getElementById('geo-close-fs-btn');
     
-    // FIX: Enhanced DOM-breaking Fullscreen Toggle
+    // Custom Map Controls (Floating Dock)
+    document.getElementById('map-zoom-in').addEventListener('click', () => { const btn = document.querySelector('.jvm-zoomin'); if(btn) btn.click(); });
+    document.getElementById('map-zoom-out').addEventListener('click', () => { const btn = document.querySelector('.jvm-zoomout'); if(btn) btn.click(); });
+    document.getElementById('map-reset').addEventListener('click', () => { if(geoMapInstance) geoMapInstance.reset(); });
+
+    // FIX: Native Browser Fullscreen API
     const toggleFullscreen = () => {
-        const isFS = geoWidget.classList.contains('fixed');
-        if (isFS) {
-            geoWidget.classList.remove('fixed', 'inset-0', 'z-[9999]', 'w-screen', 'h-screen', 'rounded-none', 'bg-obsidian/95', 'backdrop-blur-3xl');
-            geoWidget.classList.add('rounded-xl', 'relative', 'bg-surface');
-            geoFullscreenBtn.classList.remove('hidden');
-            geoCloseFsBtn.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-            document.getElementById('geo-map-container').style.height = 'auto'; 
+        if (!document.fullscreenElement) {
+            if (geoWidget.requestFullscreen) geoWidget.requestFullscreen();
+            else if (geoWidget.webkitRequestFullscreen) geoWidget.webkitRequestFullscreen();
+            else if (geoWidget.msRequestFullscreen) geoWidget.msRequestFullscreen();
         } else {
-            geoWidget.classList.remove('rounded-xl', 'relative', 'bg-surface');
-            geoWidget.classList.add('fixed', 'inset-0', 'z-[9999]', 'w-screen', 'h-screen', 'rounded-none', 'bg-obsidian/95', 'backdrop-blur-3xl');
-            geoFullscreenBtn.classList.add('hidden');
-            geoCloseFsBtn.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden'); 
-            document.getElementById('geo-map-container').style.height = 'calc(100vh - 100px)'; 
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            else if (document.msExitFullscreen) document.msExitFullscreen();
         }
-        setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 300);
     };
+
+    document.addEventListener('fullscreenchange', () => {
+        const isFS = !!document.fullscreenElement;
+        if (isFS) {
+            geoWidget.classList.remove('rounded-xl', 'border', 'shadow-2xl');
+            geoWidget.classList.add('bg-obsidian', 'p-4'); 
+            geoFullscreenIcon.classList.replace('ph-corners-out', 'ph-corners-in');
+            geoCloseFsBtn.classList.remove('hidden');
+            document.getElementById('geo-map-container').style.height = 'calc(100vh - 120px)';
+        } else {
+            geoWidget.classList.add('rounded-xl', 'border', 'shadow-2xl');
+            geoWidget.classList.remove('bg-obsidian', 'p-4');
+            geoFullscreenIcon.classList.replace('ph-corners-in', 'ph-corners-out');
+            geoCloseFsBtn.classList.add('hidden');
+            document.getElementById('geo-map-container').style.height = 'auto'; 
+        }
+        setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 200);
+    });
 
     if (geoFullscreenBtn) geoFullscreenBtn.addEventListener('click', toggleFullscreen);
     if (geoCloseFsBtn) geoCloseFsBtn.addEventListener('click', toggleFullscreen);
