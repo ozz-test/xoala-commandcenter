@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- EXPANDED OFFSHORE DICTIONARY ---
+    // --- EXPANDED GEOGRAPHIC DICTIONARY (Includes Diagnostic Additions) ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -64,21 +64,27 @@ document.addEventListener('DOMContentLoaded', () => {
         "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg",
         "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
         
-        // FINTECH & FX OFFSHORE HUBS
-        "bvi": "vg", "british virgin islands": "vg", "virgin islands, british": "vg",
+        "bvi": "vg", "british virgin islands": "vg", "virgin islands, british": "vg", "virgin islands (british)": "vg",
         "cayman islands": "ky", "st. vincent and the grenadines": "vc", "saint vincent and the grenadines": "vc", "svg": "vc",
         "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
         "curacao": "cw", "curaçao": "cw", "vanuatu": "vu", "marshall islands": "mh",
         "antigua and barbuda": "ag", "gibraltar": "gi", "isle of man": "im", 
         "bermuda": "bm", "jersey": "je", "guernsey": "gg", "st kitts and nevis": "kn", "saint kitts and nevis": "kn",
         "saint lucia": "lc", "st lucia": "lc", "georgia": "ge", "armenia": "am",
-        "russia": "ru", "russian federation": "ru", "korea, republic of": "kr", "taiwan, province of china": "tw", "macao": "mo", "macau": "mo"
+        "russia": "ru", "russian federation": "ru", "korea, republic of": "kr", "taiwan, province of china": "tw", "macao": "mo", "macau": "mo",
+        
+        // NEW ADDITIONS FROM DIAGNOSTIC TRACE
+        "comoros": "km", "costa rica": "cr", "panama": "pa", "slovakia": "sk", "dominica": "dm",
+        "oman": "om", "algeria": "dz", "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz",
+        "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
+        "anguilla": "ai", "liechtenstein": "li", "serbia": "rs", "albania": "al", "jordan": "jo",
+        "honduras": "hn", "tanzania, united republic of": "tz", "tanzania": "tz"
     };
 
     const regionsMap = {
-        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'tw', 'vu', 'mh', 'mo'],
-        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'vc', 'bs', 'bz', 'cw', 'ag', 'bm', 'kn', 'lc'],
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'km', 'sk', 'om', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'tz'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'tw', 'vu', 'mh', 'mo', 'ck', 'mn', 'kz'],
+        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'vc', 'bs', 'bz', 'cw', 'ag', 'bm', 'kn', 'lc', 'cr', 'pa', 'dm', 'uy', 'sv', 'do', 'ai', 'hn'],
         'NA': ['us', 'ca']
     };
 
@@ -383,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- GEO SVG MAP RENDERER & UNMAPPED DIAGNOSTICS ---
+    // --- GEO SVG MAP RENDERER & DIAGNOSTICS ---
     const renderGeoMap = (geoData, regionFilter) => {
         const mapEl = document.getElementById('geo-map');
         if(!mapEl) return;
@@ -410,7 +416,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Diagnostic Console Output for the Admin
         if (unmappedCount > 0) {
             console.warn(`⚠️ [DIAGNOSTIC] ${unmappedCount} Tickets Unmapped in the Data Lake.`);
             console.table(unmappedDetails);
@@ -429,15 +434,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const totalInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
-        
-        // Render Legend with dynamic Unmapped Warning Badge
         const unmappedBadgeHtml = unmappedCount > 0 
-            ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see exactly which strings are failing, or click to view in Table" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` 
+            ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see unmapped countries" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` 
             : '';
 
         document.getElementById('geo-legend').innerHTML = `<div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center space-x-2"><span class="w-3 h-3 rounded-sm bg-gradient-to-r from-[#0f3f2b] to-[#10b981]"></span><span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span>${unmappedBadgeHtml}</div>`;
 
-        // Populate the Data Table with EVERYTHING (including unmapped)
         const geoTbody = document.getElementById('geo-table-body');
         if (geoTbody) {
             geoTbody.innerHTML = geoData.labels.map((countryName, idx) => {
@@ -463,13 +465,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- GEO WIDGET TOGGLES (FULLSCREEN & TABLE/MAP) ---
+    // --- GEO WIDGET TOGGLES (FULLSCREEN & VIEW) ---
     const geoWidget = document.getElementById('geo-widget-container');
     const geoFullscreenBtn = document.getElementById('geo-fullscreen-btn');
     const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
     const geoCloseFsBtn = document.getElementById('geo-close-fs-btn');
     
-    // FIX: True DOM-breaking Fullscreen Toggle
     const toggleFullscreen = () => {
         const isFS = geoWidget.classList.contains('fixed');
         if (isFS) {
@@ -484,8 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
             geoWidget.classList.add('fixed', 'inset-0', 'z-[9999]', 'w-screen', 'h-screen', 'rounded-none', 'bg-obsidian/95', 'backdrop-blur-3xl');
             geoFullscreenBtn.classList.add('hidden');
             geoCloseFsBtn.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden'); // Lock background scrolling
-            document.getElementById('geo-map-container').style.height = 'calc(100vh - 100px)'; // Stretch map down
+            document.body.classList.add('overflow-hidden');
+            document.getElementById('geo-map-container').style.height = 'calc(100vh - 100px)'; 
         }
         setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 300);
     };
