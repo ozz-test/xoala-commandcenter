@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- EXPANDED GEOGRAPHIC DICTIONARY (Includes Diagnostic Additions) ---
+    // --- EXPANDED GEOGRAPHIC DICTIONARY ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "malta": "mt", "luxembourg": "lu", "new zealand": "nz", "israel": "il", "china": "cn",
         "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg",
         "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
-        
         "bvi": "vg", "british virgin islands": "vg", "virgin islands, british": "vg", "virgin islands (british)": "vg",
         "cayman islands": "ky", "st. vincent and the grenadines": "vc", "saint vincent and the grenadines": "vc", "svg": "vc",
         "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "saint lucia": "lc", "st lucia": "lc", "georgia": "ge", "armenia": "am",
         "russia": "ru", "russian federation": "ru", "korea, republic of": "kr", "taiwan, province of china": "tw", "macao": "mo", "macau": "mo",
         
-        // NEW ADDITIONS FROM DIAGNOSTIC TRACE
+        // NEW ADDITIONS FROM DIAGNOSTIC
         "comoros": "km", "costa rica": "cr", "panama": "pa", "slovakia": "sk", "dominica": "dm",
         "oman": "om", "algeria": "dz", "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz",
         "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
@@ -471,6 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
     const geoCloseFsBtn = document.getElementById('geo-close-fs-btn');
     
+    // FIX: Enhanced DOM-breaking Fullscreen Toggle
     const toggleFullscreen = () => {
         const isFS = geoWidget.classList.contains('fixed');
         if (isFS) {
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             geoWidget.classList.add('fixed', 'inset-0', 'z-[9999]', 'w-screen', 'h-screen', 'rounded-none', 'bg-obsidian/95', 'backdrop-blur-3xl');
             geoFullscreenBtn.classList.add('hidden');
             geoCloseFsBtn.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
+            document.body.classList.add('overflow-hidden'); 
             document.getElementById('geo-map-container').style.height = 'calc(100vh - 100px)'; 
         }
         setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 300);
