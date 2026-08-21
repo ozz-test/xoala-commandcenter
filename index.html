@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- NEW: SVG Map Engine CDNs -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
@@ -37,17 +36,7 @@
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
-        
-        /* Custom Tooltip Styling for the Geo Map */
-        .jvm-tooltip {
-            background-color: #1a1a1a !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            color: #fff !important;
-            font-family: 'ui-monospace', monospace !important;
-            border-radius: 6px !important;
-            padding: 8px !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
-        }
+        .jvm-tooltip { background-color: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; font-family: 'ui-monospace', monospace !important; border-radius: 6px !important; padding: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -60,7 +49,7 @@
         </button>
     </div>
 
-    <!-- DRILL-DOWN SLIDE PANEL WITH LIVE SEARCH -->
+    <!-- DRILL-DOWN SLIDE PANEL -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
     <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
@@ -123,6 +112,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                    
                     <!-- RISK CHART -->
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
@@ -147,11 +137,18 @@
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full flex-1" style="min-height: 220px;"><canvas id="bottleneckChart"></canvas></div><div id="bot-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div></div>
                     </div>
 
-                    <!-- GEOGRAPHIC DISTRIBUTION (SVG CHOROPLETH) -->
-                    <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden">
+                    <!-- GEOGRAPHIC DISTRIBUTION WIDGET -->
+                    <!-- FIX: Added Fullscreen Wrapper ID -->
+                    <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden bg-surface transition-all duration-300">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02] z-10 relative">
                             <div class="flex items-center space-x-4">
-                                <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Geographic Distribution</h3>
+                                <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase flex items-center space-x-2">
+                                    <span>Geographic Distribution</span>
+                                    <!-- FIX: Map vs Table View Toggle -->
+                                    <button id="geo-view-toggle-btn" class="ml-2 text-gray-500 hover:text-gold transition-colors" title="Switch to Table View"><i class="ph ph-list-dashes text-lg" id="geo-view-toggle-icon"></i></button>
+                                    <!-- FIX: Fullscreen Toggle -->
+                                    <button id="geo-fullscreen-btn" class="text-gray-500 hover:text-white transition-colors" title="Toggle Fullscreen"><i class="ph ph-corners-out text-lg" id="geo-fullscreen-icon"></i></button>
+                                </h3>
                                 <!-- MACRO-REGION TOGGLES -->
                                 <div class="flex bg-black/40 border border-white/5 rounded-lg p-0.5" id="macro-region-toggles">
                                     <button class="geo-region-btn active px-3 py-1 rounded text-[10px] font-mono tracking-widest text-white bg-white/10" data-region="ALL">GLOBAL</button>
@@ -166,11 +163,30 @@
                                 <button id="geo-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="geo-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button>
                             </div>
                         </div>
-                        <div class="p-6 flex-1 flex flex-col relative z-0 bg-[#0a0a0a]">
+                        
+                        <!-- MAP VIEW CONTAINER -->
+                        <div id="geo-map-container" class="p-6 flex-1 flex flex-col relative z-0 bg-[#0a0a0a] transition-all">
                             <div id="geo-map" class="relative w-full flex-1" style="min-height: 400px; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2));"></div>
                             <div id="geo-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div>
                         </div>
+
+                        <!-- TABLE VIEW CONTAINER (Hidden by default) -->
+                        <div id="geo-table-container" class="hidden p-6 flex-1 flex flex-col relative z-0 bg-surface overflow-hidden">
+                            <div class="overflow-y-auto flex-1 h-full pr-2">
+                                <table class="w-full text-left border-collapse whitespace-nowrap">
+                                    <thead>
+                                        <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono sticky top-0 bg-surface z-10">
+                                            <th class="py-3 px-4 font-semibold">Jurisdiction / Country</th>
+                                            <th class="py-3 px-4 font-semibold text-right">Total Active Tickets</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="geo-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </section>
