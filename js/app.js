@@ -337,16 +337,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('dash-top-region').textContent = data.stats.topCountryToday.name;
                 document.getElementById('dash-top-region-count').textContent = `Daily Volume: ${data.stats.topCountryToday.count}`;
                 document.getElementById('dash-approval-rate').textContent = data.stats.approvalRate.rate;
-                document.getElementById('dash-approval-vol').textContent = `Resolved 30D: ${data.stats.approvalRate.volume}`;
+                
+                // FIX: Displays exact MTD approved count against total MTD created volume
+                const approvalVolEl = document.getElementById('dash-approval-vol');
+                if (approvalVolEl) approvalVolEl.textContent = `Approved MTD: ${data.stats.approvalRate.approvedVolume} / ${data.stats.approvalRate.totalVolume}`;
 
-                // FIX: Dynamic date injection for the top cards
                 const date1 = document.getElementById('dash-today-date1'); if (date1) date1.textContent = data.stats.todayDate;
                 const date2 = document.getElementById('dash-today-date2'); if (date2) date2.textContent = data.stats.todayDate;
                 const date3 = document.getElementById('dash-approval-dates'); if (date3) date3.textContent = `${data.stats.approvalRate.startDate} TO ${data.stats.approvalRate.endDate}`;
 
                 const reportEl = document.getElementById('daily-report-content');
                 if (reportEl) {
-                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Trailing 30-Day Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.volume} resolved applications.`;
+                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Month-to-Date Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.approvedVolume} strictly approved applications created this month.`;
                 }
                 renderCharts(currentRiskData, currentBotData);
                 renderGeoMap(currentGeoData, currentRegionFilter);
@@ -468,7 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- GEO WIDGET CONTROLS & NATIVE FULLSCREEN ---
     const geoWidget = document.getElementById('geo-widget-container');
     const geoFullscreenBtn = document.getElementById('geo-fullscreen-btn');
     const geoFullscreenIcon = document.getElementById('geo-fullscreen-icon');
