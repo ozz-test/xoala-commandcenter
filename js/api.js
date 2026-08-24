@@ -1,291 +1,259 @@
-// === XOALA COMMAND CENTER: ARTEMIS API LOGIC ===
+// === XOALA COMMAND CENTER: ARTEMIS AI CORE ENGINE ===
 
-const MIDDLEWARE_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev'; 
+const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const chatBox = document.getElementById('chat-box');
     const promptInput = document.getElementById('prompt-input');
     const sendBtn = document.getElementById('send-btn');
-    const fileInput = document.getElementById('file-input');
-    const fileNameLabel = document.getElementById('file-name-label');
-    const modelSelect = document.getElementById('model-select');
-    const micBtn = document.getElementById('mic-btn');
-    const micStatus = document.getElementById('mic-status');
-    const resyncBtn = document.getElementById('resync-btn');
-    const resyncIcon = document.getElementById('resync-icon');
-    const syncTimeBadge = document.getElementById('sync-time-badge');
+    const chatBox = document.getElementById('chat-box');
+    const emptyState = document.getElementById('artemis-empty-state');
+    const commandPalette = document.getElementById('command-palette');
+    const artifactPane = document.getElementById('artemis-artifact-pane');
+    const closeArtifactBtn = document.getElementById('close-artifact-btn');
     const newChatBtn = document.getElementById('new-chat-btn');
-    const chatSessionsList = document.getElementById('chat-sessions-list');
+    const sessionsList = document.getElementById('chat-sessions-list');
 
-    let attachedFileContent = null;
-    let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions')) || [{ id: 'default', title: 'New Investigation', messages: [], pinned: false }];
-    let currentSessionId = sessions[0].id;
+    let currentSessionId = Date.now().toString();
+    let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions') || '{}');
+
+    // Cyber-Koala Avatar SVG Helper
+    const getKoalaAvatar = (isThinking = false) => `
+        <div class="w-8 h-8 rounded-full border border-gold flex items-center justify-center bg-black flex-shrink-0 ${isThinking ? 'koala-thinking shadow-[0_0_12px_rgba(221,170,51,0.4)]' : 'shadow-[0_0_8px_rgba(16,185,129,0.3)]'}">
+            <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
+                <path d="M20 40 L10 20 L30 15 L40 30 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M80 40 L90 20 L70 15 L60 30 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M30 50 L50 25 L70 50 L80 75 L50 95 L20 75 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M40 65 L50 55 L60 65 L50 75 Z" fill="#111" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
+                <circle cx="35" cy="55" r="3" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
+                <circle cx="65" cy="55" r="3" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
+            </svg>
+        </div>
+    `;
+
+    // Slash Commands Palette
+    if (promptInput) {
+        promptInput.addEventListener('input', (e) => {
+            if (e.target.value === '/') {
+                commandPalette.classList.remove('hidden');
+                commandPalette.classList.add('flex');
+            } else if (!e.target.value.startsWith('/')) {
+                commandPalette.classList.add('hidden');
+                commandPalette.classList.remove('flex');
+            }
+        });
+    }
+
+    document.querySelectorAll('.command-item, .quick-pill').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const prompt = e.currentTarget.getAttribute('data-prompt');
+            promptInput.value = prompt;
+            commandPalette.classList.add('hidden');
+            commandPalette.classList.remove('flex');
+            promptInput.focus();
+        });
+    });
+
+    const openArtifactCanvas = (htmlContent) => {
+        document.getElementById('artifact-content').innerHTML = htmlContent;
+        artifactPane.style.width = '50%';
+        artifactPane.classList.remove('opacity-0');
+        artifactPane.classList.add('artifact-slide-in');
+    };
+
+    if (closeArtifactBtn) {
+        closeArtifactBtn.addEventListener('click', () => {
+            artifactPane.style.width = '0px';
+            artifactPane.classList.add('opacity-0');
+            artifactPane.classList.remove('artifact-slide-in');
+        });
+    }
+
+    const renderSessions = () => {
+        if (!sessionsList) return;
+        sessionsList.innerHTML = Object.keys(sessions).map(id => `
+            <div class="session-item px-3 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer truncate transition-colors flex items-center justify-between ${id === currentSessionId ? 'bg-white/10 text-gold' : ''}" data-id="${id}">
+                <span class="truncate max-w-[170px]">${sessions[id].title || 'Investigation'}</span>
+                <i class="ph ph-trash hover:text-red-400 p-1 delete-session-btn" data-id="${id}"></i>
+            </div>
+        `).join('');
+
+        sessionsList.querySelectorAll('.session-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-session-btn')) {
+                    delete sessions[e.target.getAttribute('data-id')];
+                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+                    renderSessions();
+                    return;
+                }
+                loadSession(el.getAttribute('data-id'));
+            });
+        });
+    };
+
+    const loadSession = (id) => {
+        currentSessionId = id;
+        chatBox.innerHTML = '';
+        const session = sessions[id];
+        if (!session || session.history.length === 0) {
+            chatBox.appendChild(emptyState);
+            emptyState.classList.remove('hidden');
+            renderSessions();
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        session.history.forEach(msg => {
+            if (msg.role === 'user') {
+                const u = document.createElement('div');
+                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md";
+                u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
+                chatBox.appendChild(u);
+            } else {
+                const a = document.createElement('div');
+                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4";
+                a.innerHTML = `
+                    ${getKoalaAvatar(false)}
+                    <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
+                        <div class="prose prose-invert prose-sm max-w-none leading-relaxed">${marked.parse(msg.parts[0].text)}</div>
+                    </div>
+                `;
+                chatBox.appendChild(a);
+            }
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+        renderSessions();
+    };
+
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', () => {
+            currentSessionId = Date.now().toString();
+            sessions[currentSessionId] = { title: "New Query", history: [] };
+            localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+            loadSession(currentSessionId);
+            if (closeArtifactBtn) closeArtifactBtn.click();
+        });
+    }
+
+    if (sendBtn && promptInput) {
+        sendBtn.addEventListener('click', async () => {
+            const val = promptInput.value.trim();
+            if (!val) return;
+
+            if (emptyState) emptyState.classList.add('hidden');
+
+            if (!sessions[currentSessionId]) {
+                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", history: [] };
+            }
+
+            const userMsg = document.createElement('div');
+            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md";
+            userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
+            chatBox.appendChild(userMsg);
+            
+            promptInput.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const aiMsg = document.createElement('div');
+            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4";
+            const reqStartTime = Date.now();
+            aiMsg.innerHTML = `
+                ${getKoalaAvatar(true)}
+                <div class="text-sm text-gray-400 font-mono animate-pulse pt-1">Analyzing Data Lake nodes...</div>
+            `;
+            chatBox.appendChild(aiMsg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const historyPayload = sessions[currentSessionId].history;
+                const response = await fetch(ARTEMIS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: val, 
+                        history: historyPayload,
+                        secret: 'system_dashboard_init',
+                        model: document.getElementById('model-select').value || 'gemini-3.5-flash-lite'
+                    })
+                });
+
+                const data = await response.json();
+                const latency = Date.now() - reqStartTime;
+
+                if (data.status === 200 && data.response) {
+                    let aiText = data.response;
+
+                    sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
+                    sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
+                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+
+                    // Generative UI JSON Parser
+                    const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
+                    const match = aiText.match(jsonBlockRegex);
+                    let artifactHtml = null;
+
+                    if (match && match[1]) {
+                        try {
+                            const parsedData = JSON.parse(match[1]);
+                            if (parsedData.type === 'interactive_table') {
+                                artifactHtml = `
+                                    <h2 class="text-xl text-white font-light mb-6 tracking-tight">${parsedData.title || 'Data Grid'}</h2>
+                                    <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
+                                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                                            <thead>
+                                                <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">
+                                                    ${parsedData.columns.map(c => `<th class="py-3 px-4 font-semibold">${c}</th>`).join('')}
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-sm font-sans divide-y divide-white/5 text-gray-200">
+                                                ${parsedData.rows.map(r => `
+                                                    <tr class="hover:bg-white/5 transition-colors">
+                                                        ${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-400'}">${v}</td>`).join('')}
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                `;
+                            }
+                            aiText = aiText.replace(jsonBlockRegex, '').trim();
+                        } catch (e) { console.error("GenUI Parse error", e); }
+                    }
+
+                    const formattedText = marked.parse(aiText);
+
+                    aiMsg.innerHTML = `
+                        ${getKoalaAvatar(false)}
+                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
+                            <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
+                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Execution Complete (${latency}ms)</span></div>
+                                <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
+                            </div>
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed">${formattedText}</div>
+                            <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
+                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1" onclick="navigator.clipboard.writeText(this.closest('.bg-surface\\/80').innerText)"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                ${artifactHtml ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded" onclick="document.getElementById('artemis-artifact-pane').style.width='50%'; document.getElementById('artemis-artifact-pane').classList.remove('opacity-0'); document.getElementById('artemis-artifact-pane').classList.add('artifact-slide-in');"><i class="ph ph-layout"></i><span>Open Canvas</span></button>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    if (artifactHtml) openArtifactCanvas(artifactHtml);
+
+                } else {
+                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">API Error: ${data.error || "Execution failed."}</div>`;
+                }
+            } catch (err) {
+                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">Network Error: Unable to reach Artemis core.</div>`;
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        promptInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+    }
 
     renderSessions();
-    loadSession(currentSessionId);
-
-    // --- Resync Data Lake ---
-    resyncBtn.addEventListener('click', () => executeQuery("Resync the data lake and verify all tickets.", true));
-
-    // --- New Chat Session ---
-    newChatBtn.addEventListener('click', () => {
-        const newSession = { id: 'session_' + Date.now(), title: 'New Investigation', messages: [], pinned: false };
-        sessions.unshift(newSession);
-        currentSessionId = newSession.id;
-        saveSessions();
-        renderSessions();
-        loadSession(currentSessionId);
-    });
-
-    // --- Voice Input ---
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        micBtn.addEventListener('click', () => {
-            recognition.start();
-            micStatus.textContent = "Listening...";
-            micBtn.classList.add('border-gold', 'text-gold');
-        });
-        recognition.onresult = (e) => {
-            promptInput.value += (promptInput.value ? ' ' : '') + e.results[0][0].transcript;
-            micStatus.textContent = "Voice";
-            micBtn.classList.remove('border-gold', 'text-gold');
-        };
-        recognition.onend = () => { micStatus.textContent = "Voice"; micBtn.classList.remove('border-gold', 'text-gold'); };
-    } else {
-        micBtn.style.display = 'none';
-    }
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fileNameLabel.textContent = file.name;
-            const reader = new FileReader();
-            reader.onload = (event) => { attachedFileContent = event.target.result; };
-            reader.readAsText(file);
-        }
-    });
-
-    promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); executeQuery(); }
-    });
-    sendBtn.addEventListener('click', () => executeQuery());
-
-    async function executeQuery(customPrompt = null, isResync = false) {
-        let prompt = customPrompt || promptInput.value.trim();
-        if (!prompt && !attachedFileContent && !isResync) return;
-
-        if (attachedFileContent) {
-            prompt += `\n\n[Attached File Data Content]:\n${attachedFileContent}`;
-        }
-
-        const selectedModel = modelSelect.value;
-        const session = sessions.find(s => s.id === currentSessionId);
-
-        if (!isResync && session.messages.length === 0) {
-            session.title = prompt.length > 25 ? prompt.substring(0, 25) + '...' : prompt;
-        }
-
-        session.messages.push({ role: "user", text: prompt, isHTML: false });
-        appendMessage(prompt, 'user');
-
-        promptInput.value = '';
-        fileNameLabel.textContent = "Add File";
-        attachedFileContent = null;
-        fileInput.value = '';
-        promptInput.disabled = true;
-        sendBtn.disabled = true;
-
-        if (isResync) resyncIcon.classList.add('animate-spin');
-
-        const loadingId = 'loading-' + Date.now();
-        appendLoading(loadingId);
-
-        try {
-            const historyPayload = session.messages.slice(-6).map(m => ({
-                role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: m.text }]
-            }));
-
-            const response = await fetch(MIDDLEWARE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    prompt: prompt,
-                    model: selectedModel,
-                    forceRefresh: isResync,
-                    history: historyPayload
-                }) 
-            });
-
-            const data = await response.json();
-            
-            // FIX: Safely check if element exists before removing to prevent UI crashes
-            const loadingEl = document.getElementById(loadingId);
-            if (loadingEl) loadingEl.remove();
-            
-            if (isResync) resyncIcon.classList.remove('animate-spin');
-
-            if (response.ok && data.status === 200) {
-                // FIX: Fallback string mapping if AI returns undefined
-                const safeText = typeof data.response === 'string' ? data.response : "Data execution resulted in an unreadable payload.";
-                const htmlResponse = marked.parse(safeText);
-                
-                session.messages.push({ role: "artemis", text: htmlResponse, isHTML: true });
-                appendMessage(htmlResponse, 'artemis', true, selectedModel);
-                
-                if (data.lastSynced) {
-                    const localTime = new Date(parseInt(data.lastSynced)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    syncTimeBadge.textContent = localTime;
-                    syncTimeBadge.classList.replace('text-white', 'text-gold');
-                }
-            } else {
-                const errText = `System Error: ${data.error || 'Connection failed.'}`;
-                session.messages.push({ role: "artemis", text: errText, isHTML: false });
-                appendMessage(errText, 'artemis', false, selectedModel);
-            }
-
-            saveSessions();
-            renderSessions();
-
-        } catch (error) {
-            const loadingEl = document.getElementById(loadingId);
-            if (loadingEl) loadingEl.remove();
-            
-            if (isResync) resyncIcon.classList.remove('animate-spin');
-            appendMessage(`Network Integrity Failure: ${error.message}`, 'artemis');
-        }
-
-        promptInput.disabled = false;
-        sendBtn.disabled = false;
-        promptInput.focus();
-    }
-
-    function appendMessage(content, sender, isHTML = false, model = '') {
-        const div = document.createElement('div');
-        div.className = 'flex items-start max-w-4xl ' + (sender === 'user' ? 'ml-auto flex-row-reverse' : '');
-        
-        const avatar = sender === 'artemis' 
-            ? `<div class="h-9 w-9 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mr-4 mt-1 flex-shrink-0 shadow-md"><i class="ph ph-sparkle text-gold text-lg"></i></div>`
-            : `<div class="h-9 w-9 rounded-xl bg-panel border border-white/10 flex items-center justify-center ml-4 mt-1 flex-shrink-0 shadow-md"><i class="ph ph-user text-gray-400 text-lg"></i></div>`;
-
-        const bubbleClass = sender === 'artemis'
-            ? 'bg-surface/80 border border-white/5 p-6 rounded-2xl shadow-xl backdrop-blur-md markdown-body w-full'
-            : 'bg-panel border border-white/10 p-6 rounded-2xl shadow-xl w-full';
-
-        div.innerHTML = `
-            ${avatar}
-            <div class="${bubbleClass}">
-                <div class="text-[10px] font-bold tracking-widest text-gold uppercase mb-2">${sender === 'artemis' ? 'Artemis Core' : 'Admin User'}</div>
-                <div class="text-sm leading-relaxed text-gray-200">${isHTML ? content : escapeHTML(content)}</div>
-            </div>
-        `;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function appendLoading(id) {
-        const div = document.createElement('div');
-        div.id = id;
-        div.className = 'flex items-start max-w-4xl';
-        div.innerHTML = `
-            <div class="h-9 w-9 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mr-4 mt-1 flex-shrink-0 shadow-md">
-                <i class="ph ph-sparkle text-gold text-lg animate-pulse"></i>
-            </div>
-            <div class="bg-surface/80 border border-white/5 p-6 rounded-2xl shadow-xl backdrop-blur-md flex items-center space-x-3">
-                <div class="text-xs font-mono text-gold tracking-widest uppercase">Artemis is analyzing Data Lake</div>
-                <div class="py-1 px-2"><div class="dot-pulse"></div></div>
-            </div>
-        `;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderSessions() {
-        chatSessionsList.innerHTML = '';
-        sessions.forEach(session => {
-            const btn = document.createElement('div');
-            btn.className = `group flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${session.id === currentSessionId ? 'bg-gold/10 text-gold border border-gold/30 shadow-inner' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
-            
-            btn.innerHTML = `
-                <div class="flex items-center space-x-2 truncate flex-1" onclick="window.switchSession('${session.id}')">
-                    <i class="ph ${session.pinned ? 'ph-push-pin-simple text-gold' : 'ph-chat-circle'} text-sm flex-shrink-0"></i>
-                    <span class="truncate">${session.title}</span>
-                </div>
-                <div class="hidden group-hover:flex items-center space-x-1 ml-2 bg-obsidian/80 px-1 rounded">
-                    <i class="ph ph-pencil-simple hover:text-blue-400 p-1" onclick="event.stopPropagation(); window.renameSession('${session.id}')" title="Rename"></i>
-                    <i class="ph ph-push-pin hover:text-gold p-1" onclick="event.stopPropagation(); window.togglePin('${session.id}')" title="Pin"></i>
-                    <i class="ph ph-trash hover:text-red-400 p-1" onclick="event.stopPropagation(); window.deleteSession('${session.id}')" title="Delete"></i>
-                </div>
-            `;
-            chatSessionsList.appendChild(btn);
-        });
-    }
-
-    window.switchSession = function(id) {
-        currentSessionId = id;
-        renderSessions();
-        loadSession(id);
-    };
-
-    window.renameSession = function(id) {
-        const s = sessions.find(x => x.id === id);
-        if (s) {
-            const newName = prompt("Enter new chat name:", s.title);
-            if (newName && newName.trim() !== "") {
-                s.title = newName.trim();
-                saveSessions();
-                renderSessions();
-            }
-        }
-    };
-
-    window.togglePin = function(id) {
-        const s = sessions.find(x => x.id === id);
-        if (s) { s.pinned = !s.pinned; saveSessions(); renderSessions(); }
-    };
-
-    window.deleteSession = function(id) {
-        if (sessions.length <= 1) return;
-        sessions = sessions.filter(x => x.id !== id);
-        currentSessionId = sessions[0].id;
-        saveSessions();
-        renderSessions();
-        loadSession(currentSessionId);
-    };
-
-    function loadSession(id) {
-        chatBox.innerHTML = '';
-        const session = sessions.find(s => s.id === id);
-        if (session && session.messages.length > 0) {
-            session.messages.forEach(m => {
-                appendMessage(m.text, m.role === 'user' ? 'user' : 'artemis', m.isHTML);
-            });
-        } else {
-            chatBox.innerHTML = `
-                <div class="flex items-start max-w-4xl">
-                    <div class="h-9 w-9 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mr-4 mt-1 flex-shrink-0 shadow-md">
-                        <i class="ph ph-sparkle text-gold text-lg"></i>
-                    </div>
-                    <div class="bg-surface/80 border border-white/5 p-6 rounded-2xl shadow-xl backdrop-blur-md">
-                        <div class="text-[10px] font-bold tracking-widest text-gold uppercase mb-2">Artemis Core</div>
-                        <div class="text-sm leading-relaxed text-gray-200">
-                            New session initialized. Ready for compliance queries, data lake audits, or document reviews, master.
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    function saveSessions() {
-        localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-    }
-
-    function escapeHTML(str) {
-        return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-    }
 });
