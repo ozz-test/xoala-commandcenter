@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xoala Command Center | Sovereign</title>
     
-    <!-- Prevents favicon 404 error -->
     <link rel="icon" href="data:,">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,9 +42,8 @@
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* 3D Canvas Background Blending */
         .hologram-fade-out { opacity: 0.05; filter: blur(6px); transition: all 1s ease; }
-        .hologram-focus { opacity: 0.9; filter: blur(0px); transition: all 1s ease; }
+        .hologram-focus { opacity: 1; filter: blur(0px); transition: all 1s ease; }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -180,7 +178,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Jarvis Tier with Isolated Canvas) -->
+        <!-- View 3: Artemis AI Core -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden relative">
             
             <!-- Sidebar: Threads -->
@@ -195,17 +193,17 @@
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian z-10">
                 
                 <!-- BACKGROUND LAYER: Protected 3D Canvas Engine -->
-                <div id="hologram-container" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none hologram-focus">
-                    <canvas id="jarvis-core-canvas" width="600" height="600" class="max-w-md max-h-md opacity-80 mix-blend-screen"></canvas>
-                    <div id="hologram-text" class="text-center mt-4">
-                        <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
-                        <p class="text-xs font-mono text-gray-500 mt-2 tracking-wide">Data Lake Engine Operational • Audio Synthesis Ready</p>
+                <div id="artemis-empty-state" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none hologram-focus transition-all duration-700">
+                    <canvas id="jarvis-core-canvas" class="max-w-xl max-h-xl opacity-90 mix-blend-screen"></canvas>
+                    <div class="text-center absolute mt-[350px]">
+                        <h2 class="text-2xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
+                        <p class="text-xs font-mono text-gray-500 mt-3 tracking-widest uppercase">Data Lake Engine Operational • Audio Synthesis Ready</p>
                     </div>
                 </div>
 
                 <!-- FOREGROUND LAYER: Chat Interface -->
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
-                    <div class="flex-none px-8 py-3 bg-surface/80 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
+                    <div class="flex-none px-8 py-3 bg-surface/60 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
                             <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
                                 <i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS CORE</span>
@@ -225,7 +223,7 @@
                         </div>
                     </div>
                     
-                    <!-- Chat Bubbles Area (Separated from background canvas) -->
+                    <!-- Chat Bubbles Area -->
                     <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative z-20 flex flex-col justify-start pb-10">
                         <div id="chat-stream" class="flex flex-col space-y-6 min-h-full justify-end"></div>
                     </div>
@@ -234,7 +232,7 @@
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-30">
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
                             <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month."><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
                         </div>
                         <div class="max-w-4xl mx-auto bg-surface/90 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-xl relative">
@@ -244,7 +242,7 @@
                             </div>
                             <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-500" placeholder="Type '/' for macros, or query data lake..."></textarea>
                             <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
-                                <div class="flex items-center space-x-3"><label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-plus-circle text-base"></i><span id="file-name-label">Add File</span><input type="file" id="file-input" class="hidden" accept=".csv,.txt,.pdf"></label></div>
+                                <div class="flex items-center space-x-3"><label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-paperclip text-base"></i></label></div>
                                 <button id="send-btn" class="bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 py-2.5 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(224,192,96,0.4)] disabled:opacity-50 flex items-center space-x-2"><span>Execute</span><i class="ph ph-paper-plane-right font-bold text-sm"></i></button>
                             </div>
                         </div>
@@ -262,6 +260,7 @@
                     </div>
                     <div id="artifact-content" class="flex-1 p-8 overflow-y-auto w-full"></div>
                 </div>
+
             </div>
         </section>
     </main>
