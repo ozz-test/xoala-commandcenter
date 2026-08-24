@@ -41,36 +41,12 @@
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
 
-        /* 3D Geometric Crystal Core Animations */
-        @keyframes crystal-spin {
-            0% { transform: rotateY(0deg) rotateX(15deg) rotateZ(0deg); }
-            50% { transform: rotateY(180deg) rotateX(-15deg) rotateZ(180deg); }
-            100% { transform: rotateY(360deg) rotateX(15deg) rotateZ(360deg); }
+        @keyframes jarvis-glow-pulse {
+            0%, 100% { filter: drop-shadow(0 0 25px rgba(221, 170, 51, 0.35)) drop-shadow(0 0 55px rgba(16, 185, 129, 0.2)); }
+            50% { filter: drop-shadow(0 0 45px rgba(221, 170, 51, 0.75)) drop-shadow(0 0 85px rgba(16, 185, 129, 0.45)); }
         }
-        @keyframes crystal-pulse {
-            0%, 100% { filter: drop-shadow(0 0 15px rgba(221,170,51,0.3)) drop-shadow(0 0 35px rgba(16,185,129,0.2)); transform: scale(1); }
-            50% { filter: drop-shadow(0 0 30px rgba(221,170,51,0.7)) drop-shadow(0 0 60px rgba(16,185,129,0.5)); transform: scale(1.06); }
-        }
-        @keyframes orbit-ring-a {
-            0% { transform: rotateZ(0deg) rotateX(65deg); }
-            100% { transform: rotateZ(360deg) rotateX(65deg); }
-        }
-        @keyframes orbit-ring-b {
-            0% { transform: rotateZ(360deg) rotateY(65deg); }
-            100% { transform: rotateZ(0deg) rotateY(65deg); }
-        }
-
-        .crystal-core-wrapper {
-            animation: crystal-pulse 4s ease-in-out infinite;
-        }
-        .crystal-orbit-a {
-            animation: orbit-ring-a 14s linear infinite;
-        }
-        .crystal-orbit-b {
-            animation: orbit-ring-b 18s linear infinite;
-        }
-        .crystal-thinking-fast {
-            animation: crystal-pulse 1.2s ease-in-out infinite !important;
+        .jarvis-hologram-live {
+            animation: jarvis-glow-pulse 4s ease-in-out infinite;
         }
 
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -301,7 +277,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Jarvis 3D Geometric Crystal Core) -->
+        <!-- View 3: Artemis AI Core (3D Jarvis Hologram & Voice Transmission Engine) -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <!-- Sidebar with Working Pinned & Recent Sessions -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
@@ -322,65 +298,36 @@
                     <div class="flex-none px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
                             <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
-                                <i class="ph ph-hexagon text-gold text-base"></i><span>ARTEMIS QUANTITATIVE CORE</span>
+                                <i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS QUANTITATIVE CORE</span>
                             </div>
                             <div class="flex items-center space-x-2 bg-obsidian border border-white/10 px-3 py-1.5 rounded-lg text-[11px] font-mono text-gray-400 shadow-inner">
                                 <i class="ph ph-database text-emerald-400"></i><span>Synced: <strong id="sync-time-badge" class="text-white">Validating...</strong></span>
                                 <button id="resync-btn" class="ml-2 text-gray-400 hover:text-gold transition-colors bg-surface px-2 py-0.5 rounded border border-white/10 flex items-center space-x-1 text-[10px]"><i class="ph ph-arrows-clockwise" id="resync-icon"></i><span>Resync</span></button>
                             </div>
                         </div>
-                        <select id="model-select" class="bg-obsidian border border-gray-700 text-gold text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg outline-none cursor-pointer hover:border-gold/50 transition-all shadow-lg focus:ring-1 focus:ring-gold">
-                            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                        </select>
+                        <div class="flex items-center space-x-3">
+                            <!-- Voice Auto-Speech Toggle Button -->
+                            <button id="voice-auto-toggle-btn" class="bg-surface/80 border border-white/10 hover:border-gold/50 px-3 py-1.5 rounded-lg text-xs font-mono text-gray-400 hover:text-gold transition-all flex items-center space-x-1.5" title="Toggle Jarvis Voice Output">
+                                <i class="ph ph-speaker-high text-sm text-gold" id="voice-auto-icon"></i>
+                                <span id="voice-auto-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-300">Voice: ON</span>
+                            </button>
+                            <select id="model-select" class="bg-obsidian border border-gray-700 text-gold text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg outline-none cursor-pointer hover:border-gold/50 transition-all shadow-lg focus:ring-1 focus:ring-gold">
+                                <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide relative flex flex-col justify-start">
                         
-                        <!-- 3D GEOMETRIC CRYSTAL CORE HERO (Jarvis Tier) -->
+                        <!-- 3D JARVIS HOLOGRAPHIC GYROSCOPE HERO (Canvas Engine) -->
                         <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-100 transition-opacity duration-500">
                             
-                            <div class="relative w-56 h-56 flex items-center justify-center mb-6">
-                                
-                                <!-- Background Multi-Axis Orbit Rings -->
-                                <div class="absolute inset-0 rounded-full border border-gold/30 border-dashed crystal-orbit-a"></div>
-                                <div class="absolute inset-2 rounded-full border border-emerald-500/40 border-dotted crystal-orbit-b"></div>
-                                
-                                <!-- 3D Geometric Polyhedron Core -->
-                                <div id="crystal-core" class="crystal-core-wrapper relative z-10 w-36 h-36 flex items-center justify-center">
-                                    <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow-[0_0_20px_rgba(221,170,51,0.4)]">
-                                        <!-- Outer Facets -->
-                                        <polygon points="60,10 105,35 105,85 60,110 15,85 15,35" fill="url(#core-facet-dark)" stroke="#DDAA33" stroke-width="1.2" stroke-linejoin="round"/>
-                                        <!-- Isometric Inner Crystals -->
-                                        <polygon points="60,10 60,60 105,85" fill="url(#core-facet-emerald)" fill-opacity="0.45" stroke="#10b981" stroke-width="1"/>
-                                        <polygon points="60,10 15,35 60,60" fill="url(#core-facet-gold)" fill-opacity="0.35" stroke="#DDAA33" stroke-width="1"/>
-                                        <polygon points="60,60 105,35 60,10" fill="url(#core-facet-gold)" fill-opacity="0.25" stroke="#F0D788" stroke-width="0.8"/>
-                                        <polygon points="15,35 15,85 60,60" fill="url(#core-facet-dark)" stroke="#10b981" stroke-width="1"/>
-                                        <polygon points="15,85 60,110 60,60" fill="url(#core-facet-emerald)" fill-opacity="0.5" stroke="#10b981" stroke-width="1.2"/>
-                                        <polygon points="60,110 105,85 60,60" fill="url(#core-facet-gold)" fill-opacity="0.4" stroke="#DDAA33" stroke-width="1.2"/>
-                                        
-                                        <!-- Central Floating Node -->
-                                        <circle cx="60" cy="60" r="4.5" fill="#FFFFFF" class="drop-shadow-[0_0_8px_#FFFFFF]"/>
-
-                                        <defs>
-                                            <linearGradient id="core-facet-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stop-color="#DDAA33"/>
-                                                <stop offset="100%" stop-color="#997722"/>
-                                            </linearGradient>
-                                            <linearGradient id="core-facet-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stop-color="#10b981"/>
-                                                <stop offset="100%" stop-color="#064e3b"/>
-                                            </linearGradient>
-                                            <linearGradient id="core-facet-dark" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stop-color="#1a1a1a"/>
-                                                <stop offset="100%" stop-color="#050505"/>
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                </div>
+                            <div class="relative w-72 h-72 flex items-center justify-center mb-4 jarvis-hologram-live">
+                                <canvas id="jarvis-core-canvas" width="300" height="300" class="w-full h-full"></canvas>
                             </div>
 
-                            <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
-                            <p class="text-xs font-mono text-gray-500 mt-2 tracking-wide">Data Lake Engine Operational • Ingestion Ready</p>
+                            <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(221,170,51,0.5)]">ARTEMIS QUANTITATIVE CORE</h2>
+                            <p class="text-xs font-mono text-gray-400 mt-2 tracking-wide">Data Lake Engine Operational • Audio Synthesis Active</p>
                         </div>
                     </div>
                     
