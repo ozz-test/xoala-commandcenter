@@ -2,7 +2,134 @@
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
+// --- HTML5 CANVAS PARTICLE ENGINE (THE NEURAL KOALA) ---
+class NeuralKoala {
+    constructor() {
+        this.canvas = document.getElementById('koala-particles');
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.width = 400;
+        this.height = 400;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.particles = [];
+        this.isProcessing = false;
+        this.init();
+        this.animate();
+    }
+    
+    init() {
+        this.particles = [];
+        const cx = this.width / 2;
+        const cy = this.height / 2 - 20; // Shifted up slightly
+        
+        const headR = 65; 
+        const earR = 38;
+
+        for (let i = 0; i < 200; i++) {
+            let bx, by;
+            const region = Math.random();
+            
+            // Mathematically distribute particles to form the Koala silhouette
+            if (region < 0.60) {
+                // Head
+                const a = Math.random() * 2 * Math.PI;
+                const r = Math.sqrt(Math.random()) * headR;
+                bx = cx + r * Math.cos(a);
+                by = cy + r * Math.sin(a) + 15; // Flatten bottom slightly
+            } else if (region < 0.80) {
+                // Left Ear
+                const a = Math.random() * 2 * Math.PI;
+                const r = Math.sqrt(Math.random()) * earR;
+                bx = cx - 60 + r * Math.cos(a);
+                by = cy - 40 + r * Math.sin(a);
+            } else {
+                // Right Ear
+                const a = Math.random() * 2 * Math.PI;
+                const r = Math.sqrt(Math.random()) * earR;
+                bx = cx + 60 + r * Math.cos(a);
+                by = cy - 40 + r * Math.sin(a);
+            }
+            
+            this.particles.push({
+                baseX: bx, baseY: by,
+                x: bx, y: by,
+                angle: Math.random() * Math.PI * 2,
+                speed: Math.random() * 0.02 + 0.01,
+                radius: Math.random() * 1.5 + 0.5,
+                color: Math.random() > 0.15 ? 'rgba(16, 185, 129, 0.9)' : 'rgba(221, 170, 51, 0.9)', // Emerald dominant, Gold accents
+                orbitRadius: Math.sqrt(Math.pow(bx - cx, 2) + Math.pow(by - cy, 2)),
+                orbitSpeed: (Math.random() * 0.05 + 0.02) * (Math.random() > 0.5 ? 1 : -1)
+            });
+        }
+    }
+    
+    setProcessing(state) {
+        this.isProcessing = state;
+        if (this.canvas) {
+            if (state) this.canvas.classList.add('scale-110'); // Slight zoom during vortex
+            else this.canvas.classList.remove('scale-110');
+        }
+    }
+    
+    animate() {
+        if (!this.ctx) return;
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        const cx = this.width / 2;
+        const cy = this.height / 2;
+
+        this.particles.forEach(p => {
+            if (this.isProcessing) {
+                // Vortex Mode (Shattered Orbit)
+                p.angle += p.orbitSpeed;
+                const targetX = cx + Math.cos(p.angle) * p.orbitRadius * (1 + Math.random() * 0.2);
+                const targetY = cy + Math.sin(p.angle) * p.orbitRadius * (1 + Math.random() * 0.2);
+                p.x += (targetX - p.x) * 0.08;
+                p.y += (targetY - p.y) * 0.08;
+            } else {
+                // Idle Breathing Mode (Magnetic Shape)
+                p.angle += p.speed;
+                const targetX = p.baseX + Math.cos(p.angle) * 6;
+                const targetY = p.baseY + Math.sin(p.angle) * 6;
+                p.x += (targetX - p.x) * 0.05;
+                p.y += (targetY - p.y) * 0.05;
+            }
+
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            this.ctx.fillStyle = p.color;
+            this.ctx.fill();
+        });
+
+        // Draw Synapse Connections
+        this.ctx.lineWidth = 0.5;
+        for (let i = 0; i < this.particles.length; i++) {
+            for (let j = i + 1; j < this.particles.length; j++) {
+                const dx = this.particles[i].x - this.particles[j].x;
+                const dy = this.particles[i].y - this.particles[j].y;
+                const dist = dx*dx + dy*dy;
+                
+                if (dist < 1500) { // Connect nearby nodes
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.particles[i].x, this.particles[i].y);
+                    this.ctx.lineTo(this.particles[j].x, this.particles[j].y);
+                    this.ctx.strokeStyle = `rgba(16, 185, 129, ${0.15 - dist/10000})`; // Fades out over distance
+                    this.ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(() => this.animate());
+    }
+}
+
+// --- ARTEMIS FRONTEND LOGIC ---
+let koalaEngine;
+
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // Initialize the Particle Engine
+    koalaEngine = new NeuralKoala();
+
     const promptInput = document.getElementById('prompt-input');
     const sendBtn = document.getElementById('send-btn');
     const chatBox = document.getElementById('chat-box');
@@ -16,20 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions') || '{}');
 
-    // FIX: Micro-Hologram Koala Avatar (Anatomically matches the big center Koala)
-    const getKoalaAvatar = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-full border border-gold flex items-center justify-center bg-black flex-shrink-0 ${isThinking ? 'koala-thinking shadow-[0_0_12px_rgba(221,170,51,0.4)]' : 'shadow-[0_0_8px_rgba(16,185,129,0.3)]'}">
-            <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
-                <!-- Ears -->
-                <circle cx="22" cy="38" r="16" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4" fill="#000"/>
-                <circle cx="78" cy="38" r="16" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4" fill="#000"/>
-                <!-- Head -->
-                <ellipse cx="50" cy="55" rx="34" ry="28" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4" fill="#000"/>
-                <!-- Nose -->
-                <ellipse cx="50" cy="59" rx="7" ry="10" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
-                <!-- Eyes -->
-                <circle cx="36" cy="50" r="4" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
-                <circle cx="64" cy="50" r="4" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
+    // FIX: Abstracted AI Node for Chat Bubbles (Matches the particle aesthetic)
+    const getAvatarNode = (isThinking = false) => `
+        <div class="w-8 h-8 rounded-full border border-gold flex items-center justify-center bg-black flex-shrink-0 ${isThinking ? 'shadow-[0_0_12px_rgba(221,170,51,0.6)] animate-pulse' : 'shadow-[0_0_8px_rgba(16,185,129,0.3)]'}">
+            <svg width="18" height="18" viewBox="0 0 100 100" class="${isThinking ? 'spin-slow' : ''}">
+                <circle cx="50" cy="50" r="40" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="6" stroke-dasharray="40 20" fill="none"/>
+                <circle cx="50" cy="50" r="20" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
             </svg>
         </div>
     `;
@@ -93,28 +212,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadSession = (id) => {
         currentSessionId = id;
         chatBox.innerHTML = '';
+        
+        // Restore empty state wrapper
+        chatBox.appendChild(emptyState);
+
         const session = sessions[id];
         if (!session || session.history.length === 0) {
-            chatBox.appendChild(emptyState);
-            emptyState.classList.remove('hidden');
+            emptyState.classList.remove('opacity-0');
+            if (koalaEngine) koalaEngine.setProcessing(false);
             renderSessions();
             return;
         }
 
-        emptyState.classList.add('hidden');
+        // Hide empty text if session has history
+        emptyState.classList.add('opacity-0');
+        
         session.history.forEach(msg => {
             if (msg.role === 'user') {
                 const u = document.createElement('div');
-                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4";
+                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
                 u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
                 chatBox.appendChild(u);
             } else {
                 const a = document.createElement('div');
-                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2";
+                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
                 a.innerHTML = `
-                    ${getKoalaAvatar(false)}
-                    <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
-                        <div class="prose prose-invert prose-sm max-w-none leading-relaxed">${marked.parse(msg.parts[0].text)}</div>
+                    ${getAvatarNode(false)}
+                    <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
+                        <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
                     </div>
                 `;
                 chatBox.appendChild(a);
@@ -139,14 +264,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = promptInput.value.trim();
             if (!val) return;
 
-            if (emptyState) emptyState.classList.add('hidden');
+            // Fade out the "Artemis is Online" text
+            if (emptyState) emptyState.classList.add('opacity-0');
 
             if (!sessions[currentSessionId]) {
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", history: [] };
             }
 
             const userMsg = document.createElement('div');
-            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4";
+            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
             userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
             chatBox.appendChild(userMsg);
             
@@ -154,14 +280,17 @@ document.addEventListener('DOMContentLoaded', () => {
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const aiMsg = document.createElement('div');
-            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2";
+            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
-                ${getKoalaAvatar(true)}
+                ${getAvatarNode(true)}
                 <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Connecting to Data Lake...</div>
             `;
             chatBox.appendChild(aiMsg);
             chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Trigger the Koala Vortex state
+            if (koalaEngine) koalaEngine.setProcessing(true);
 
             try {
                 const historyPayload = sessions[currentSessionId].history;
@@ -175,6 +304,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
+
+                // Stop the Vortex
+                if (koalaEngine) koalaEngine.setProcessing(false);
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
@@ -218,8 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formattedText = marked.parse(aiText);
 
                     aiMsg.innerHTML = `
-                        ${getKoalaAvatar(false)}
-                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
+                        ${getAvatarNode(false)}
+                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Execution Complete (${latency}ms)</span></div>
                                 <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
@@ -236,10 +368,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderSessions();
 
                 } else {
-                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">API Error: ${data.error || "Execution failed."}</div>`;
+                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
                 }
             } catch (err) {
-                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">Network Error: Unable to reach Artemis core.</div>`;
+                if (koalaEngine) koalaEngine.setProcessing(false);
+                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         });
