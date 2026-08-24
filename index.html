@@ -41,29 +41,8 @@
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
 
-        /* --- THE CYBER-KOALA ANIMATION SUITE --- */
         @keyframes spin-slow { 100% { transform: rotate(360deg); } }
-        @keyframes spin-reverse-slow { 100% { transform: rotate(-360deg); } }
-        .spin-slow { transform-origin: 50px 50px; animation: spin-slow 15s linear infinite; }
-        .spin-reverse-slow { transform-origin: 50px 50px; animation: spin-reverse-slow 20s linear infinite; }
-
-        @keyframes koala-breathe {
-            0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 10px rgba(221,170,51,0.1)); }
-            50% { transform: translateY(-5px) scale(1.03); filter: drop-shadow(0 0 25px rgba(16,185,129,0.3)); }
-        }
-        #cyber-koala { animation: koala-breathe 4s ease-in-out infinite; }
-
-        @keyframes koala-path-pulse {
-            0%, 100% { stroke: #DDAA33; }
-            50% { stroke: #10b981; }
-        }
-        .koala-glow-path { animation: koala-path-pulse 4s ease-in-out infinite; }
-
-        @keyframes koala-synapse { 
-            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(221,170,51,0.5)); stroke: #DDAA33; } 
-            50% { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(16,185,129,0.9)); stroke: #10b981; } 
-        }
-        .koala-thinking svg { animation: koala-synapse 1.5s ease-in-out infinite; }
+        .spin-slow { transform-origin: center; animation: spin-slow 8s linear infinite; }
         
         .artifact-slide-in { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -266,7 +245,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core -->
+        <!-- View 3: Artemis AI Core (Split-View Generative Architecture) -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <!-- Sidebar -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
@@ -293,40 +272,27 @@
                             <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                         </select>
                     </div>
-                    
-                    <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide relative flex flex-col justify-start">
-                        
-                        <!-- HIGH-FIDELITY CYBER-KOALA EMPTY STATE -->
-                        <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-100 transition-opacity duration-500">
-                            <svg id="cyber-koala" width="160" height="160" viewBox="0 0 100 100" fill="none" class="mb-6 opacity-80">
-                                <!-- Orbital Tech Rings -->
-                                <circle cx="50" cy="50" r="48" stroke="#DDAA33" stroke-width="0.5" stroke-dasharray="4 8" class="spin-slow" opacity="0.5"/>
-                                <circle cx="50" cy="50" r="42" stroke="#10b981" stroke-width="0.5" stroke-dasharray="12 6" class="spin-reverse-slow" opacity="0.3"/>
-                                
-                                <!-- Koala Fluffy Ears -->
-                                <circle cx="22" cy="38" r="16" class="koala-glow-path" stroke-width="1.5" fill="#111" />
-                                <circle cx="78" cy="38" r="16" class="koala-glow-path" stroke-width="1.5" fill="#111" />
-                                <circle cx="22" cy="38" r="7" stroke="#10b981" stroke-width="1.5" />
-                                <circle cx="78" cy="38" r="7" stroke="#10b981" stroke-width="1.5" />
 
-                                <!-- Koala Head Base -->
-                                <ellipse cx="50" cy="55" rx="34" ry="28" class="koala-glow-path" stroke-width="1.5" fill="#111" />
-                                
-                                <!-- Wide-set Eyes -->
-                                <circle cx="36" cy="50" r="3.5" fill="#10b981" class="koala-eye"/>
-                                <circle cx="64" cy="50" r="3.5" fill="#10b981" class="koala-eye"/>
-                                
-                                <!-- Big Oval Nose -->
-                                <ellipse cx="50" cy="59" rx="7" ry="10" stroke="#DDAA33" stroke-width="1.5" fill="#1a1a1a" />
-                                
-                                <!-- Little Smile -->
-                                <path d="M 43 72 Q 50 78 57 72" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" fill="none" />
-                            </svg>
-                            <h2 class="text-xl font-light text-white tracking-widest">ARTEMIS IS ONLINE</h2>
-                            <p class="text-sm font-mono text-gray-500 mt-2">Awaiting quantitative query parameters.</p>
-                        </div>
+                    <!-- FIX: The Neural Particle Swarm Canvas (Lives under the chat) -->
+                    <div class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-40">
+                        <canvas id="koala-particles" width="400" height="400" class="transition-transform duration-700"></canvas>
                     </div>
                     
+                    <!-- Chat Output Area -->
+                    <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide relative z-10 flex flex-col justify-start">
+                        
+                        <!-- Empty State (Fades out when chat begins) -->
+                        <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-500">
+                            <!-- Text pushed down to make room for the canvas swarm -->
+                            <div class="mt-[220px] text-center">
+                                <h2 class="text-xl font-light text-white tracking-widest drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">ARTEMIS IS ONLINE</h2>
+                                <p class="text-sm font-mono text-gray-500 mt-2">Awaiting quantitative query parameters.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Prompt Input Area -->
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-20">
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
