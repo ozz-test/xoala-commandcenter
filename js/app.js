@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') {
                         fetchDashboardData(); 
-                        if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
+                        if (typeof geoMapInstance !== 'undefined' && geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
                             setTimeout(() => geoMapInstance.updateSize(), 100);
                         }
                     }
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navTexts.forEach(txt => txt.classList.toggle('hidden'));
             if(sidebar.classList.contains('w-20')) sidebarIcon.classList.replace('ph-caret-left', 'ph-caret-right');
             else sidebarIcon.classList.replace('ph-caret-right', 'ph-caret-left');
-            if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
+            if (typeof geoMapInstance !== 'undefined' && geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
                 setTimeout(() => geoMapInstance.updateSize(), 300);
             }
         });
@@ -71,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "egypt": "eg", "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
         "bvi": "vg", "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
         "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk",
-        // THE RESTORED MISSING JURISDICTIONS:
         "saint lucia": "lc", "czech republic": "cz", "saint vincent and the grenadines": "vc",
         "virgin islands (british)": "vg", "comoros": "km", "costa rica": "cr", "panama": "pa",
         "saint kitts and nevis": "kn", "isle of man": "im", "dominica": "dm", "oman": "om",
@@ -88,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'NA': ['us', 'ca']
     };
 
-    // DASHBOARD LOGIC
+    // DASHBOARD DRILLDOWN LOGIC
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -169,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     setMatrixDefaultDates();
 
+    // MATRIX FETCH & RENDER
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
@@ -181,8 +181,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DASHBOARD_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_matrix_data', startDate: startEl.value, endDate: endEl.value, secret: 'system_dashboard_init', prompt: 'system', model: 'gemini-3.5-flash-lite' })
+                body: JSON.stringify({ 
+                    action: 'get_matrix_data', 
+                    startDate: startEl.value, 
+                    endDate: endEl.value, 
+                    secret: 'system_dashboard_init', 
+                    prompt: 'system', 
+                    model: 'gemini-3.5-flash-lite' 
+                })
             });
+            if (!response.ok) throw new Error("Server Error");
             const responseData = await response.json();
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
@@ -259,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRiskData = null; let currentBotData = null; let currentGeoData = null;
     let currentRegionFilter = 'ALL';
 
+    // DASHBOARD FETCH & RENDER
     const fetchDashboardData = async () => {
         const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
         if (globalSyncIcon) globalSyncIcon.classList.add('animate-spin');
@@ -272,8 +281,18 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DASHBOARD_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_dashboard_stats', filters: filters, prompt: 'system_dashboard_init', model: 'gemini-3.5-flash-lite', history: [] })
+                body: JSON.stringify({ 
+                    action: 'get_dashboard_stats', 
+                    filters: filters, 
+                    secret: 'system_dashboard_init', 
+                    prompt: 'system_dashboard_init', 
+                    model: 'gemini-3.5-flash-lite', 
+                    history: [] 
+                })
             });
+
+            if (!response.ok) throw new Error(`Server Error HTTP ${response.status}`);
+
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
@@ -299,8 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderCharts(currentRiskData, currentBotData);
                 renderGeoMap(currentGeoData, currentRegionFilter);
             }
-        } catch (error) { console.error("Dashboard Network Failure:", error); } 
-        finally { if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); }
+        } catch (error) { 
+            console.error("Dashboard Network Failure:", error); 
+        } finally { 
+            if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); 
+        }
     };
 
     const renderCharts = (riskData, bottleneckData) => {
