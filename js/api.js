@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSessionId = id;
         
         // FIX: Safely clear ONLY the chat stream without breaking the Hologram Background Layer
-        chatStream.innerHTML = '';
+        if (chatStream) chatStream.innerHTML = '';
 
         const session = sessions[id];
         
@@ -400,12 +400,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const a = document.createElement('div');
                     a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
+                    
+                    let cleanText = msg.parts[0].text;
+                    const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
+                    const match = cleanText.match(jsonBlockRegex);
+                    let parsedGenUI = null;
+
+                    if (match && match[1]) {
+                        try {
+                            parsedGenUI = JSON.parse(match[1]);
+                            cleanText = cleanText.replace(jsonBlockRegex, '').trim();
+                        } catch (e) { console.error("History GenUI Parse error", e); }
+                    }
+
                     a.innerHTML = `
                         ${getCrystalAvatar(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
-                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
+                            <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
+                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Artifact</span></button>` : ''}
+                            </div>
                         </div>
                     `;
+
+                    a.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(cleanText); });
+                    if (parsedGenUI) {
+                        a.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                    }
+
                     chatStream.appendChild(a);
                 }
             } catch (err) { console.warn("Failed to load historical message", err); }
@@ -478,6 +501,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`Server returned HTTP ${response.status}.`);
+                }
+
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
                 setCoreThinking(false);
@@ -513,16 +540,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy</span></button>
+                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy Response</span></button>
                                 <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 speak-resp-btn"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
                                 ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Artifact</span></button>` : ''}
                             </div>
                         </div>
                     `;
 
-                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { 
-                        navigator.clipboard.writeText(aiText); 
-                    });
+                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
 
                     // Inline Voice Control
                     const speakBtn = aiMsg.querySelector('.speak-resp-btn');
