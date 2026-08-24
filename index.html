@@ -131,37 +131,10 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div>
-                        <div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div>
-                        <div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div>
-                        <div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div>
-                        <div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div><div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div><div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div><div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div><div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div><div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
                 </div>
                 
                 <div class="flex justify-between items-end w-full mb-4">
@@ -293,7 +266,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Split-View Generative Architecture) -->
+        <!-- View 3: Artemis AI Core -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <!-- Sidebar -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
@@ -303,6 +276,8 @@
             </div>
             
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian">
+                
+                <!-- Left Pane: Conversational Stream -->
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
                     <div class="flex-none px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
@@ -328,25 +303,28 @@
                                 <circle cx="50" cy="50" r="48" stroke="#DDAA33" stroke-width="0.5" stroke-dasharray="4 8" class="spin-slow" opacity="0.5"/>
                                 <circle cx="50" cy="50" r="42" stroke="#10b981" stroke-width="0.5" stroke-dasharray="12 6" class="spin-reverse-slow" opacity="0.3"/>
                                 
-                                <!-- Neural Koala Path -->
-                                <path class="koala-glow-path" d="M25 40 C10 35 10 55 20 65 C30 85 70 85 80 65 C90 55 90 35 75 40 C65 25 35 25 25 40 Z" stroke="#DDAA33" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <!-- Koala Fluffy Ears -->
+                                <circle cx="22" cy="38" r="16" class="koala-glow-path" stroke-width="1.5" fill="#111" />
+                                <circle cx="78" cy="38" r="16" class="koala-glow-path" stroke-width="1.5" fill="#111" />
+                                <circle cx="22" cy="38" r="7" stroke="#10b981" stroke-width="1.5" />
+                                <circle cx="78" cy="38" r="7" stroke="#10b981" stroke-width="1.5" />
+
+                                <!-- Koala Head Base -->
+                                <ellipse cx="50" cy="55" rx="34" ry="28" class="koala-glow-path" stroke-width="1.5" fill="#111" />
                                 
-                                <!-- Nose & Eyes -->
-                                <path d="M42 55 Q50 45 58 55 Q60 70 50 70 Q40 70 42 55 Z" stroke="#10b981" stroke-width="1.5" fill="none"/>
-                                <circle cx="33" cy="48" r="2.5" fill="#10b981"/>
-                                <circle cx="67" cy="48" r="2.5" fill="#10b981"/>
+                                <!-- Wide-set Eyes -->
+                                <circle cx="36" cy="50" r="3.5" fill="#10b981" class="koala-eye"/>
+                                <circle cx="64" cy="50" r="3.5" fill="#10b981" class="koala-eye"/>
                                 
-                                <!-- Data Connection Nodes -->
-                                <circle cx="25" cy="40" r="1.5" fill="#DDAA33"/>
-                                <circle cx="75" cy="40" r="1.5" fill="#DDAA33"/>
-                                <circle cx="20" cy="65" r="1.5" fill="#DDAA33"/>
-                                <circle cx="80" cy="65" r="1.5" fill="#DDAA33"/>
-                                <circle cx="50" cy="28" r="1.5" fill="#10b981"/>
+                                <!-- Big Oval Nose -->
+                                <ellipse cx="50" cy="59" rx="7" ry="10" stroke="#DDAA33" stroke-width="1.5" fill="#1a1a1a" />
+                                
+                                <!-- Little Smile -->
+                                <path d="M 43 72 Q 50 78 57 72" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" fill="none" />
                             </svg>
                             <h2 class="text-xl font-light text-white tracking-widest">ARTEMIS IS ONLINE</h2>
                             <p class="text-sm font-mono text-gray-500 mt-2">Awaiting quantitative query parameters.</p>
                         </div>
-
                     </div>
                     
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-20">
