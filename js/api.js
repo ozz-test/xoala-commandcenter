@@ -1,164 +1,9 @@
-// === XOALA COMMAND CENTER: ARTEMIS AI CORE & JARVIS VOICE ENGINE ===
+// === XOALA COMMAND CENTER: ARTEMIS AI CORE ENGINE ===
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// 1. 3D JARVIS HOLOGRAPHIC CANVAS ENGINE
-// ==========================================
-class JarvisHologram {
-    constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) return;
-        this.ctx = this.canvas.getContext('2d');
-        this.width = 300;
-        this.height = 300;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-
-        this.state = 'idle'; // 'idle', 'thinking', 'speaking'
-        this.time = 0;
-
-        // 3D Particles Sphere Halo
-        this.particles = [];
-        const count = 160;
-        for (let i = 0; i < count; i++) {
-            const theta = Math.acos(2 * Math.random() - 1);
-            const phi = 2 * Math.PI * Math.random();
-            const r = 90 + (Math.random() * 20 - 10);
-            this.particles.push({
-                x: r * Math.sin(theta) * Math.cos(phi),
-                y: r * Math.sin(theta) * Math.sin(phi),
-                z: r * Math.cos(theta),
-                size: Math.random() * 1.8 + 0.6,
-                glow: Math.random() > 0.25 ? '#DDAA33' : '#10b981'
-            });
-        }
-
-        this.animate = this.animate.bind(this);
-        requestAnimationFrame(this.animate);
-    }
-
-    setState(newState) {
-        this.state = newState;
-    }
-
-    project(x, y, z, rotX, rotY, rotZ) {
-        // 3D Euler Rotations
-        let radX = rotX, radY = rotY, radZ = rotZ;
-        
-        // Rotate Y
-        let x1 = x * Math.cos(radY) + z * Math.sin(radY);
-        let y1 = y;
-        let z1 = -x * Math.sin(radY) + z * Math.cos(radY);
-
-        // Rotate X
-        let x2 = x1;
-        let y2 = y1 * Math.cos(radX) - z1 * Math.sin(radX);
-        let z2 = y1 * Math.sin(radX) + z1 * Math.cos(radX);
-
-        // Rotate Z
-        let x3 = x2 * Math.cos(radZ) - y2 * Math.sin(radZ);
-        let y3 = x2 * Math.sin(radZ) + y2 * Math.cos(radZ);
-        let z3 = z2;
-
-        const fov = 350;
-        const scale = fov / (fov + z3 + 120);
-        return {
-            x: x3 * scale + this.width / 2,
-            y: y3 * scale + this.height / 2,
-            z: z3,
-            scale: scale
-        };
-    }
-
-    drawRing(radius, rotX, rotY, rotZ, color, isDashed = false, dashPattern = [6, 8], lineWidth = 1.2) {
-        const segments = 64;
-        this.ctx.beginPath();
-        if (isDashed) this.ctx.setLineDash(dashPattern);
-        else this.ctx.setLineDash([]);
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = lineWidth;
-
-        let first = true;
-        for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            const px = radius * Math.cos(angle);
-            const py = radius * Math.sin(angle);
-            const p = this.project(px, py, 0, rotX, rotY, rotZ);
-
-            if (first) {
-                this.ctx.moveTo(p.x, p.y);
-                first = false;
-            } else {
-                this.ctx.lineTo(p.x, p.y);
-            }
-        }
-        this.ctx.stroke();
-        this.ctx.setLineDash([]);
-    }
-
-    animate() {
-        if (!this.ctx) return;
-        this.ctx.clearRect(0, 0, this.width, this.height);
-
-        let speedMultiplier = 1;
-        if (this.state === 'thinking') speedMultiplier = 3.5;
-        if (this.state === 'speaking') speedMultiplier = 2.0;
-
-        this.time += 0.02 * speedMultiplier;
-        const cx = this.width / 2;
-        const cy = this.height / 2;
-
-        // 1. Central Singularity / Core Flare
-        const corePulse = (this.state === 'speaking') 
-            ? Math.sin(this.time * 6) * 8 + 24
-            : Math.sin(this.time * 2) * 4 + 18;
-
-        const grad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, corePulse * 2.5);
-        if (this.state === 'thinking') {
-            grad.addColorStop(0, '#FFFFFF');
-            grad.addColorStop(0.2, '#DDAA33');
-            grad.addColorStop(0.7, 'rgba(239, 68, 68, 0.4)');
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-        } else {
-            grad.addColorStop(0, '#FFFFFF');
-            grad.addColorStop(0.25, '#F0D788');
-            grad.addColorStop(0.6, 'rgba(16, 185, 129, 0.4)');
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-        }
-
-        this.ctx.fillStyle = grad;
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, corePulse * 2.5, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // 2. Multi-Axis 3D Gyroscope Rings (Jarvis Optics)
-        this.drawRing(40, this.time * 0.9, this.time * 1.3, 0, '#FFFFFF', true, [4, 4], 1.5);
-        this.drawRing(62, this.time * 0.6, 0.8, this.time * 0.8, '#DDAA33', false, [], 1.4);
-        this.drawRing(82, 0.6, -this.time * 0.7, this.time * 0.5, '#10b981', true, [14, 8], 1.2);
-        this.drawRing(105, -this.time * 0.4, this.time * 0.5, 0.7, 'rgba(221, 170, 51, 0.45)', true, [2, 10], 1.0);
-        this.drawRing(122, 1.2, this.time * 0.3, -this.time * 0.3, 'rgba(16, 185, 129, 0.3)', false, [], 0.8);
-
-        // 3. 3D Particle Swarm Projection
-        this.particles.forEach(p => {
-            const proj = this.project(p.x, p.y, p.z, this.time * 0.3, this.time * 0.5, 0);
-            if (proj.scale > 0) {
-                this.ctx.beginPath();
-                this.ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI * 2);
-                this.ctx.fillStyle = p.glow;
-                this.ctx.shadowColor = p.glow;
-                this.ctx.shadowBlur = 6 * proj.scale;
-                this.ctx.fill();
-                this.ctx.shadowBlur = 0;
-            }
-        });
-
-        requestAnimationFrame(this.animate);
-    }
-}
-
-// ==========================================
-// 2. JARVIS VOICE TRANSMISSION SYNTHESIZER
+// 1. ARTEMIS VOICE TRANSMISSION SYNTHESIZER
 // ==========================================
 class ArtemisVoice {
     constructor() {
@@ -173,8 +18,7 @@ class ArtemisVoice {
         if (!this.synth) return;
         const loadVoices = () => {
             const voices = this.synth.getVoices();
-            // Prioritize British/Natural AI accents for Jarvis persona
-            this.voice = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel') || v.name.includes('Oliver') || v.name.includes('George')) 
+            this.voice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha') || v.name.includes('Victoria')) 
                       || voices.find(v => v.lang.startsWith('en-GB'))
                       || voices.find(v => v.lang.startsWith('en-US'))
                       || voices[0];
@@ -187,12 +31,12 @@ class ArtemisVoice {
 
     cleanSpeechText(rawMarkdown) {
         return rawMarkdown
-            .replace(/```json[\s\S]*?```/g, '') // Strip JSON Blocks
-            .replace(/```[\s\S]*?```/g, '')     // Strip Code Blocks
-            .replace(/\[.*?\]\(.*?\)/g, '')     // Strip Markdown Links
-            .replace(/[*_~`#>]/g, '')           // Strip Formatting Symbols
-            .replace(/\|\s*[-:]+\s*\|/g, '')    // Strip Table Bars
-            .replace(/\|/g, ', ')               // Replace Table Delimiters with Pauses
+            .replace(/```json[\s\S]*?```/g, '') 
+            .replace(/```[\s\S]*?```/g, '')     
+            .replace(/\[.*?\]\(.*?\)/g, '')     
+            .replace(/[*_~`#>]/g, '')           
+            .replace(/\|\s*[-:]+\s*\|/g, '')    
+            .replace(/\|/g, ', ')               
             .trim();
     }
 
@@ -205,18 +49,12 @@ class ArtemisVoice {
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
         if (this.voice) utterance.voice = this.voice;
-        utterance.rate = 1.05;  // Crisp, authoritative cadence
-        utterance.pitch = 0.95; // Authoritative tenor
+        utterance.rate = 1.05;  
+        utterance.pitch = 1.0; 
 
-        utterance.onstart = () => {
-            if (onStartCallback) onStartCallback();
-        };
-        utterance.onend = () => {
-            if (onEndCallback) onEndCallback();
-        };
-        utterance.onerror = () => {
-            if (onEndCallback) onEndCallback();
-        };
+        utterance.onstart = () => { if (onStartCallback) onStartCallback(); };
+        utterance.onend = () => { if (onEndCallback) onEndCallback(); };
+        utterance.onerror = () => { if (onEndCallback) onEndCallback(); };
 
         this.currentUtterance = utterance;
         this.synth.speak(utterance);
@@ -230,16 +68,16 @@ class ArtemisVoice {
 }
 
 // ==========================================
-// 3. UI, EVENT HANDLERS & SESSION LOGIC
+// 2. UI, EVENT HANDLERS & SESSION LOGIC
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    const jarvisHolo = new JarvisHologram('jarvis-core-canvas');
-    const jarvisVoice = new ArtemisVoice();
+    const artemisVoice = new ArtemisVoice();
 
     const promptInput = document.getElementById('prompt-input');
     const sendBtn = document.getElementById('send-btn');
     const chatBox = document.getElementById('chat-box');
     const emptyState = document.getElementById('artemis-empty-state');
+    const commandPalette = document.getElementById('command-palette');
     const artifactPane = document.getElementById('artemis-artifact-pane');
     const closeArtifactBtn = document.getElementById('close-artifact-btn');
     const newChatBtn = document.getElementById('new-chat-btn');
@@ -250,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const voiceAutoToggleBtn = document.getElementById('voice-auto-toggle-btn');
     const voiceAutoIcon = document.getElementById('voice-auto-icon');
     const voiceAutoStatus = document.getElementById('voice-auto-status');
+    const crystalCore = document.getElementById('crystal-core');
 
     let currentSessionId = Date.now().toString();
     let sessions = {};
@@ -278,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Synchronize Auto-Voice Toggle UI
     const updateVoiceToggleUI = () => {
-        if (jarvisVoice.autoSpeak) {
+        if (!voiceAutoIcon || !voiceAutoStatus) return;
+        if (artemisVoice.autoSpeak) {
             voiceAutoIcon.className = "ph ph-speaker-high text-sm text-gold";
             voiceAutoStatus.textContent = "Voice: ON";
             voiceAutoStatus.className = "text-[10px] uppercase tracking-wider font-bold text-gray-200";
@@ -292,24 +132,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (voiceAutoToggleBtn) {
         voiceAutoToggleBtn.addEventListener('click', () => {
-            jarvisVoice.autoSpeak = !jarvisVoice.autoSpeak;
-            localStorage.setItem('artemis_voice_enabled', jarvisVoice.autoSpeak);
-            if (!jarvisVoice.autoSpeak) jarvisVoice.stop();
+            artemisVoice.autoSpeak = !artemisVoice.autoSpeak;
+            localStorage.setItem('artemis_voice_enabled', artemisVoice.autoSpeak);
+            if (!artemisVoice.autoSpeak) artemisVoice.stop();
             updateVoiceToggleUI();
         });
     }
 
-    // Mini Hologram Avatar for chat stream
-    const getMessageAvatar = () => `
-        <div class="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden shadow-[0_0_8px_rgba(221,170,51,0.4)]">
-            <div class="absolute inset-[1px] rounded-full border border-emerald-500/40 border-dotted animate-spin" style="animation-duration: 9s;"></div>
-            <i class="ph ph-cpu text-xs text-gold"></i>
+    // Mini Hologram Crystal Avatar for chat stream
+    const getCrystalAvatar = (isThinking = false) => `
+        <div class="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_14px_rgba(221,170,51,0.7)] animate-pulse' : 'shadow-[0_0_6px_rgba(16,185,129,0.3)]'}">
+            <svg viewBox="0 0 100 100" class="w-5 h-5">
+                <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="${isThinking ? '#DDAA33' : '#10b981'}" fill-opacity="0.25" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4"/>
+                <polygon points="50,10 50,50 90,70" fill="${isThinking ? '#F0D788' : '#10b981'}" fill-opacity="0.4" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="2"/>
+                <polygon points="50,90 10,70 50,50" fill="${isThinking ? '#997722' : '#064e3b'}" fill-opacity="0.5" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="2"/>
+                <circle cx="50" cy="50" r="4" fill="#FFFFFF"/>
+            </svg>
         </div>
     `;
 
-    document.querySelectorAll('.quick-pill').forEach(btn => {
+    const setCoreThinking = (isProcessing) => {
+        if (crystalCore) {
+            if (isProcessing) crystalCore.classList.add('crystal-thinking-fast');
+            else crystalCore.classList.remove('crystal-thinking-fast');
+        }
+    };
+
+    // FIX: Bulletproof Slash Commands Palette
+    if (promptInput) {
+        promptInput.addEventListener('input', (e) => {
+            if (!commandPalette) return;
+            if (e.target.value === '/') {
+                commandPalette.classList.remove('hidden'); commandPalette.classList.add('flex');
+            } else if (!e.target.value.startsWith('/')) {
+                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
+            }
+        });
+    }
+
+    document.querySelectorAll('.command-item, .quick-pill').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            promptInput.value = e.currentTarget.getAttribute('data-prompt');
+            const prompt = e.currentTarget.getAttribute('data-prompt');
+            promptInput.value = prompt;
+            if (commandPalette) {
+                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
+            }
             promptInput.focus();
         });
     });
@@ -420,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- WORKING THREAD MANAGEMENT (Pinned, Rename, Delete) ---
+    // --- BULLETPROOF SESSION MANAGEMENT ---
     const renderSessions = () => {
         if (!sessionsList || !pinnedList) return;
         const keys = Object.keys(sessions);
@@ -502,42 +369,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const loadSession = (id) => {
         currentSessionId = id;
-        chatBox.innerHTML = '';
-        chatBox.appendChild(emptyState);
+        
+        // FIX: Safely clear chat bubbles without destroying the 3D SVG Empty State
+        Array.from(chatBox.children).forEach(child => {
+            if (child.id !== 'artemis-empty-state') child.remove();
+        });
 
         const session = sessions[id];
-        if (!session || !Array.isArray(session.history) || session.history.length === 0) {
-            emptyState.classList.remove('opacity-0');
+        
+        if (!session || !session.history || !Array.isArray(session.history) || session.history.length === 0) {
+            if (emptyState) emptyState.classList.remove('opacity-0');
             renderSessions();
             return;
         }
 
-        emptyState.classList.add('opacity-0');
+        if (emptyState) emptyState.classList.add('opacity-0');
+        
         session.history.forEach(msg => {
-            if (msg.role === 'user') {
-                const u = document.createElement('div');
-                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
-                u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
-                chatBox.appendChild(u);
-            } else {
-                const a = document.createElement('div');
-                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
-                a.innerHTML = `
-                    ${getMessageAvatar()}
-                    <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
-                        <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
-                    </div>
-                `;
-                chatBox.appendChild(a);
-            }
+            try {
+                if (!msg.parts || !msg.parts[0] || !msg.parts[0].text) return;
+                
+                if (msg.role === 'user') {
+                    const u = document.createElement('div');
+                    u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
+                    u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
+                    chatBox.appendChild(u);
+                } else {
+                    const a = document.createElement('div');
+                    a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
+                    a.innerHTML = `
+                        ${getCrystalAvatar(false)}
+                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
+                        </div>
+                    `;
+                    chatBox.appendChild(a);
+                }
+            } catch (err) { console.warn("Failed to load historical message", err); }
         });
+        
         chatBox.scrollTop = chatBox.scrollHeight;
         renderSessions();
     };
 
     if (newChatBtn) {
         newChatBtn.addEventListener('click', () => {
-            jarvisVoice.stop();
+            artemisVoice.stop();
             currentSessionId = Date.now().toString();
             sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
@@ -551,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = promptInput.value.trim();
             if (!val) return;
 
-            jarvisVoice.stop();
+            artemisVoice.stop();
             if (emptyState) emptyState.classList.add('opacity-0');
 
             if (!sessions[currentSessionId]) {
@@ -572,20 +449,18 @@ document.addEventListener('DOMContentLoaded', () => {
             aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
-                ${getMessageAvatar()}
-                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
+                ${getCrystalAvatar(true)}
+                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Computing Data Lake nodes...</div>
             `;
             chatBox.appendChild(aiMsg);
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Trigger Hologram Thinking State
-            jarvisHolo.setState('thinking');
+            setCoreThinking(true);
 
             try {
                 const historyPayload = sessions[currentSessionId].history || [];
                 const response = await fetch(ARTEMIS_API_URL, {
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         prompt: val, 
                         history: historyPayload, 
@@ -596,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
-                jarvisHolo.setState('idle');
+                setCoreThinking(false);
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
@@ -621,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formattedText = marked.parse(aiText);
 
                     aiMsg.innerHTML = `
-                        ${getMessageAvatar()}
+                        ${getCrystalAvatar(false)}
                         <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
@@ -644,27 +519,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     const speakBtn = aiMsg.querySelector('.speak-resp-btn');
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
-                            jarvisVoice.stop();
+                            artemisVoice.stop();
                             speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
                         } else {
                             speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
-                            jarvisVoice.speak(
+                            artemisVoice.speak(
                                 aiText,
-                                () => jarvisHolo.setState('speaking'),
+                                () => setCoreThinking(true),
                                 () => {
-                                    jarvisHolo.setState('idle');
+                                    setCoreThinking(false);
                                     speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
                                 }
                             );
                         }
                     });
 
-                    // Auto-Speak if Master Voice is Enabled
-                    if (jarvisVoice.autoSpeak) {
-                        jarvisVoice.speak(
+                    if (artemisVoice.autoSpeak) {
+                        artemisVoice.speak(
                             aiText,
-                            () => jarvisHolo.setState('speaking'),
-                            () => jarvisHolo.setState('idle')
+                            () => setCoreThinking(true),
+                            () => setCoreThinking(false)
                         );
                     }
 
@@ -680,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
                 }
             } catch (err) {
-                jarvisHolo.setState('idle');
+                setCoreThinking(false);
                 aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
