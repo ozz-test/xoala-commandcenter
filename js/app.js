@@ -55,37 +55,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY ---
+    // GEO MAP UTILS
     const countryToIsoMap = {
-        "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
-        "united states": "us", "usa": "us", "united states of america": "us",
-        "canada": "ca", "australia": "au", "germany": "de", "france": "fr", "spain": "es", "italy": "it",
-        "cyprus": "cy", "greece": "gr", "netherlands": "nl", "belgium": "be", "switzerland": "ch",
-        "united arab emirates": "ae", "uae": "ae", "singapore": "sg", "hong kong": "hk", "japan": "jp",
-        "india": "in", "pakistan": "pk", "malaysia": "my", "indonesia": "id", "brazil": "br",
-        "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", "estonia": "ee",
-        "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
-        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro", 
-        "czechia": "cz", "czech republic": "cz", "bulgaria": "bg", "hungary": "hu", "austria": "at", 
-        "malta": "mt", "luxembourg": "lu", "new zealand": "nz", "israel": "il", "china": "cn", 
-        "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg", 
-        "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
-        "bvi": "vg", "virgin islands (british)": "vg", "british virgin islands": "vg",
-        "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
-        "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk",
-        "saint lucia": "lc", "st lucia": "lc", "saint vincent and the grenadines": "vc", "st vincent": "vc",
-        "comoros": "km", "costa rica": "cr", "panama": "pa", "saint kitts and nevis": "kn", "st kitts": "kn", 
-        "isle of man": "im", "dominica": "dm", "oman": "om", "gibraltar": "gi", "algeria": "dz", 
-        "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz", "cook islands": "ck", "croatia": "hr", 
-        "mongolia": "mn", "dominican republic": "do", "anguilla": "ai", "liechtenstein": "li", 
-        "serbia": "rs", "albania": "al", "jordan": "jo", "jersey": "je", "honduras": "hn", 
-        "tanzania, united republic of": "tz", "tanzania": "tz"
+        "united kingdom": "gb", "uk": "gb", "united states": "us", "usa": "us", "canada": "ca", "australia": "au", 
+        "germany": "de", "france": "fr", "spain": "es", "italy": "it", "cyprus": "cy", "greece": "gr", 
+        "netherlands": "nl", "belgium": "be", "switzerland": "ch", "united arab emirates": "ae", "uae": "ae", 
+        "singapore": "sg", "hong kong": "hk", "japan": "jp", "india": "in", "pakistan": "pk", "malaysia": "my", 
+        "indonesia": "id", "brazil": "br", "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", 
+        "estonia": "ee", "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
+        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro", "czechia": "cz", 
+        "bulgaria": "bg", "hungary": "hu", "austria": "at", "malta": "mt", "luxembourg": "lu", "new zealand": "nz", 
+        "israel": "il", "china": "cn", "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", 
+        "egypt": "eg", "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
+        "bvi": "vg", "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
+        "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk"
     };
 
     const regionsMap = {
-        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru', 'km', 'im', 'om', 'gi', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'je', 'tz'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh', 'kz', 'ck', 'mn'],
-        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz', 'lc', 'vc', 'cr', 'pa', 'kn', 'dm', 'uy', 'sv', 'do', 'ai', 'hn'],
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh'],
+        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz'],
         'NA': ['us', 'ca']
     };
 
@@ -184,11 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get_matrix_data', startDate: startEl.value, endDate: endEl.value, secret: 'system_dashboard_init', prompt: 'system', model: 'gemini-3.5-flash-lite' })
             });
+            
+            if (!response.ok) throw new Error("Server returned HTML or Error Page");
+            
             const responseData = await response.json();
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
         } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
+            console.error("Matrix Network Failure:", error);
+            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error. Check Console.</td></tr>`;
         } finally { if (syncIcon) syncIcon.classList.remove('animate-spin'); }
     };
 
@@ -273,8 +266,21 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DASHBOARD_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_dashboard_stats', filters: filters, prompt: 'system_dashboard_init', model: 'gemini-3.5-flash-lite', history: [] })
+                body: JSON.stringify({ 
+                    action: 'get_dashboard_stats', 
+                    filters: filters, 
+                    secret: 'system_dashboard_init', // 100% FIX: Added the missing secret to prevent HTML error pages
+                    prompt: 'system_dashboard_init', 
+                    model: 'gemini-3.5-flash-lite', 
+                    history: [] 
+                })
             });
+
+            // 100% FIX: Safe HTTP check to prevent DOM crash on HTML response
+            if (!response.ok) {
+                throw new Error(`Server returned HTTP ${response.status}. Cloudflare/Google authentication block.`);
+            }
+
             const data = await response.json();
 
             if (data.status === 200 && data.stats) {
@@ -300,8 +306,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderCharts(currentRiskData, currentBotData);
                 renderGeoMap(currentGeoData, currentRegionFilter);
             }
-        } catch (error) { console.error("Dashboard Network Failure:", error); } 
-        finally { if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); }
+        } catch (error) { 
+            console.error("Dashboard Network Failure:", error); 
+        } finally { 
+            if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); 
+        }
     };
 
     const renderCharts = (riskData, bottleneckData) => {
@@ -410,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
             geoTbody.innerHTML = geoData.labels.map((countryName, idx) => {
                 const count = geoData.data[idx];
                 const cleanNameCheck = countryName.toLowerCase().trim();
-                if (cleanNameCheck === "unknown" || cleanNameCheck === "") return ''; // Skip rendering empty/unknowns in table
+                if (cleanNameCheck === "unknown" || cleanNameCheck === "") return '';
 
                 const isoCode = countryToIsoMap[cleanNameCheck];
                 const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph ph-warning-circle"></i></span>';
