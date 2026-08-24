@@ -4,7 +4,7 @@ const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohamma
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // NAVIGATION ROUTING
+    // --- NAVIGATION ROUTING ---
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "egypt": "eg", "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
         "bvi": "vg", "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
         "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk",
+        // RESTORED ISLANDS & MISSING JURISDICTIONS
         "saint lucia": "lc", "czech republic": "cz", "saint vincent and the grenadines": "vc",
         "virgin islands (british)": "vg", "comoros": "km", "costa rica": "cr", "panama": "pa",
         "saint kitts and nevis": "kn", "isle of man": "im", "dominica": "dm", "oman": "om",
@@ -87,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'NA': ['us', 'ca']
     };
 
-    // DASHBOARD DRILLDOWN LOGIC
+    // --- DASHBOARD DRILLDOWN LOGIC ---
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -168,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     setMatrixDefaultDates();
 
-    // MATRIX FETCH & RENDER
+    // --- MATRIX FETCH & RENDER ---
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
@@ -190,11 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     model: 'gemini-3.5-flash-lite' 
                 })
             });
-            if (!response.ok) throw new Error("Server Error");
+            if (!response.ok) throw new Error("Server Error HTTP " + response.status);
             const responseData = await response.json();
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
         } catch (error) {
+            console.error("Matrix Network Failure:", error);
             tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
         } finally { if (syncIcon) syncIcon.classList.remove('animate-spin'); }
     };
@@ -267,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRiskData = null; let currentBotData = null; let currentGeoData = null;
     let currentRegionFilter = 'ALL';
 
-    // DASHBOARD FETCH & RENDER
+    // --- DASHBOARD FETCH & RENDER ---
     const fetchDashboardData = async () => {
         const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
         if (globalSyncIcon) globalSyncIcon.classList.add('animate-spin');
