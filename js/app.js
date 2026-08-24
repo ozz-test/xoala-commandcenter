@@ -1,9 +1,10 @@
-// === XOALA COMMAND CENTER: CORE APP & DASHBOARD LOGIC ===
+// === XOALA COMMAND CENTER: DASHBOARD & ROUTING ===
 
 const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     
+    // NAVIGATION ROUTING
     const navItems = document.querySelectorAll('.nav-item');
     const viewSections = document.querySelectorAll('.view-section');
 
@@ -45,42 +46,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
+    // GEO MAP UTILS
     const countryToIsoMap = {
-        "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
-        "united states": "us", "usa": "us", "united states of america": "us",
-        "canada": "ca", "australia": "au", "germany": "de", "france": "fr", "spain": "es", "italy": "it",
-        "cyprus": "cy", "greece": "gr", "netherlands": "nl", "belgium": "be", "switzerland": "ch",
-        "united arab emirates": "ae", "uae": "ae", "singapore": "sg", "hong kong": "hk", "japan": "jp",
-        "india": "in", "pakistan": "pk", "malaysia": "my", "indonesia": "id", "brazil": "br",
-        "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", "estonia": "ee",
-        "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
-        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro",
-        "czechia": "cz", "czech republic": "cz", "bulgaria": "bg", "hungary": "hu", "austria": "at",
-        "malta": "mt", "luxembourg": "lu", "new zealand": "nz", "israel": "il", "china": "cn",
-        "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg",
-        "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
-        "bvi": "vg", "british virgin islands": "vg", "virgin islands, british": "vg", "virgin islands (british)": "vg",
-        "cayman islands": "ky", "st. vincent and the grenadines": "vc", "saint vincent and the grenadines": "vc", "svg": "vc",
-        "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
-        "curacao": "cw", "curaçao": "cw", "vanuatu": "vu", "marshall islands": "mh",
-        "antigua and barbuda": "ag", "gibraltar": "gi", "isle of man": "im", 
-        "bermuda": "bm", "jersey": "je", "guernsey": "gg", "st kitts and nevis": "kn", "saint kitts and nevis": "kn",
-        "saint lucia": "lc", "st lucia": "lc", "georgia": "ge", "armenia": "am",
-        "russia": "ru", "russian federation": "ru", "korea, republic of": "kr", "taiwan, province of china": "tw", "macao": "mo", "macau": "mo",
-        "comoros": "km", "costa rica": "cr", "panama": "pa", "slovakia": "sk", "dominica": "dm",
-        "oman": "om", "algeria": "dz", "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz",
-        "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
-        "anguilla": "ai", "liechtenstein": "li", "serbia": "rs", "albania": "al", "jordan": "jo",
-        "honduras": "hn", "tanzania, united republic of": "tz", "tanzania": "tz"
+        "united kingdom": "gb", "uk": "gb", "united states": "us", "usa": "us", "canada": "ca", "australia": "au", 
+        "germany": "de", "france": "fr", "spain": "es", "italy": "it", "cyprus": "cy", "greece": "gr", 
+        "netherlands": "nl", "belgium": "be", "switzerland": "ch", "united arab emirates": "ae", "uae": "ae", 
+        "singapore": "sg", "hong kong": "hk", "japan": "jp", "india": "in", "pakistan": "pk", "malaysia": "my", 
+        "indonesia": "id", "brazil": "br", "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", 
+        "estonia": "ee", "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
+        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro", "czechia": "cz", 
+        "bulgaria": "bg", "hungary": "hu", "austria": "at", "malta": "mt", "luxembourg": "lu", "new zealand": "nz", 
+        "israel": "il", "china": "cn", "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", 
+        "egypt": "eg", "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
+        "bvi": "vg", "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
+        "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk"
     };
 
     const regionsMap = {
-        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'km', 'sk', 'om', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'tz'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'tw', 'vu', 'mh', 'mo', 'ck', 'mn', 'kz'],
-        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'vc', 'bs', 'bz', 'cw', 'ag', 'bm', 'kn', 'lc', 'cr', 'pa', 'dm', 'uy', 'sv', 'do', 'ai', 'hn'],
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh'],
+        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz'],
         'NA': ['us', 'ca']
     };
 
+    // DASHBOARD LOGIC
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -90,33 +79,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDrilldownIso = null;
 
     const renderDrilldownList = (leads, isoCode = null) => {
-        const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '';
+        const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" />` : '';
         drilldownList.innerHTML = leads.map(name => `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors flex items-center" title="${name}">${flagHtml}${name}</li>`).join('');
     };
 
     const openDrilldown = (title, leads, isoCode = null) => {
         drilldownTitle.textContent = title;
         document.getElementById('drilldown-count').textContent = `${leads.length} Tickets Found`;
-        currentDrilldownLeads = leads; 
-        currentDrilldownIso = isoCode;
+        currentDrilldownLeads = leads; currentDrilldownIso = isoCode;
         renderDrilldownList(leads, isoCode);
-        
         if (drilldownSearch) drilldownSearch.value = ''; 
         drilldownOverlay.classList.remove('hidden');
         setTimeout(() => drilldownOverlay.classList.remove('opacity-0'), 10);
         drilldownPanel.classList.remove('translate-x-full');
-
-        if (isoCode && geoMapInstance) {
-            geoMapInstance.clearSelectedRegions();
-            geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]);
-        }
     };
 
     if (drilldownSearch) {
         drilldownSearch.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const filtered = currentDrilldownLeads.filter(l => l.toLowerCase().includes(term));
-            renderDrilldownList(filtered, currentDrilldownIso);
+            renderDrilldownList(currentDrilldownLeads.filter(l => l.toLowerCase().includes(term)), currentDrilldownIso);
         });
     }
 
@@ -124,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
         drilldownOverlay.classList.add('opacity-0');
         drilldownPanel.classList.add('translate-x-full');
         setTimeout(() => drilldownOverlay.classList.add('hidden'), 300);
-        if (geoMapInstance) geoMapInstance.clearSelectedRegions();
     };
 
     document.getElementById('close-drilldown-btn').addEventListener('click', closeDrilldown);
@@ -136,39 +116,11 @@ document.addEventListener('DOMContentLoaded', () => {
             let safeLeads = leadsArray[i].map(l => l.replace(/"/g, '""')).join('; ');
             csvContent += `"${label}",${counts[i]},"${safeLeads}"\n`;
         });
-        const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
+        link.setAttribute("href", encodeURI(csvContent));
         link.setAttribute("download", `${title}_Export.csv`);
-        document.body.appendChild(link);
-        link.click(); document.body.removeChild(link);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
-
-    const ctxMenu = document.getElementById('lead-context-menu');
-    const ctxCopyText = document.getElementById('ctx-copy-text');
-    let currentTicketId = null;
-
-    document.addEventListener('click', (e) => {
-        const leadCell = e.target.closest('.lead-name-cell');
-        if (leadCell) {
-            currentTicketId = leadCell.getAttribute('data-ticket-id');
-            ctxMenu.style.top = `${e.pageY + 10}px`; ctxMenu.style.left = `${e.pageX + 10}px`;
-            ctxMenu.classList.remove('hidden');
-            e.stopPropagation();
-        } else if (!e.target.closest('#lead-context-menu')) {
-            ctxMenu.classList.add('hidden');
-        }
-    });
-
-    document.getElementById('ctx-copy-id').addEventListener('click', () => {
-        if (currentTicketId && currentTicketId !== "N/A") {
-            navigator.clipboard.writeText(currentTicketId);
-            ctxCopyText.textContent = "Copied!";
-            setTimeout(() => { ctxMenu.classList.add('hidden'); ctxCopyText.textContent = "Copy HubSpot ID"; }, 800);
-        } else {
-            alert('No HubSpot Ticket ID found for this lead in Data Lake.');
-        }
-    });
 
     const getHeatmapClass = (val) => {
         const num = parseFloat(val);
@@ -182,27 +134,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatTime = (decimalDays) => {
         const val = parseFloat(decimalDays);
         if (isNaN(val) || val <= 0) return "0m";
-        const d = Math.floor(val);
-        const h = Math.floor((val - d) * 24);
-        const m = Math.round(((val - d) * 24 - h) * 60);
+        const d = Math.floor(val); const h = Math.floor((val - d) * 24); const m = Math.round(((val - d) * 24 - h) * 60);
         let parts = [];
-        if (d > 0) parts.push(`${d}d`);
-        if (h > 0) parts.push(`${h}h`);
-        if (m > 0 || parts.length === 0) parts.push(`${m}m`);
+        if (d > 0) parts.push(`${d}d`); if (h > 0) parts.push(`${h}h`); if (m > 0 || parts.length === 0) parts.push(`${m}m`);
         return parts.join(' ');
     };
 
     const setMatrixDefaultDates = () => {
-        const now = new Date();
-        const currentDay = now.getDay(); 
-        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const now = new Date(); const currentDay = now.getDay(); const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
         const start = new Date(now); start.setDate(now.getDate() + diffToMonday);
-        const end = new Date(now);
-        if (currentDay === 0) end.setDate(now.getDate() - 2); 
-        else if (currentDay === 6) end.setDate(now.getDate() - 1); 
-        
-        const startEl = document.getElementById('matrix-start-date');
-        const endEl = document.getElementById('matrix-end-date');
+        const end = new Date(now); if (currentDay === 0) end.setDate(now.getDate() - 2); else if (currentDay === 6) end.setDate(now.getDate() - 1); 
+        const startEl = document.getElementById('matrix-start-date'); const endEl = document.getElementById('matrix-end-date');
         if(startEl) startEl.value = start.toISOString().split('T')[0];
         if(endEl) endEl.value = end.toISOString().split('T')[0];
     };
@@ -211,8 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
-        const startEl = document.getElementById('matrix-start-date');
-        const endEl = document.getElementById('matrix-end-date');
+        const startEl = document.getElementById('matrix-start-date'); const endEl = document.getElementById('matrix-end-date');
         if(!startEl || !endEl || !tbody) return;
 
         if (syncIcon) syncIcon.classList.add('animate-spin');
@@ -228,20 +169,14 @@ document.addEventListener('DOMContentLoaded', () => {
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
         } catch (error) {
             tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
-        } finally {
-            if (syncIcon) syncIcon.classList.remove('animate-spin');
-        }
+        } finally { if (syncIcon) syncIcon.classList.remove('animate-spin'); }
     };
 
     const renderMatrix = (matrixData) => {
         const tbody = document.getElementById('matrix-table-body');
         if(!tbody) return;
         tbody.innerHTML = '';
-
-        if (matrixData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">No tickets found in this date range.</td></tr>`;
-            return;
-        }
+        if (matrixData.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">No tickets found in this date range.</td></tr>`; return; }
 
         matrixData.forEach((mgr, mgrIndex) => {
             const trMgr = document.createElement('tr');
@@ -280,26 +215,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     tbody.appendChild(trLead);
                 });
-
                 trStg.addEventListener('click', () => {
-                    const leadRows = document.querySelectorAll(`.stg-${mgrIndex}-${stgIndex}-child`);
-                    const icon = trStg.querySelector('i');
+                    const leadRows = document.querySelectorAll(`.stg-${mgrIndex}-${stgIndex}-child`); const icon = trStg.querySelector('i');
                     leadRows.forEach(r => r.classList.toggle('hidden'));
-                    if (icon.classList.contains('ph-caret-right')) icon.classList.replace('ph-caret-right', 'ph-caret-down');
-                    else icon.classList.replace('ph-caret-down', 'ph-caret-right');
+                    if (icon.classList.contains('ph-caret-right')) icon.classList.replace('ph-caret-right', 'ph-caret-down'); else icon.classList.replace('ph-caret-down', 'ph-caret-right');
                 });
             });
-
             trMgr.addEventListener('click', () => {
-                const statusRows = document.querySelectorAll(`.mgr-${mgrIndex}-child`);
-                const icon = trMgr.querySelector('i');
+                const statusRows = document.querySelectorAll(`.mgr-${mgrIndex}-child`); const icon = trMgr.querySelector('i');
                 statusRows.forEach(r => {
                     if (!r.classList.contains('hidden') || r.classList.contains('stg-')) r.classList.add('hidden');
                     else if (!r.classList.contains('stg-')) r.classList.remove('hidden'); 
                 });
                 document.querySelectorAll(`.mgr-${mgrIndex}-child .ph-caret-down`).forEach(i => i.classList.replace('ph-caret-down', 'ph-caret-right'));
-                if (icon.classList.contains('ph-plus-square')) icon.classList.replace('ph-plus-square', 'ph-minus-square');
-                else icon.classList.replace('ph-minus-square', 'ph-plus-square');
+                if (icon.classList.contains('ph-plus-square')) icon.classList.replace('ph-plus-square', 'ph-minus-square'); else icon.classList.replace('ph-minus-square', 'ph-plus-square');
             });
         });
     };
@@ -307,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('matrix-refresh-btn').addEventListener('click', fetchMatrixData);
     document.getElementById('matrix-clear-btn').addEventListener('click', () => { document.getElementById('matrix-start-date').value = ''; document.getElementById('matrix-end-date').value = ''; fetchMatrixData(); });
 
-    // --- DASHBOARD REAL-TIME ANALYTICS ---
     let riskChartInstance = null; let bottleneckChartInstance = null; let geoMapInstance = null;
     let currentRiskData = null; let currentBotData = null; let currentGeoData = null;
     let currentRegionFilter = 'ALL';
@@ -404,9 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mapDataObj[codeUpper] = geoData.data[i];
                     hoverData[codeUpper] = { count: geoData.data[i], name: countryName, leads: geoData.leads[i], iso: isoCode };
                 }
-            } else {
-                unmappedCount += geoData.data[i];
-            }
+            } else { unmappedCount += geoData.data[i]; }
         });
 
         geoMapInstance = new jsVectorMap({
@@ -546,251 +472,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fetchDashboardData();
-
-    // === ARTEMIS GENERATIVE UI & NEURAL KOALA LOGIC ===
-
-    const promptInput = document.getElementById('prompt-input');
-    const sendBtn = document.getElementById('send-btn');
-    const chatBox = document.getElementById('chat-box');
-    const emptyState = document.getElementById('artemis-empty-state');
-    const commandPalette = document.getElementById('command-palette');
-    const artifactPane = document.getElementById('artemis-artifact-pane');
-    const closeArtifactBtn = document.getElementById('close-artifact-btn');
-    const newChatBtn = document.getElementById('new-chat-btn');
-    const sessionsList = document.getElementById('chat-sessions-list');
-
-    let currentSessionId = Date.now().toString();
-    let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions') || '{}');
-
-    // FIX: Micro-Hologram Koala for Chat Bubbles
-    const getKoalaAvatar = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-full border border-gold flex items-center justify-center bg-black flex-shrink-0 ${isThinking ? 'koala-thinking shadow-[0_0_12px_rgba(221,170,51,0.4)]' : 'shadow-[0_0_8px_rgba(16,185,129,0.3)]'}">
-            <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
-                <path class="koala-outline" d="M25 40 C10 35 10 55 20 65 C30 85 70 85 80 65 C90 55 90 35 75 40 C65 25 35 25 25 40 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="6" stroke-linejoin="round"/>
-                <path class="koala-features" d="M42 55 Q50 45 58 55 Q60 70 50 70 Q40 70 42 55 Z" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
-                <circle cx="33" cy="48" r="4" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
-                <circle cx="67" cy="48" r="4" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
-            </svg>
-        </div>
-    `;
-
-    if (promptInput) {
-        promptInput.addEventListener('input', (e) => {
-            if (e.target.value === '/') {
-                commandPalette.classList.remove('hidden'); commandPalette.classList.add('flex');
-            } else if (!e.target.value.startsWith('/')) {
-                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
-            }
-        });
-    }
-
-    document.querySelectorAll('.command-item, .quick-pill').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const prompt = e.currentTarget.getAttribute('data-prompt');
-            promptInput.value = prompt;
-            commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
-            promptInput.focus();
-        });
-    });
-
-    const openArtifactCanvas = (htmlContent) => {
-        document.getElementById('artifact-content').innerHTML = htmlContent;
-        artifactPane.style.width = '50%';
-        artifactPane.classList.remove('opacity-0');
-        artifactPane.classList.add('artifact-slide-in');
-    };
-
-    if (closeArtifactBtn) {
-        closeArtifactBtn.addEventListener('click', () => {
-            artifactPane.style.width = '0px';
-            artifactPane.classList.add('opacity-0');
-            artifactPane.classList.remove('artifact-slide-in');
-        });
-    }
-
-    const renderSessions = () => {
-        if (!sessionsList) return;
-        sessionsList.innerHTML = Object.keys(sessions).map(id => `
-            <div class="session-item px-3 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer truncate transition-colors flex items-center justify-between ${id === currentSessionId ? 'bg-white/10 text-gold' : ''}" data-id="${id}">
-                <span class="truncate max-w-[170px]">${sessions[id].title || 'Investigation'}</span>
-                <i class="ph ph-trash hover:text-red-400 p-1 delete-session-btn" data-id="${id}"></i>
-            </div>
-        `).join('');
-
-        sessionsList.querySelectorAll('.session-item').forEach(el => {
-            el.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-session-btn')) {
-                    delete sessions[e.target.getAttribute('data-id')];
-                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-                    renderSessions();
-                    return;
-                }
-                loadSession(el.getAttribute('data-id'));
-            });
-        });
-    };
-
-    const loadSession = (id) => {
-        currentSessionId = id;
-        chatBox.innerHTML = '';
-        const session = sessions[id];
-        if (!session || session.history.length === 0) {
-            chatBox.appendChild(emptyState);
-            emptyState.classList.remove('hidden');
-            renderSessions();
-            return;
-        }
-
-        emptyState.classList.add('hidden');
-        session.history.forEach(msg => {
-            if (msg.role === 'user') {
-                const u = document.createElement('div');
-                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4";
-                u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
-                chatBox.appendChild(u);
-            } else {
-                const a = document.createElement('div');
-                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2";
-                a.innerHTML = `
-                    ${getKoalaAvatar(false)}
-                    <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
-                        <div class="prose prose-invert prose-sm max-w-none leading-relaxed">${marked.parse(msg.parts[0].text)}</div>
-                    </div>
-                `;
-                chatBox.appendChild(a);
-            }
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-        renderSessions();
-    };
-
-    if (newChatBtn) {
-        newChatBtn.addEventListener('click', () => {
-            currentSessionId = Date.now().toString();
-            sessions[currentSessionId] = { title: "New Query", history: [] };
-            localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-            loadSession(currentSessionId);
-            if (closeArtifactBtn) closeArtifactBtn.click();
-        });
-    }
-
-    if (sendBtn && promptInput) {
-        sendBtn.addEventListener('click', async () => {
-            const val = promptInput.value.trim();
-            if (!val) return;
-
-            if (emptyState) emptyState.classList.add('hidden');
-
-            if (!sessions[currentSessionId]) {
-                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", history: [] };
-            }
-
-            const userMsg = document.createElement('div');
-            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4";
-            userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
-            chatBox.appendChild(userMsg);
-            
-            promptInput.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            const aiMsg = document.createElement('div');
-            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2";
-            const reqStartTime = Date.now();
-            aiMsg.innerHTML = `
-                ${getKoalaAvatar(true)}
-                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase">Connecting to Data Lake...</div>
-            `;
-            chatBox.appendChild(aiMsg);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            try {
-                const historyPayload = sessions[currentSessionId].history;
-                const response = await fetch(DASHBOARD_API_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt: val, history: historyPayload, secret: 'system_dashboard_init',
-                        model: document.getElementById('model-select').value || 'gemini-3.5-flash-lite'
-                    })
-                });
-
-                const data = await response.json();
-                const latency = Date.now() - reqStartTime;
-
-                if (data.status === 200 && data.response) {
-                    let aiText = data.response;
-
-                    sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
-                    sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
-                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-
-                    const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
-                    const match = aiText.match(jsonBlockRegex);
-                    let artifactHtml = null;
-
-                    if (match && match[1]) {
-                        try {
-                            const parsedData = JSON.parse(match[1]);
-                            if (parsedData.type === 'interactive_table') {
-                                artifactHtml = `
-                                    <h2 class="text-xl text-white font-light mb-6 tracking-tight">${parsedData.title || 'Data Grid'}</h2>
-                                    <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
-                                        <table class="w-full text-left border-collapse whitespace-nowrap">
-                                            <thead>
-                                                <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">
-                                                    ${parsedData.columns.map(c => `<th class="py-3 px-4 font-semibold">${c}</th>`).join('')}
-                                                </tr>
-                                            </thead>
-                                            <tbody class="text-sm font-sans divide-y divide-white/5 text-gray-200">
-                                                ${parsedData.rows.map(r => `
-                                                    <tr class="hover:bg-white/5 transition-colors">
-                                                        ${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-400'}">${v}</td>`).join('')}
-                                                    </tr>
-                                                `).join('')}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                `;
-                            }
-                            aiText = aiText.replace(jsonBlockRegex, '').trim();
-                        } catch (e) { console.error("GenUI Parse error", e); }
-                    }
-
-                    const formattedText = marked.parse(aiText);
-
-                    aiMsg.innerHTML = `
-                        ${getKoalaAvatar(false)}
-                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
-                            <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
-                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Execution Complete (${latency}ms)</span></div>
-                                <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
-                            </div>
-                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
-                            <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1" onclick="navigator.clipboard.writeText(this.closest('.bg-surface\\/80').innerText)"><i class="ph ph-copy"></i><span>Copy Response</span></button>
-                                ${artifactHtml ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded" onclick="document.getElementById('artemis-artifact-pane').style.width='50%'; document.getElementById('artemis-artifact-pane').classList.remove('opacity-0'); document.getElementById('artemis-artifact-pane').classList.add('artifact-slide-in');"><i class="ph ph-layout"></i><span>Open Canvas</span></button>` : ''}
-                            </div>
-                        </div>
-                    `;
-
-                    if (artifactHtml) openArtifactCanvas(artifactHtml);
-                    renderSessions();
-
-                } else {
-                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">API Error: ${data.error || "Execution failed."}</div>`;
-                }
-            } catch (err) {
-                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">Network Error: Unable to reach Artemis core.</div>`;
-            }
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-
-        promptInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendBtn.click();
-            }
-        });
-    }
-
-    renderSessions();
 });
