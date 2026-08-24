@@ -7,99 +7,110 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('send-btn');
     const chatBox = document.getElementById('chat-box');
     const emptyState = document.getElementById('artemis-empty-state');
-    const commandPalette = document.getElementById('command-palette');
     const artifactPane = document.getElementById('artemis-artifact-pane');
     const closeArtifactBtn = document.getElementById('close-artifact-btn');
     const newChatBtn = document.getElementById('new-chat-btn');
     const sessionsList = document.getElementById('chat-sessions-list');
-    const pinnedList = document.getElementById('pinned-sessions-list');
-    const pinnedHeader = document.getElementById('pinned-header');
     const exportCanvasBtn = document.getElementById('export-canvas-csv-btn');
 
     let currentSessionId = Date.now().toString();
     let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions') || '{}');
     let activeCanvasData = null;
+    let canvasChartInstance = null;
 
-    // Mini Hologram Koala Avatar for message stream
-    const getKoalaAvatar = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-full border ${isThinking ? 'border-gold shadow-[0_0_15px_rgba(221,170,51,0.6)]' : 'border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.3)]'} flex items-center justify-center bg-black flex-shrink-0 overflow-hidden relative">
-            <div class="${isThinking ? 'liquid-gradient-layer liquid-gradient-thinking opacity-90' : 'liquid-gradient-layer opacity-40'} absolute -inset-full"></div>
-            <svg class="relative z-10 w-5 h-5" viewBox="0 0 100 100" fill="none">
-                <circle cx="24" cy="38" r="16" fill="#000" stroke="#fff" stroke-width="4"/>
-                <circle cx="76" cy="38" r="16" fill="#000" stroke="#fff" stroke-width="4"/>
-                <ellipse cx="50" cy="56" rx="32" ry="26" fill="#000" stroke="#fff" stroke-width="4"/>
-                <ellipse cx="50" cy="58" rx="8" ry="10" fill="#10b981"/>
-                <circle cx="34" cy="48" r="3" fill="#ffffff"/>
-                <circle cx="66" cy="48" r="3" fill="#ffffff"/>
-            </svg>
+    // FIX: The "Data Core" Mini-Avatar for Chat Feed
+    const getCoreAvatar = (isThinking = false) => `
+        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'shadow-[0_0_4px_rgba(221,170,51,0.3)]'}">
+            <div class="absolute inset-[1px] rounded-full border border-gold/40 border-dotted ${isThinking ? 'spin-layer-2' : ''}"></div>
+            <div class="absolute inset-[2px] rounded-full border border-emerald-500/50 border-dashed ${isThinking ? 'spin-layer-1' : ''}"></div>
+            <div class="absolute inset-[4px] rounded-full bg-gradient-to-tr from-emerald-600 to-gold ${isThinking ? 'animate-pulse blur-[1px]' : 'opacity-40'}"></div>
+            <div class="absolute inset-[7px] rounded-full bg-obsidian z-10 flex items-center justify-center"><i class="ph ph-cpu text-[10px] ${isThinking ? 'text-white' : 'text-gray-500'}"></i></div>
         </div>
     `;
 
-    // Trigger Liquid Hero animation pulse
-    const setLiquidHeroProcessing = (isProcessing) => {
-        const mesh = document.getElementById('koala-liquid-mesh');
-        const glow = document.getElementById('koala-ambient-glow');
-        if (mesh) {
-            if (isProcessing) mesh.classList.add('liquid-gradient-thinking');
-            else mesh.classList.remove('liquid-gradient-thinking');
-        }
+    const setCoreProcessing = (isProcessing) => {
+        const glow = document.getElementById('core-glow');
         if (glow) {
             if (isProcessing) {
-                glow.classList.replace('bg-emerald-500/10', 'bg-gold/30');
+                glow.classList.replace('from-emerald-600', 'from-red-500');
                 glow.classList.add('scale-125');
             } else {
-                glow.classList.replace('bg-gold/30', 'bg-emerald-500/10');
+                glow.classList.replace('from-red-500', 'from-emerald-600');
                 glow.classList.remove('scale-125');
             }
         }
     };
 
-    // Slash Commands Palette
-    if (promptInput) {
-        promptInput.addEventListener('input', (e) => {
-            if (e.target.value === '/') {
-                commandPalette.classList.remove('hidden'); commandPalette.classList.add('flex');
-            } else if (!e.target.value.startsWith('/')) {
-                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
-            }
-        });
-    }
-
-    document.querySelectorAll('.command-item, .quick-pill').forEach(btn => {
+    document.querySelectorAll('.quick-pill').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const prompt = e.currentTarget.getAttribute('data-prompt');
-            promptInput.value = prompt;
-            commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
+            promptInput.value = e.currentTarget.getAttribute('data-prompt');
             promptInput.focus();
         });
     });
 
-    // Artifact Canvas Mechanics
     const openArtifactCanvas = (parsedData) => {
         activeCanvasData = parsedData;
-        const htmlContent = `
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
-                <span class="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400">${parsedData.rows.length} Rows Computed</span>
-            </div>
-            <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
-                <table class="w-full text-left border-collapse whitespace-nowrap">
-                    <thead>
-                        <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">
-                            ${parsedData.columns.map(c => `<th class="py-3 px-4 font-semibold">${c}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm font-sans divide-y divide-white/5 text-gray-200">
-                        ${parsedData.rows.map(r => `
-                            <tr class="hover:bg-white/5 transition-colors">
-                                ${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-400'}">${v}</td>`).join('')}
+        let htmlContent = '';
+
+        if (parsedData.type === 'interactive_table') {
+            htmlContent = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
+                </div>
+                <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">
+                                ${parsedData.columns.map(c => `<th class="py-3 px-4 font-semibold">${c}</th>`).join('')}
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        document.getElementById('artifact-content').innerHTML = htmlContent;
+                        </thead>
+                        <tbody class="text-sm font-sans divide-y divide-white/5 text-gray-200">
+                            ${parsedData.rows.map(r => `
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    ${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-400'}">${v}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('artifact-content').innerHTML = htmlContent;
+        } 
+        else if (parsedData.type === 'interactive_chart') {
+            htmlContent = `
+                <h2 class="text-xl text-white font-light mb-6 tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
+                <div class="p-6 glass-card rounded-xl border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
+                    <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
+                </div>
+            `;
+            document.getElementById('artifact-content').innerHTML = htmlContent;
+            
+            // Allow DOM to paint, then render Chart.js
+            setTimeout(() => {
+                const ctx = document.getElementById('gen-ui-chart');
+                if (!ctx) return;
+                if (canvasChartInstance) canvasChartInstance.destroy();
+                
+                Chart.defaults.color = '#888'; Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
+                
+                // Colors
+                let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
+                if (parsedData.chartType === 'bar') {
+                    const ctx2d = ctx.getContext('2d');
+                    bgColors = parsedData.labels.map((_, i) => { 
+                        const grad = ctx2d.createLinearGradient(0, 0, 0, 400); 
+                        grad.addColorStop(0, bgColors[i % bgColors.length]); grad.addColorStop(1, '#111111'); return grad; 
+                    });
+                }
+
+                canvasChartInstance = new Chart(ctx, {
+                    type: parsedData.chartType || 'bar',
+                    data: { labels: parsedData.labels, datasets: [{ data: parsedData.data, backgroundColor: bgColors, borderWidth: 0, borderRadius: parsedData.chartType==='bar'?4:0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: parsedData.chartType==='doughnut' || parsedData.chartType==='pie' } } }
+                });
+            }, 300);
+        }
+
         artifactPane.style.width = '50%';
         artifactPane.classList.remove('opacity-0');
         artifactPane.classList.add('artifact-slide-in');
@@ -116,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (exportCanvasBtn) {
         exportCanvasBtn.addEventListener('click', () => {
-            if (!activeCanvasData) return;
+            if (!activeCanvasData || activeCanvasData.type !== 'interactive_table') return alert("Only Data Tables can be exported to CSV.");
             let csv = "data:text/csv;charset=utf-8," + activeCanvasData.columns.join(",") + "\n";
             activeCanvasData.rows.forEach(r => { csv += r.map(c => `"${c}"`).join(",") + "\n"; });
             const link = document.createElement("a");
@@ -128,84 +139,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- REFINED SESSION MANAGEMENT (Pin, Rename, Delete) ---
     const renderSessions = () => {
-        if (!sessionsList || !pinnedList) return;
-        const keys = Object.keys(sessions);
-        const pinnedKeys = keys.filter(k => sessions[k].pinned);
-        const recentKeys = keys.filter(k => !sessions[k].pinned).reverse();
+        if (!sessionsList) return;
+        sessionsList.innerHTML = Object.keys(sessions).reverse().map(id => `
+            <div class="session-item px-3 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer truncate transition-colors flex items-center justify-between ${id === currentSessionId ? 'bg-white/10 text-gold' : ''}" data-id="${id}">
+                <span class="truncate max-w-[170px]">${sessions[id].title || 'Investigation'}</span>
+                <i class="ph ph-trash hover:text-red-400 p-1 delete-session-btn" data-id="${id}"></i>
+            </div>
+        `).join('');
 
-        if (pinnedKeys.length > 0) pinnedHeader.classList.remove('hidden');
-        else pinnedHeader.classList.add('hidden');
-
-        const createSessionItem = (id) => {
-            const s = sessions[id];
-            const isSelected = (id === currentSessionId);
-            return `
-                <div class="session-item group px-2.5 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-bold' : ''}" data-id="${id}">
-                    <span class="truncate max-w-[125px] session-title-text" title="${s.title}">${s.title}</span>
-                    <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="pin-btn p-1 hover:text-gold transition-colors" title="${s.pinned ? 'Unpin' : 'Pin'}" data-id="${id}">
-                            <i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i>
-                        </button>
-                        <button class="rename-btn p-1 hover:text-gold transition-colors" title="Rename" data-id="${id}">
-                            <i class="ph ph-pencil-simple"></i>
-                        </button>
-                        <button class="delete-btn p-1 hover:text-red-400 transition-colors" title="Delete" data-id="${id}">
-                            <i class="ph ph-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        };
-
-        pinnedList.innerHTML = pinnedKeys.map(k => createSessionItem(k)).join('');
-        sessionsList.innerHTML = recentKeys.map(k => createSessionItem(k)).join('');
-
-        // Bind Session Actions
-        document.querySelectorAll('.session-item').forEach(el => {
-            const id = el.getAttribute('data-id');
+        sessionsList.querySelectorAll('.session-item').forEach(el => {
             el.addEventListener('click', (e) => {
-                if (e.target.closest('button')) return;
-                loadSession(id);
-            });
-
-            const pinBtn = el.querySelector('.pin-btn');
-            if (pinBtn) {
-                pinBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    sessions[id].pinned = !sessions[id].pinned;
+                if (e.target.classList.contains('delete-session-btn')) {
+                    delete sessions[e.target.getAttribute('data-id')];
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
                     renderSessions();
-                });
-            }
-
-            const renameBtn = el.querySelector('.rename-btn');
-            if (renameBtn) {
-                renameBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const newTitle = prompt('Enter new session title:', sessions[id].title);
-                    if (newTitle && newTitle.trim()) {
-                        sessions[id].title = newTitle.trim();
-                        localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-                        renderSessions();
-                    }
-                });
-            }
-
-            const deleteBtn = el.querySelector('.delete-btn');
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    delete sessions[id];
-                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-                    if (currentSessionId === id) {
-                        currentSessionId = Date.now().toString();
-                        sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
-                    }
-                    loadSession(currentSessionId);
-                });
-            }
+                    return;
+                }
+                loadSession(el.getAttribute('data-id'));
+            });
         });
     };
 
@@ -232,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const a = document.createElement('div');
                 a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
                 a.innerHTML = `
-                    ${getKoalaAvatar(false)}
+                    ${getCoreAvatar(false)}
                     <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                         <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
                     </div>
@@ -247,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newChatBtn) {
         newChatBtn.addEventListener('click', () => {
             currentSessionId = Date.now().toString();
-            sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
+            sessions[currentSessionId] = { title: "New Query", history: [] };
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
             loadSession(currentSessionId);
             if (closeArtifactBtn) closeArtifactBtn.click();
@@ -262,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (emptyState) emptyState.classList.add('opacity-0');
 
             if (!sessions[currentSessionId]) {
-                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] };
+                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", history: [] };
             } else if (sessions[currentSessionId].history.length === 0) {
                 sessions[currentSessionId].title = val.substring(0, 24) + "...";
             }
@@ -279,13 +231,13 @@ document.addEventListener('DOMContentLoaded', () => {
             aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
-                ${getKoalaAvatar(true)}
+                ${getCoreAvatar(true)}
                 <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Computing Data Lake nodes...</div>
             `;
             chatBox.appendChild(aiMsg);
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            setLiquidHeroProcessing(true);
+            setCoreProcessing(true);
 
             try {
                 const historyPayload = sessions[currentSessionId].history;
@@ -299,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
-                setLiquidHeroProcessing(false);
+                setCoreProcessing(false);
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
@@ -322,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formattedText = marked.parse(aiText);
 
                     aiMsg.innerHTML = `
-                        ${getKoalaAvatar(false)}
+                        ${getCoreAvatar(false)}
                         <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Execution Complete (${latency}ms)</span></div>
@@ -331,19 +283,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
                                 <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy Response</span></button>
-                                ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Grid</span></button>` : ''}
+                                ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Artifact</span></button>` : ''}
                             </div>
                         </div>
                     `;
 
-                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => {
-                        navigator.clipboard.writeText(aiText);
-                    });
+                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
 
                     if (parsedGenUI) {
-                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => {
-                            openArtifactCanvas(parsedGenUI);
-                        });
+                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                         openArtifactCanvas(parsedGenUI);
                     }
                     renderSessions();
@@ -352,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
                 }
             } catch (err) {
-                setLiquidHeroProcessing(false);
+                setCoreProcessing(false);
                 aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
