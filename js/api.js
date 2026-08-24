@@ -16,29 +16,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions') || '{}');
 
-    // Cyber-Koala Avatar SVG Helper
+    // FIX: Micro-Hologram Koala Avatar (Anatomically matches the big center Koala)
     const getKoalaAvatar = (isThinking = false) => `
         <div class="w-8 h-8 rounded-full border border-gold flex items-center justify-center bg-black flex-shrink-0 ${isThinking ? 'koala-thinking shadow-[0_0_12px_rgba(221,170,51,0.4)]' : 'shadow-[0_0_8px_rgba(16,185,129,0.3)]'}">
-            <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
-                <path d="M20 40 L10 20 L30 15 L40 30 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
-                <path d="M80 40 L90 20 L70 15 L60 30 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
-                <path d="M30 50 L50 25 L70 50 L80 75 L50 95 L20 75 Z" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
-                <path d="M40 65 L50 55 L60 65 L50 75 Z" fill="#111" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="3" stroke-linejoin="round"/>
-                <circle cx="35" cy="55" r="3" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
-                <circle cx="65" cy="55" r="3" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
+            <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
+                <!-- Ears -->
+                <circle cx="22" cy="38" r="16" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4" fill="#000"/>
+                <circle cx="78" cy="38" r="16" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4" fill="#000"/>
+                <!-- Head -->
+                <ellipse cx="50" cy="55" rx="34" ry="28" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4" fill="#000"/>
+                <!-- Nose -->
+                <ellipse cx="50" cy="59" rx="7" ry="10" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
+                <!-- Eyes -->
+                <circle cx="36" cy="50" r="4" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
+                <circle cx="64" cy="50" r="4" fill="${isThinking ? '#DDAA33' : '#10b981'}"/>
             </svg>
         </div>
     `;
 
-    // Slash Commands Palette
     if (promptInput) {
         promptInput.addEventListener('input', (e) => {
             if (e.target.value === '/') {
-                commandPalette.classList.remove('hidden');
-                commandPalette.classList.add('flex');
+                commandPalette.classList.remove('hidden'); commandPalette.classList.add('flex');
             } else if (!e.target.value.startsWith('/')) {
-                commandPalette.classList.add('hidden');
-                commandPalette.classList.remove('flex');
+                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
             }
         });
     }
@@ -47,8 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', (e) => {
             const prompt = e.currentTarget.getAttribute('data-prompt');
             promptInput.value = prompt;
-            commandPalette.classList.add('hidden');
-            commandPalette.classList.remove('flex');
+            commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
             promptInput.focus();
         });
     });
@@ -105,12 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
         session.history.forEach(msg => {
             if (msg.role === 'user') {
                 const u = document.createElement('div');
-                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md";
+                u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4";
                 u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
                 chatBox.appendChild(u);
             } else {
                 const a = document.createElement('div');
-                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4";
+                a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2";
                 a.innerHTML = `
                     ${getKoalaAvatar(false)}
                     <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)]">
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userMsg = document.createElement('div');
-            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md";
+            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4";
             userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
             chatBox.appendChild(userMsg);
             
@@ -154,11 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const aiMsg = document.createElement('div');
-            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4";
+            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
                 ${getKoalaAvatar(true)}
-                <div class="text-sm text-gray-400 font-mono animate-pulse pt-1">Analyzing Data Lake nodes...</div>
+                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Connecting to Data Lake...</div>
             `;
             chatBox.appendChild(aiMsg);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -166,12 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const historyPayload = sessions[currentSessionId].history;
                 const response = await fetch(ARTEMIS_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        prompt: val, 
-                        history: historyPayload,
-                        secret: 'system_dashboard_init',
+                        prompt: val, history: historyPayload, secret: 'system_dashboard_init',
                         model: document.getElementById('model-select').value || 'gemini-3.5-flash-lite'
                     })
                 });
@@ -186,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
-                    // Generative UI JSON Parser
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
                     let artifactHtml = null;
@@ -228,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Execution Complete (${latency}ms)</span></div>
                                 <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
                             </div>
-                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed">${formattedText}</div>
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
                                 <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1" onclick="navigator.clipboard.writeText(this.closest('.bg-surface\\/80').innerText)"><i class="ph ph-copy"></i><span>Copy Response</span></button>
                                 ${artifactHtml ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded" onclick="document.getElementById('artemis-artifact-pane').style.width='50%'; document.getElementById('artemis-artifact-pane').classList.remove('opacity-0'); document.getElementById('artemis-artifact-pane').classList.add('artifact-slide-in');"><i class="ph ph-layout"></i><span>Open Canvas</span></button>` : ''}
@@ -237,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
 
                     if (artifactHtml) openArtifactCanvas(artifactHtml);
+                    renderSessions();
 
                 } else {
                     aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded">API Error: ${data.error || "Execution failed."}</div>`;
