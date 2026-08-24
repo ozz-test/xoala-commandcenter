@@ -3,7 +3,7 @@
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE
+// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE (Interactive Physics)
 // ==========================================
 class ArtemisHologram {
     constructor(canvasId) {
@@ -11,7 +11,6 @@ class ArtemisHologram {
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d');
         
-        // Locked dimensions so it never shrinks to 0 on flexbox layouts
         this.width = 400;
         this.height = 400;
         this.canvas.width = this.width;
@@ -21,6 +20,24 @@ class ArtemisHologram {
         this.time = 0;
         this.state = 'idle'; 
         this.audioPulse = 0;
+        this.baseSpeed = 1.0;
+        
+        // Interactive Mouse Physics
+        this.mouseX = this.width / 2;
+        this.mouseY = this.height / 2;
+        this.targetMouseX = this.width / 2;
+        this.targetMouseY = this.height / 2;
+
+        this.canvas.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.targetMouseX = e.clientX - rect.left;
+            this.targetMouseY = e.clientY - rect.top;
+        });
+        
+        this.canvas.addEventListener('mouseleave', () => {
+            this.targetMouseX = this.width / 2;
+            this.targetMouseY = this.height / 2;
+        });
 
         for (let i = 0; i < 180; i++) {
             const theta = Math.acos(2 * Math.random() - 1);
@@ -78,10 +95,18 @@ class ArtemisHologram {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.globalCompositeOperation = 'lighter';
 
-        let speed = 1;
+        // Smooth mouse interpolation for parallax
+        this.mouseX += (this.targetMouseX - this.mouseX) * 0.1;
+        this.mouseY += (this.targetMouseY - this.mouseY) * 0.1;
+
+        let speed = this.baseSpeed;
         if (this.state === 'thinking') speed = 4;
         if (this.state === 'speaking') speed = 2;
         this.time += 0.01 * speed;
+
+        // Apply interactive parallax offset
+        const parallaxX = (this.mouseX - this.width / 2) * 0.003;
+        const parallaxY = (this.mouseY - this.height / 2) * 0.003;
 
         const cx = this.width / 2;
         const cy = this.height / 2;
@@ -101,15 +126,15 @@ class ArtemisHologram {
         this.ctx.arc(cx, cy, coreRadius * 2.5, 0, Math.PI * 2);
         this.ctx.fill();
 
-        this.drawRing(60, this.time * 1.2, this.time * 0.9, 0, 'rgba(255,255,255,0.4)', true);
-        this.drawRing(100, 0.4, this.time * 0.7, this.time * 0.5, 'rgba(221,170,51,0.5)', false);
-        this.drawRing(140, -this.time * 0.3, 0.9, -this.time * 0.6, 'rgba(16,185,129,0.3)', true);
+        this.drawRing(60, this.time * 1.2 + parallaxY, this.time * 0.9 + parallaxX, 0, 'rgba(255,255,255,0.4)', true);
+        this.drawRing(100, 0.4 + parallaxY, this.time * 0.7 + parallaxX, this.time * 0.5, 'rgba(221,170,51,0.5)', false);
+        this.drawRing(140, -this.time * 0.3 + parallaxY, 0.9 + parallaxX, -this.time * 0.6, 'rgba(16,185,129,0.3)', true);
 
         this.particles.forEach(p => {
             let zDistort = p.z;
             if (this.state === 'thinking') zDistort += Math.sin(this.time * 8 + p.x) * 20;
 
-            const proj = this.project(p.x, p.y, zDistort, this.time * 0.3, this.time * 0.5, 0);
+            const proj = this.project(p.x, p.y, zDistort, this.time * 0.3 + parallaxY, this.time * 0.5 + parallaxX, 0);
             if (proj.scale > 0) {
                 this.ctx.beginPath();
                 this.ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI * 2);
@@ -180,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const voiceEngine = new VoiceEngine();
 
     const promptInput = document.getElementById('prompt-input');
+    const promptContainer = document.getElementById('prompt-container');
     const sendBtn = document.getElementById('send-btn');
     const chatStream = document.getElementById('chat-stream'); 
     const hologramContainer = document.getElementById('artemis-empty-state');
@@ -199,6 +225,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = {};
     let activeCanvasData = null;
+
+    // Terminal Input Mode Toggle
+    if (promptInput && promptContainer) {
+        promptInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val.startsWith('/')) {
+                promptContainer.classList.add('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
+                promptContainer.classList.remove('border-white/10');
+                promptInput.classList.add('text-emerald-400', 'font-mono');
+                promptInput.classList.remove('text-white', 'font-sans');
+            } else {
+                promptContainer.classList.remove('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
+                promptContainer.classList.add('border-white/10');
+                promptInput.classList.remove('text-emerald-400', 'font-mono');
+                promptInput.classList.add('text-white', 'font-sans');
+            }
+        });
+    }
 
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
@@ -239,9 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Elegant Artemis Avatar Node
     const getAvatarNode = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-full border border-emerald-500/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)] relative overflow-hidden">
+        <div class="w-8 h-8 rounded-sm border border-emerald-500/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)] relative overflow-hidden">
              <i class="ph ph-cpu text-emerald-400 text-sm ${isThinking ? 'animate-pulse' : ''}"></i>
         </div>
     `;
@@ -253,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // High Density Generative UI with Tabulator
     const openArtifactCanvas = (parsedData) => {
         activeCanvasData = parsedData;
         let htmlContent = '';
@@ -262,22 +306,39 @@ document.addEventListener('DOMContentLoaded', () => {
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
+                    <button id="download-tabulator" class="text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-download-simple mr-1"></i> Export Data</button>
                 </div>
-                <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
-                    <table class="w-full text-left border-collapse whitespace-nowrap">
-                        <thead><tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">${parsedData.columns.map(c => `<th class="py-3.5 px-4 font-semibold">${c}</th>`).join('')}</tr></thead>
-                        <tbody class="text-sm font-sans divide-y divide-white/5 text-gray-200">
-                            ${parsedData.rows.map(r => `<tr class="hover:bg-white/5 transition-colors">${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-300'}">${v}</td>`).join('')}</tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
+                <div id="tabulator-table" class="w-full text-sm"></div>
             `;
             contentArea.innerHTML = htmlContent;
+            
+            setTimeout(() => {
+                const tableData = parsedData.rows.map(r => {
+                    let obj = {};
+                    parsedData.columns.forEach((c, i) => obj[c] = r[i]);
+                    return obj;
+                });
+                
+                const tableCols = parsedData.columns.map(c => ({ title: c, field: c, headerFilter: "input" }));
+                
+                const table = new Tabulator("#tabulator-table", {
+                    data: tableData,
+                    columns: tableCols,
+                    layout: "fitColumns",
+                    theme: "midnight",
+                    pagination: "local",
+                    paginationSize: 15,
+                });
+                
+                document.getElementById('download-tabulator').addEventListener('click', () => {
+                    table.download("csv", "artemis_data_export.csv");
+                });
+            }, 100);
         } 
         else if (parsedData.type === 'interactive_chart') {
             htmlContent = `
                 <h2 class="text-xl text-white font-light mb-6 tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
-                <div class="p-6 glass-card rounded-xl border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
+                <div class="p-6 glass-card rounded-sm border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
                     <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
                 </div>
             `;
@@ -298,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 250);
         }
 
-        artifactPane.style.width = '50%';
+        artifactPane.style.width = '55%';
         artifactPane.classList.remove('opacity-0');
         artifactPane.classList.add('artifact-slide-in');
     };
@@ -321,12 +382,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pinnedKeys.length > 0) pinnedHeader.classList.remove('hidden');
         else pinnedHeader.classList.add('hidden');
 
-        // LOCAL HELPER: Build node HTML
         const buildSessionNodeHTML = (id) => {
             const s = sessions[id];
             const isSelected = (id === currentSessionId);
             return `
-                <div class="session-item group px-2.5 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold' : ''}" data-id="${id}">
+                <div class="session-item group px-2.5 py-2 rounded-sm text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold border-l border-gold pl-2' : ''}" data-id="${id}">
                     <span class="truncate max-w-[125px]" title="${s.title}">${s.title}</span>
                     <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button class="pin-btn p-1 hover:text-gold" data-id="${id}"><i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i></button>
@@ -336,11 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         };
 
-        // Standard JS map usage
         pinnedList.innerHTML = pinnedKeys.map(key => buildSessionNodeHTML(key)).join('');
         sessionsList.innerHTML = recentKeys.map(key => buildSessionNodeHTML(key)).join('');
 
-        // Attach listeners
         document.querySelectorAll('.session-item').forEach(el => {
             const id = el.getAttribute('data-id');
             el.addEventListener('click', (e) => {
@@ -380,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Safely inject history into stream
+    // Safely inject history into stream (High Density Updates)
     const renderChatHistory = (historyArray) => {
         if (!chatStream) return;
         chatStream.innerHTML = '';
@@ -402,12 +460,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (msg.role === 'user') {
                     const u = document.createElement('div');
-                    u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
-                    u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
+                    u.className = "self-end bg-surface/80 border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
+                    u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
                     chatStream.appendChild(u);
                 } else {
                     const a = document.createElement('div');
-                    a.className = "self-start bg-transparent w-full flex items-start space-x-4 mt-2 relative z-10";
+                    a.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
                     
                     let cleanText = msg.parts[0].text;
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
@@ -423,12 +481,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     a.innerHTML = `
                         ${getAvatarNode(false)}
-                        <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
+                        <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
-                            <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
-                                <button class="speak-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI ? `<button class="open-ui-btn text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20"><i class="ph ph-layout mr-1"></i>Open Artifact</button>` : ''}
+                            <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
+                                <button class="copy-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
+                                <button class="speak-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
+                                ${parsedGenUI ? `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-sm border border-emerald-500/20"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -495,26 +553,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userMsg = document.createElement('div');
-            userMsg.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
-            userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
+            userMsg.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
+            userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
             chatStream.appendChild(userMsg);
             
             promptInput.value = '';
+            // Reset input container style if Macro Mode was active
+            if (promptContainer) {
+                promptContainer.classList.remove('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
+                promptContainer.classList.add('border-white/10');
+                promptInput.classList.remove('text-emerald-400', 'font-mono');
+                promptInput.classList.add('text-white', 'font-sans');
+            }
             
             const container = document.getElementById('chat-stream-container');
             if (container) container.scrollTop = container.scrollHeight;
 
             const aiMsg = document.createElement('div');
-            aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-4 mt-2 relative z-10";
+            aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
                 ${getAvatarNode(true)}
-                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
+                <div class="text-[13px] text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
             `;
             chatStream.appendChild(aiMsg);
             if (container) container.scrollTop = container.scrollHeight;
 
             hologram.setState('thinking');
+            hologram.baseSpeed = 3.0; // Spikes the data visualization physics during query
 
             try {
                 const historyPayload = sessions[currentSessionId].history || [];
@@ -533,6 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
                 hologram.setState('idle');
+                hologram.baseSpeed = 1.0;
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
@@ -556,16 +623,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     aiMsg.innerHTML = `
                         ${getAvatarNode(false)}
-                        <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
-                            <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
+                        <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
+                            <div class="text-[9px] font-mono text-emerald-400 mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
                                 <div class="text-gray-500">${modelSelect ? modelSelect.value.replace('gemini-','').toUpperCase() : 'FLASH'}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
-                            <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
-                                <button class="speak-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI ? `<button class="open-ui-btn text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded"><i class="ph ph-layout mr-1"></i>Open Artifact</button>` : ''}
+                            <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
+                                <button class="copy-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
+                                <button class="speak-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
+                                ${parsedGenUI ? `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -600,11 +667,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderSessions();
 
                 } else {
-                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
+                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded-sm relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
                 }
             } catch (err) {
                 hologram.setState('idle');
-                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
+                hologram.baseSpeed = 1.0;
+                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded-sm relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
             if (container) container.scrollTop = container.scrollHeight;
         });
