@@ -41,28 +41,19 @@
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
 
-        /* --- LIQUID HOLOGRAPHIC KOALA ANIMATION SUITE --- */
-        @keyframes liquid-mesh-rotate {
-            0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg); }
-            50% { transform: rotate(180deg) scale(1.15); filter: hue-rotate(45deg); }
-            100% { transform: rotate(360deg) scale(1); filter: hue-rotate(0deg); }
+        /* --- THE DATA CORE UI ANIMATIONS --- */
+        @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse-slow { 100% { transform: rotate(-360deg); } }
+        .spin-layer-1 { animation: spin-slow 12s linear infinite; }
+        .spin-layer-2 { animation: spin-reverse-slow 8s linear infinite; }
+        .spin-layer-3 { animation: spin-slow 20s linear infinite; }
+        
+        @keyframes core-pulse {
+            0%, 100% { transform: scale(0.95); box-shadow: 0 0 20px rgba(16,185,129,0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(221,170,51,0.5); }
         }
-        .liquid-gradient-layer {
-            background: conic-gradient(from 0deg at 50% 50%, #DDAA33 0deg, #10b981 120deg, #06b6d4 240deg, #DDAA33 360deg);
-            animation: liquid-mesh-rotate 10s linear infinite;
-        }
-        .liquid-gradient-thinking {
-            animation: liquid-mesh-rotate 2.5s linear infinite !important;
-        }
-
-        @keyframes orb-float {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-8px) scale(1.02); }
-        }
-        .koala-orb-container {
-            animation: orb-float 5s ease-in-out infinite;
-        }
-
+        .data-core-center { animation: core-pulse 3s ease-in-out infinite; }
+        
         .artifact-slide-in { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
@@ -70,14 +61,13 @@
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
-    <!-- LEAD CONTEXT MENU -->
+    <!-- LEAD CONTEXT MENU & DRILL-DOWN PANEL -->
     <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
         <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors">
             <i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span>
         </button>
     </div>
 
-    <!-- DRILL-DOWN SLIDE PANEL -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
     <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
@@ -129,37 +119,10 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div>
-                        <div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div>
-                        <div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div>
-                        <div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div>
-                        <div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div><div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div><div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div><div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div><div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div><div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
                 </div>
                 
                 <div class="flex justify-between items-end w-full mb-4">
@@ -291,29 +254,22 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Liquid Hologram & Restored Session Tools) -->
+        <!-- View 3: Artemis AI Core (Jarvis Data Core Architecture) -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
-            <!-- Sidebar with Pinning & Renaming -->
+            <!-- Sidebar -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
-                
-                <!-- Pinned Sessions Header -->
-                <div id="pinned-header" class="text-[9px] font-mono tracking-widest text-gold uppercase mb-2 px-2 hidden flex items-center space-x-1"><i class="ph ph-push-pin-simple"></i><span>Pinned Threads</span></div>
-                <div id="pinned-sessions-list" class="space-y-1 mb-3"></div>
-
-                <!-- Recent Sessions Header -->
-                <div class="text-[9px] font-mono tracking-widest text-gray-500 uppercase mb-2 px-2 flex items-center space-x-1"><i class="ph ph-clock-counter-clockwise"></i><span>Recent Sessions</span></div>
+                <div class="text-[10px] font-mono tracking-widest text-gray-500 uppercase mb-2 px-2">Recent Sessions</div>
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian">
-                
                 <!-- Left Pane: Conversational Stream -->
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
                     <div class="flex-none px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
                             <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
-                                <i class="ph ph-sparkle text-gold text-base"></i><span>ARTEMIS CORE</span>
+                                <i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS CORE</span>
                             </div>
                             <div class="flex items-center space-x-2 bg-obsidian border border-white/10 px-3 py-1.5 rounded-lg text-[11px] font-mono text-gray-400 shadow-inner">
                                 <i class="ph ph-database text-emerald-400"></i><span>Synced: <strong id="sync-time-badge" class="text-white">Validating...</strong></span>
@@ -324,84 +280,36 @@
                             <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                         </select>
                     </div>
-
-                    <!-- Chat Output Area -->
-                    <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide relative z-10 flex flex-col justify-start">
+                    
+                    <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide relative flex flex-col justify-start">
                         
-                        <!-- LIQUID HOLOGRAPHIC KOALA HERO (Option 1) -->
-                        <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-500">
+                        <!-- THE "DATA CORE" EMPTY STATE -->
+                        <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-100 transition-opacity duration-500">
                             
-                            <div class="koala-orb-container relative w-44 h-44 flex items-center justify-center mb-6">
-                                <!-- Ambient Bloom Behind Orb -->
-                                <div id="koala-ambient-glow" class="absolute inset-0 rounded-full bg-emerald-500/10 blur-2xl transition-all duration-700"></div>
-
-                                <!-- Glass Frosted Outer Ring -->
-                                <div class="absolute inset-0 rounded-full border border-white/10 bg-surface/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
-                                    
-                                    <!-- Rotating Mesh Gradient Layer -->
-                                    <div id="koala-liquid-mesh" class="liquid-gradient-layer absolute -inset-full opacity-70"></div>
-                                    
-                                    <!-- Dark Frosted Overlay -->
-                                    <div class="absolute inset-1 rounded-full bg-obsidian/85 backdrop-blur-sm"></div>
-
-                                    <!-- Refined Silhouette SVG Mask -->
-                                    <svg class="relative z-10 w-28 h-28" viewBox="0 0 100 100" fill="none">
-                                        <!-- Koala Ears -->
-                                        <circle cx="24" cy="38" r="18" fill="url(#koala-grad)" fill-opacity="0.2" stroke="url(#koala-grad)" stroke-width="2"/>
-                                        <circle cx="76" cy="38" r="18" fill="url(#koala-grad)" fill-opacity="0.2" stroke="url(#koala-grad)" stroke-width="2"/>
-                                        <circle cx="24" cy="38" r="9" fill="#050505" stroke="#10b981" stroke-width="1.5"/>
-                                        <circle cx="76" cy="38" r="9" fill="#050505" stroke="#10b981" stroke-width="1.5"/>
-
-                                        <!-- Koala Head Contour -->
-                                        <ellipse cx="50" cy="56" rx="34" ry="28" fill="#050505" stroke="url(#koala-grad)" stroke-width="2.5"/>
-
-                                        <!-- Glowing Oval Nose -->
-                                        <ellipse cx="50" cy="58" rx="8" ry="12" fill="url(#koala-grad)" class="shadow-lg"/>
-                                        
-                                        <!-- Wide-set Specular Eyes -->
-                                        <circle cx="34" cy="48" r="3.5" fill="#ffffff" fill-opacity="0.9"/>
-                                        <circle cx="66" cy="48" r="3.5" fill="#ffffff" fill-opacity="0.9"/>
-                                        
-                                        <!-- Gentle Mouth Curve -->
-                                        <path d="M 44 72 Q 50 76 56 72" stroke="#10b981" stroke-width="2" stroke-linecap="round" fill="none"/>
-
-                                        <defs>
-                                            <linearGradient id="koala-grad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-                                                <stop offset="0%" stop-color="#DDAA33"/>
-                                                <stop offset="100%" stop-color="#10b981"/>
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
+                            <!-- Spinning Jarvis Aperture Rings -->
+                            <div class="relative w-48 h-48 flex items-center justify-center mb-8">
+                                <div class="absolute inset-0 rounded-full border border-white/10 border-dashed spin-layer-1 opacity-50"></div>
+                                <div class="absolute inset-4 rounded-full border-2 border-gold/40 border-dotted spin-layer-2"></div>
+                                <div class="absolute inset-8 rounded-full border border-emerald-500/50 spin-layer-3"></div>
+                                <div id="core-glow" class="absolute inset-14 rounded-full bg-gradient-to-tr from-emerald-600 to-gold data-core-center opacity-80 blur-[2px]"></div>
+                                <div class="absolute inset-16 rounded-full bg-obsidian flex items-center justify-center z-10 shadow-inner">
+                                    <i class="ph ph-cpu text-3xl text-white/80 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"></i>
                                 </div>
                             </div>
 
-                            <div class="text-center">
-                                <h2 class="text-xl font-light text-white tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
-                                <p class="text-xs font-mono text-gray-500 mt-2 tracking-wide">Enter natural language parameters or macro commands below.</p>
-                            </div>
+                            <h2 class="text-xl font-light text-white tracking-widest drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">ARTEMIS IS ONLINE</h2>
+                            <p class="text-sm font-mono text-gray-500 mt-2">Awaiting quantitative query parameters.</p>
                         </div>
-
                     </div>
                     
-                    <!-- Prompt Input Area -->
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-20">
-                        <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
-                            <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard.">
-                                <i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span>
-                            </button>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month.">
-                                <i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span>
-                            </button>
-                        </div>
-
                         <div class="max-w-4xl mx-auto bg-obsidian/80 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 focus-within:bg-obsidian transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
                             <div id="quick-prompts" class="flex items-center space-x-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto scrollbar-hide">
-                                <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Provide a data grid of top 10 ticket volumes by country of incorporation.">🌐 Top Geographies Grid</button>
-                                <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Format a leaderboard of Account Managers handling Critical Risk tickets.">⚖️ Critical Risk Handlers</button>
+                                <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Can you make a graph showing the total registered tickets for the last 7 days?">📊 Weekly Graph</button>
+                                <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="What is the pipeline stage distribution for Ellie this month?">🗂️ Ellie's Breakdown</button>
                             </div>
 
-                            <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-600" placeholder="Type '/' for macros, or ask Artemis to map data..."></textarea>
+                            <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-600" placeholder="Ask Artemis to analyze, map data, or build graphs..."></textarea>
                             
                             <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
                                 <div class="flex items-center space-x-3">
