@@ -42,8 +42,9 @@
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        .hologram-fade-out { opacity: 0.05; filter: blur(6px); transition: all 1s ease; }
-        .hologram-focus { opacity: 1; filter: blur(0px); transition: all 1s ease; }
+        /* 3D Canvas Background Blending Fix */
+        .hologram-fade-out { opacity: 0.15; filter: blur(2px); transform: scale(0.9); transition: all 1s ease; }
+        .hologram-focus { opacity: 0.9; filter: blur(0px); transform: scale(1); transition: all 1s ease; }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -192,10 +193,12 @@
             
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian z-10">
                 
-                <!-- BACKGROUND LAYER: Protected 3D Canvas Engine -->
+                <!-- BACKGROUND LAYER: Fixed Geometry Hologram -->
                 <div id="artemis-empty-state" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none hologram-focus transition-all duration-700">
-                    <canvas id="jarvis-core-canvas" class="max-w-xl max-h-xl opacity-90 mix-blend-screen"></canvas>
-                    <div class="text-center absolute mt-[350px]">
+                    <div class="relative w-[400px] h-[400px] flex items-center justify-center mb-8">
+                        <canvas id="jarvis-core-canvas" class="absolute inset-0 w-full h-full opacity-90 mix-blend-screen"></canvas>
+                    </div>
+                    <div id="hologram-text" class="text-center relative z-10 transition-opacity duration-500">
                         <h2 class="text-2xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
                         <p class="text-xs font-mono text-gray-500 mt-3 tracking-widest uppercase">Data Lake Engine Operational • Audio Synthesis Ready</p>
                     </div>
@@ -223,7 +226,7 @@
                         </div>
                     </div>
                     
-                    <!-- Chat Bubbles Area -->
+                    <!-- Chat Stream Area -->
                     <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative z-20 flex flex-col justify-start pb-10">
                         <div id="chat-stream" class="flex flex-col space-y-6 min-h-full justify-end"></div>
                     </div>
@@ -260,7 +263,6 @@
                     </div>
                     <div id="artifact-content" class="flex-1 p-8 overflow-y-auto w-full"></div>
                 </div>
-
             </div>
         </section>
     </main>
