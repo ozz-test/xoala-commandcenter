@@ -8,7 +8,6 @@
     <!-- Prevents favicon 404 error -->
     <link rel="icon" href="data:,">
     
-    <!-- NOTE: Tailwind CDN warning in console is standard for dev environments without a build step. Safe to ignore. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -40,27 +39,13 @@
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
-        .jvm-tooltip { background-color: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; font-family: 'ui-monospace', monospace !important; border-radius: 6px !important; padding: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; }
-        .jvm-zoom-btn { display: none !important; }
-        .jvm-container { cursor: grab !important; }
-        .jvm-container:active { cursor: grabbing !important; }
-
-        /* --- THE JARVIS DATA CORE CSS ENGINE --- */
-        @keyframes spin-cw { 100% { transform: rotate(360deg); } }
-        @keyframes spin-ccw { 100% { transform: rotate(-360deg); } }
-        @keyframes core-pulse { 
-            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(16,185,129,0.4)); } 
-            50% { transform: scale(1.05); filter: drop-shadow(0 0 40px rgba(221,170,51,0.6)); } 
-        }
         
-        .orbit-ring-1 { animation: spin-cw 20s linear infinite; }
-        .orbit-ring-2 { animation: spin-ccw 15s linear infinite; }
-        .orbit-ring-3 { animation: spin-cw 10s linear infinite; }
-        .core-singularity { animation: core-pulse 3s ease-in-out infinite; }
-        .core-thinking { animation: core-pulse 0.8s ease-in-out infinite !important; }
-
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* 3D Canvas Background Blending */
+        .hologram-fade-out { opacity: 0.05; filter: blur(6px); transition: all 1s ease; }
+        .hologram-focus { opacity: 0.9; filter: blur(0px); transition: all 1s ease; }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -195,10 +180,11 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core -->
-        <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
+        <!-- View 3: Artemis AI Core (Jarvis Tier with Isolated Canvas) -->
+        <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden relative">
+            
             <!-- Sidebar: Threads -->
-            <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
+            <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
                 <div id="pinned-header" class="text-[9px] font-mono tracking-widest text-gold uppercase mb-2 px-2 hidden flex items-center space-x-1"><i class="ph ph-push-pin-simple"></i><span>Pinned Threads</span></div>
                 <div id="pinned-sessions-list" class="space-y-1 mb-4 flex-none"></div>
@@ -206,31 +192,27 @@
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
-            <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian">
-                <!-- Data Core Background (Safely isolated from chat deletion) -->
-                <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-700 z-0">
-                    <div class="relative w-72 h-72 flex items-center justify-center mb-8">
-                        <div class="absolute inset-0 rounded-full border-[1.5px] border-emerald-500/20 border-dashed orbit-ring-1"></div>
-                        <div class="absolute inset-8 rounded-full border-2 border-gold/30 border-dotted orbit-ring-2"></div>
-                        <div class="absolute inset-16 rounded-full border border-emerald-400/40 orbit-ring-3 opacity-60"></div>
-                        <div class="absolute inset-20 rounded-full bg-gradient-to-tr from-emerald-600/40 to-gold/20 blur-[15px] core-singularity" id="core-glow"></div>
-                        
-                        <div class="relative z-10 w-24 h-24 rounded-full border border-white/10 bg-obsidian flex items-center justify-center shadow-inner core-singularity" id="crystal-core">
-                            <i class="ph ph-cpu text-4xl text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]"></i>
-                        </div>
+            <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian z-10">
+                
+                <!-- BACKGROUND LAYER: Protected 3D Canvas Engine -->
+                <div id="hologram-container" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none hologram-focus">
+                    <canvas id="jarvis-core-canvas" width="600" height="600" class="max-w-md max-h-md opacity-80 mix-blend-screen"></canvas>
+                    <div id="hologram-text" class="text-center mt-4">
+                        <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
+                        <p class="text-xs font-mono text-gray-500 mt-2 tracking-wide">Data Lake Engine Operational • Audio Synthesis Ready</p>
                     </div>
-                    <h2 class="text-2xl font-light text-white tracking-[0.3em] drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">ARTEMIS QUANTITATIVE CORE</h2>
-                    <p class="text-xs font-mono text-gray-500 mt-3 tracking-widest uppercase">Data Lake Engine Operational • Audio Synthesis Ready</p>
                 </div>
 
-                <!-- Chat Stream Foreground -->
-                <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full relative z-10">
-                    <div class="flex-none px-8 py-3 bg-surface/60 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
+                <!-- FOREGROUND LAYER: Chat Interface -->
+                <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
+                    <div class="flex-none px-8 py-3 bg-surface/80 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
-                            <div class="flex items-center space-x-2 text-xs font-mono text-gray-400"><i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS CORE</span></div>
+                            <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
+                                <i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS CORE</span>
+                            </div>
                             <div class="flex items-center space-x-2 bg-obsidian border border-white/10 px-3 py-1.5 rounded-lg text-[11px] font-mono text-gray-400 shadow-inner">
                                 <i class="ph ph-database text-emerald-400"></i><span>Synced: <strong id="sync-time-badge" class="text-white">Live</strong></span>
-                                <button id="resync-btn" class="ml-2 text-gray-400 hover:text-gold transition-colors bg-surface px-2 py-0.5 rounded border border-white/10 flex items-center space-x-1 text-[10px]"><i class="ph ph-arrows-clockwise" id="resync-icon"></i><span>Resync</span></button>
+                                <button id="resync-btn" class="ml-2 text-gray-400 hover:text-gold transition-colors bg-surface px-2 py-0.5 rounded border border-white/10 flex items-center space-x-1 text-[10px]" title="Fetch fresh CSV data"><i class="ph ph-arrows-clockwise" id="resync-icon"></i><span>Resync</span></button>
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
@@ -243,25 +225,24 @@
                         </div>
                     </div>
                     
-                    <!-- Chat Bubbles Area (Separated from empty state) -->
-                    <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative flex flex-col justify-start">
-                        <div id="chat-stream" class="flex flex-col space-y-6 min-h-full pb-10 justify-end"></div>
+                    <!-- Chat Bubbles Area (Separated from background canvas) -->
+                    <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative z-20 flex flex-col justify-start pb-10">
+                        <div id="chat-stream" class="flex flex-col space-y-6 min-h-full justify-end"></div>
                     </div>
                     
                     <!-- Prompt Box -->
-                    <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative">
+                    <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-30">
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
                             <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month."><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
                         </div>
-                        <div class="max-w-4xl mx-auto bg-obsidian/80 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 focus-within:bg-obsidian transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
+                        <div class="max-w-4xl mx-auto bg-surface/90 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-xl relative">
                             <div id="quick-prompts" class="flex items-center space-x-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto scrollbar-hide">
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Can you make a graph showing the total registered tickets for the last 7 days?">📊 Weekly Ingestion Chart</button>
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="What is the pipeline stage distribution for Ellie this month?">🗂️ Ellie's Stage Distribution</button>
-                                <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by total resolved volume this month.">🏆 AM Leaderboard</button>
                             </div>
-                            <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-600" placeholder="Type '/' for macros, or ask Artemis to map data..."></textarea>
+                            <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-500" placeholder="Type '/' for macros, or query data lake..."></textarea>
                             <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
                                 <div class="flex items-center space-x-3"><label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-plus-circle text-base"></i><span id="file-name-label">Add File</span><input type="file" id="file-input" class="hidden" accept=".csv,.txt,.pdf"></label></div>
                                 <button id="send-btn" class="bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 py-2.5 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(224,192,96,0.4)] disabled:opacity-50 flex items-center space-x-2"><span>Execute</span><i class="ph ph-paper-plane-right font-bold text-sm"></i></button>
