@@ -3,75 +3,190 @@
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// 1. ARTEMIS VOICE TRANSMISSION SYNTHESIZER
+// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE
 // ==========================================
-class ArtemisVoice {
-    constructor() {
-        this.synth = window.speechSynthesis;
-        this.autoSpeak = localStorage.getItem('artemis_voice_enabled') !== 'false';
-        this.currentUtterance = null;
-        this.voice = null;
-        this.initVoice();
-    }
+class ArtemisHologram {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.resize = this.resize.bind(this);
+        window.addEventListener('resize', this.resize);
+        this.resize();
 
-    initVoice() {
-        if (!this.synth) return;
-        const loadVoices = () => {
-            const voices = this.synth.getVoices();
-            this.voice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha') || v.name.includes('Victoria')) 
-                      || voices.find(v => v.lang.startsWith('en-GB'))
-                      || voices.find(v => v.lang.startsWith('en-US'))
-                      || voices[0];
-        };
-        loadVoices();
-        if (this.synth.onvoiceschanged !== undefined) {
-            this.synth.onvoiceschanged = loadVoices;
+        this.particles = [];
+        this.time = 0;
+        this.state = 'idle'; 
+        this.audioPulse = 0;
+
+        for (let i = 0; i < 180; i++) {
+            const theta = Math.acos(2 * Math.random() - 1);
+            const phi = 2 * Math.PI * Math.random();
+            const r = 120 + (Math.random() * 30 - 15);
+            this.particles.push({
+                x: r * Math.sin(theta) * Math.cos(phi),
+                y: r * Math.sin(theta) * Math.sin(phi),
+                z: r * Math.cos(theta),
+                size: Math.random() * 1.5 + 0.5,
+                color: Math.random() > 0.3 ? 'rgba(221, 170, 51, 0.8)' : 'rgba(16, 185, 129, 0.8)'
+            });
         }
+
+        this.animate = this.animate.bind(this);
+        requestAnimationFrame(this.animate);
     }
 
-    cleanSpeechText(rawMarkdown) {
-        return rawMarkdown
-            .replace(/```json[\s\S]*?```/g, '') 
-            .replace(/```[\s\S]*?```/g, '')     
-            .replace(/\[.*?\]\(.*?\)/g, '')     
-            .replace(/[*_~`#>]/g, '')           
-            .replace(/\|\s*[-:]+\s*\|/g, '')    
-            .replace(/\|/g, ', ')               
-            .trim();
+    resize() {
+        this.width = this.canvas.parentElement.clientWidth;
+        this.height = this.canvas.parentElement.clientHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
     }
 
-    speak(text, onStartCallback, onEndCallback) {
-        if (!this.synth) return;
-        this.stop();
+    setState(s) { this.state = s; }
+    setAudioPulse(v) { this.audioPulse = v; }
 
-        const cleanText = this.cleanSpeechText(text);
-        if (!cleanText) return;
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        if (this.voice) utterance.voice = this.voice;
-        utterance.rate = 1.05;  
-        utterance.pitch = 1.0; 
-
-        utterance.onstart = () => { if (onStartCallback) onStartCallback(); };
-        utterance.onend = () => { if (onEndCallback) onEndCallback(); };
-        utterance.onerror = () => { if (onEndCallback) onEndCallback(); };
-
-        this.currentUtterance = utterance;
-        this.synth.speak(utterance);
+    project(x, y, z, rotX, rotY, rotZ) {
+        let x1 = x * Math.cos(rotY) + z * Math.sin(rotY);
+        let z1 = -x * Math.sin(rotY) + z * Math.cos(rotY);
+        let y2 = y * Math.cos(rotX) - z1 * Math.sin(rotX);
+        let z2 = y * Math.sin(rotX) + z1 * Math.cos(rotX);
+        let x3 = x1 * Math.cos(rotZ) - y2 * Math.sin(rotZ);
+        let y3 = x1 * Math.sin(rotZ) + y2 * Math.cos(rotZ);
+        
+        const fov = 400;
+        const scale = fov / (fov + z2 + 150);
+        return { x: x3 * scale + this.width / 2, y: y3 * scale + this.height / 2, scale: scale };
     }
 
-    stop() {
-        if (this.synth && this.synth.speaking) {
-            this.synth.cancel();
+    drawRing(radius, rotX, rotY, rotZ, color, isDashed) {
+        const segments = 60;
+        this.ctx.beginPath();
+        if (isDashed) this.ctx.setLineDash([6, 10]); else this.ctx.setLineDash([]);
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 1.5;
+
+        let first = true;
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const p = this.project(radius * Math.cos(angle), radius * Math.sin(angle), 0, rotX, rotY, rotZ);
+            if (first) { this.ctx.moveTo(p.x, p.y); first = false; } 
+            else { this.ctx.lineTo(p.x, p.y); }
         }
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+    }
+
+    animate() {
+        if (!this.ctx) return;
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.ctx.globalCompositeOperation = 'lighter';
+
+        let speed = 1;
+        if (this.state === 'thinking') speed = 4;
+        if (this.state === 'speaking') speed = 2;
+        this.time += 0.01 * speed;
+
+        const cx = this.width / 2;
+        const cy = this.height / 2 - 40; 
+
+        // Singularity Core
+        let coreRadius = 25 + Math.sin(this.time * 3) * 3;
+        if (this.state === 'speaking') coreRadius += this.audioPulse * 15;
+        if (this.state === 'thinking') coreRadius += 10;
+
+        const grad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 2.5);
+        grad.addColorStop(0, '#FFFFFF');
+        grad.addColorStop(0.2, '#DDAA33');
+        grad.addColorStop(0.6, 'rgba(16, 185, 129, 0.3)');
+        grad.addColorStop(1, 'transparent');
+        
+        this.ctx.fillStyle = grad;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, coreRadius * 2.5, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 3D Orbital Rings
+        this.drawRing(60, this.time * 1.2, this.time * 0.9, 0, 'rgba(255,255,255,0.4)', true);
+        this.drawRing(100, 0.4, this.time * 0.7, this.time * 0.5, 'rgba(221,170,51,0.5)', false);
+        this.drawRing(140, -this.time * 0.3, 0.9, -this.time * 0.6, 'rgba(16,185,129,0.3)', true);
+
+        // Particles
+        this.particles.forEach(p => {
+            let zDistort = p.z;
+            if (this.state === 'thinking') zDistort += Math.sin(this.time * 8 + p.x) * 20;
+
+            const proj = this.project(p.x, p.y - 40, zDistort, this.time * 0.3, this.time * 0.5, 0);
+            if (proj.scale > 0) {
+                this.ctx.beginPath();
+                this.ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI * 2);
+                this.ctx.fillStyle = p.color;
+                this.ctx.fill();
+            }
+        });
+
+        requestAnimationFrame(this.animate);
     }
 }
 
 // ==========================================
-// 2. UI, EVENT HANDLERS & SESSION LOGIC
+// 2. VOICE SYNTHESIS ENGINE
+// ==========================================
+class VoiceEngine {
+    constructor() {
+        this.synth = window.speechSynthesis;
+        this.autoSpeak = localStorage.getItem('artemis_voice_enabled') !== 'false';
+        this.voice = null;
+        
+        if (this.synth) {
+            const loadVoices = () => {
+                const voices = this.synth.getVoices();
+                this.voice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha')) 
+                          || voices.find(v => v.lang.startsWith('en-GB')) 
+                          || voices[0];
+            };
+            loadVoices();
+            if (this.synth.onvoiceschanged !== undefined) this.synth.onvoiceschanged = loadVoices;
+        }
+    }
+
+    cleanText(markdown) {
+        return markdown.replace(/```json[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').replace(/[*_~`#>]/g, '').trim();
+    }
+
+    speak(text, onStart, onEnd, onBoundary) {
+        if (!this.synth) return;
+        this.synth.cancel();
+
+        const clean = this.cleanText(text);
+        if (!clean) return;
+
+        const utterance = new SpeechSynthesisUtterance(clean);
+        if (this.voice) utterance.voice = this.voice;
+        utterance.rate = 1.05;
+
+        utterance.onstart = () => { if (onStart) onStart(); };
+        utterance.onend = () => { if (onEnd) onEnd(); };
+        utterance.onerror = () => { if (onEnd) onEnd(); };
+        
+        utterance.onboundary = () => { if (onBoundary) onBoundary(Math.random()); };
+
+        this.synth.speak(utterance);
+    }
+
+    stop() {
+        if (this.synth && this.synth.speaking) this.synth.cancel();
+    }
+}
+
+// ==========================================
+// 3. UI CONTROLLER & SESSION MANAGER
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    const artemisVoice = new ArtemisVoice();
+    
+    const hologram = new ArtemisHologram('jarvis-core-canvas');
+    const voiceEngine = new VoiceEngine();
 
     const promptInput = document.getElementById('prompt-input');
     const sendBtn = document.getElementById('send-btn');
@@ -84,16 +199,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionsList = document.getElementById('chat-sessions-list');
     const pinnedList = document.getElementById('pinned-sessions-list');
     const pinnedHeader = document.getElementById('pinned-header');
-    const exportCanvasBtn = document.getElementById('export-canvas-csv-btn');
     const voiceAutoToggleBtn = document.getElementById('voice-auto-toggle-btn');
     const voiceAutoIcon = document.getElementById('voice-auto-icon');
     const voiceAutoStatus = document.getElementById('voice-auto-status');
-    const crystalCore = document.getElementById('crystal-core');
 
     let currentSessionId = Date.now().toString();
     let sessions = {};
+    let activeCanvasData = null;
 
-    // 1. Safe LocalStorage Hydration (Prevents length/null errors)
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
         if (raw) {
@@ -108,17 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-    } catch (e) {
-        sessions = {};
-    }
+    } catch (e) { sessions = {}; }
 
-    let activeCanvasData = null;
-    let canvasChartInstance = null;
-
-    // Synchronize Voice UI
     const updateVoiceToggleUI = () => {
         if (!voiceAutoIcon || !voiceAutoStatus) return;
-        if (artemisVoice.autoSpeak) {
+        if (voiceEngine.autoSpeak) {
             voiceAutoIcon.className = "ph ph-speaker-high text-sm text-gold";
             voiceAutoStatus.textContent = "Voice: ON";
             voiceAutoStatus.className = "text-[10px] uppercase tracking-wider font-bold text-gray-200";
@@ -132,50 +239,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (voiceAutoToggleBtn) {
         voiceAutoToggleBtn.addEventListener('click', () => {
-            artemisVoice.autoSpeak = !artemisVoice.autoSpeak;
-            localStorage.setItem('artemis_voice_enabled', artemisVoice.autoSpeak);
-            if (!artemisVoice.autoSpeak) artemisVoice.stop();
+            voiceEngine.autoSpeak = !voiceEngine.autoSpeak;
+            localStorage.setItem('artemis_voice_enabled', voiceEngine.autoSpeak);
+            if (!voiceEngine.autoSpeak) voiceEngine.stop();
             updateVoiceToggleUI();
         });
     }
 
-    const getCrystalAvatar = (isThinking = false) => `
+    const getCoreAvatar = (isThinking = false) => `
         <div class="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_14px_rgba(221,170,51,0.7)] animate-pulse' : 'shadow-[0_0_6px_rgba(16,185,129,0.3)]'}">
-            <svg viewBox="0 0 100 100" class="w-5 h-5">
-                <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="${isThinking ? '#DDAA33' : '#10b981'}" fill-opacity="0.25" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4"/>
-                <polygon points="50,10 50,50 90,70" fill="${isThinking ? '#F0D788' : '#10b981'}" fill-opacity="0.4" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="2"/>
-                <polygon points="50,90 10,70 50,50" fill="${isThinking ? '#997722' : '#064e3b'}" fill-opacity="0.5" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="2"/>
-                <circle cx="50" cy="50" r="4" fill="#FFFFFF"/>
+            <svg viewBox="0 0 100 100" class="w-5 h-5 ${isThinking ? 'animate-spin' : ''}" style="${isThinking ? 'animation-duration: 3s;' : ''}">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="6" stroke-dasharray="30 15" />
+                <circle cx="50" cy="50" r="15" fill="${isThinking ? '#DDAA33' : '#10b981'}" />
             </svg>
         </div>
     `;
 
-    const setCoreThinking = (isProcessing) => {
-        if (crystalCore) {
-            if (isProcessing) crystalCore.classList.add('crystal-thinking-fast');
-            else crystalCore.classList.remove('crystal-thinking-fast');
-        }
-    };
-
-    // Safe Slash Command Palette
-    if (promptInput) {
-        promptInput.addEventListener('input', (e) => {
-            if (!commandPalette) return;
-            if (e.target.value === '/') {
-                commandPalette.classList.remove('hidden'); commandPalette.classList.add('flex');
-            } else if (!e.target.value.startsWith('/')) {
-                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
-            }
-        });
-    }
-
-    document.querySelectorAll('.command-item, .quick-pill').forEach(btn => {
+    document.querySelectorAll('.quick-pill').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const prompt = e.currentTarget.getAttribute('data-prompt');
-            promptInput.value = prompt;
-            if (commandPalette) {
-                commandPalette.classList.add('hidden'); commandPalette.classList.remove('flex');
-            }
+            promptInput.value = e.currentTarget.getAttribute('data-prompt');
             promptInput.focus();
         });
     });
@@ -188,21 +270,12 @@ document.addEventListener('DOMContentLoaded', () => {
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Report'}</h2>
-                    <span class="text-[10px] font-mono bg-white/5 border border-white/10 px-2.5 py-1 rounded text-gold font-bold">${parsedData.rows.length} Records</span>
                 </div>
                 <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">
-                                ${parsedData.columns.map(c => `<th class="py-3.5 px-4 font-semibold">${c}</th>`).join('')}
-                            </tr>
-                        </thead>
+                        <thead><tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono">${parsedData.columns.map(c => `<th class="py-3.5 px-4 font-semibold">${c}</th>`).join('')}</tr></thead>
                         <tbody class="text-sm font-sans divide-y divide-white/5 text-gray-200">
-                            ${parsedData.rows.map(r => `
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    ${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-300'}">${v}</td>`).join('')}
-                                </tr>
-                            `).join('')}
+                            ${parsedData.rows.map(r => `<tr class="hover:bg-white/5 transition-colors">${r.map((v, idx) => `<td class="py-3 px-4 ${idx===0 ? 'text-emerald-400 font-medium' : 'text-right font-mono text-gray-300'}">${v}</td>`).join('')}</tr>`).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -221,38 +294,14 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const ctx = document.getElementById('gen-ui-chart');
                 if (!ctx) return;
-                if (canvasChartInstance) canvasChartInstance.destroy();
-                
                 Chart.defaults.color = '#888'; 
                 Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
                 
-                let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
-                if (parsedData.chartType === 'bar') {
-                    const ctx2d = ctx.getContext('2d');
-                    bgColors = parsedData.labels.map((_, i) => { 
-                        const grad = ctx2d.createLinearGradient(0, 0, 0, 400); 
-                        grad.addColorStop(0, bgColors[i % bgColors.length]); 
-                        grad.addColorStop(1, '#111111'); 
-                        return grad; 
-                    });
-                }
-
-                canvasChartInstance = new Chart(ctx, {
+                let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444'];
+                new Chart(ctx, {
                     type: parsedData.chartType || 'bar',
-                    data: { 
-                        labels: parsedData.labels, 
-                        datasets: [{ 
-                            data: parsedData.data, 
-                            backgroundColor: bgColors, 
-                            borderWidth: 0, 
-                            borderRadius: parsedData.chartType==='bar'?4:0 
-                        }] 
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { legend: { display: parsedData.chartType==='doughnut' || parsedData.chartType==='pie' } } 
-                    }
+                    data: { labels: parsedData.labels, datasets: [{ data: parsedData.data, backgroundColor: bgColors, borderWidth: 0, borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }, 250);
         }
@@ -271,21 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (exportCanvasBtn) {
-        exportCanvasBtn.addEventListener('click', () => {
-            if (!activeCanvasData || activeCanvasData.type !== 'interactive_table') return alert("Only Data Tables can be exported to CSV.");
-            let csv = "data:text/csv;charset=utf-8," + activeCanvasData.columns.join(",") + "\n";
-            activeCanvasData.rows.forEach(r => { csv += r.map(c => `"${c}"`).join(",") + "\n"; });
-            const link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csv));
-            link.setAttribute("download", `${activeCanvasData.title || 'Artemis_Report'}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-    }
-
-    // --- BULLETPROOF SESSION MANAGEMENT ---
     const renderSessions = () => {
         if (!sessionsList || !pinnedList) return;
         const keys = Object.keys(sessions);
@@ -302,15 +336,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="session-item group px-2.5 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold' : ''}" data-id="${id}">
                     <span class="truncate max-w-[125px] session-title-text" title="${s.title}">${s.title}</span>
                     <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="pin-btn p-1 hover:text-gold transition-colors" title="${s.pinned ? 'Unpin' : 'Pin'}">
-                            <i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i>
-                        </button>
-                        <button class="rename-btn p-1 hover:text-gold transition-colors" title="Rename">
-                            <i class="ph ph-pencil-simple"></i>
-                        </button>
-                        <button class="delete-btn p-1 hover:text-red-400 transition-colors" title="Delete">
-                            <i class="ph ph-trash"></i>
-                        </button>
+                        <button class="pin-btn p-1 hover:text-gold transition-colors" title="${s.pinned ? 'Unpin' : 'Pin'}"><i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i></button>
+                        <button class="rename-btn p-1 hover:text-gold transition-colors" title="Rename"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="delete-btn p-1 hover:text-red-400 transition-colors" title="Delete"><i class="ph ph-trash"></i></button>
                     </div>
                 </div>
             `;
@@ -368,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadSession = (id) => {
         currentSessionId = id;
         
-        // FIX: Safely clear ONLY the chat stream without breaking the Hologram Background Layer
+        // 100% BULLETPROOF: Safely clear ONLY the chat stream. Hologram remains pristine.
         if (chatStream) chatStream.innerHTML = '';
 
         const session = sessions[id];
@@ -382,7 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Fade Hologram to Watermark if history exists
         if (hologramContainer) {
             hologramContainer.classList.add('hologram-fade-out');
             hologramContainer.classList.remove('hologram-focus');
@@ -410,21 +437,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         try {
                             parsedGenUI = JSON.parse(match[1]);
                             cleanText = cleanText.replace(jsonBlockRegex, '').trim();
-                        } catch (e) { console.error("History GenUI Parse error", e); }
+                        } catch (e) { }
                     }
 
                     a.innerHTML = `
-                        ${getCrystalAvatar(false)}
+                        ${getCoreAvatar(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
                                 <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 speak-resp-btn"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
                                 ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Artifact</span></button>` : ''}
                             </div>
                         </div>
                     `;
 
                     a.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(cleanText); });
+                    
+                    const speakBtn = a.querySelector('.speak-resp-btn');
+                    speakBtn.addEventListener('click', () => {
+                        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                            voiceEngine.stop();
+                            speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
+                            hologram.setState('idle');
+                        } else {
+                            speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
+                            voiceEngine.speak(
+                                cleanText,
+                                () => hologram.setState('speaking'),
+                                () => { hologram.setState('idle'); speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`; },
+                                (freq) => hologram.setAudioPulse(freq)
+                            );
+                        }
+                    });
+
                     if (parsedGenUI) {
                         a.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                     }
@@ -434,14 +480,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) { console.warn("Failed to load historical message", err); }
         });
         
-        // Scroll to the bottom of the scroll container
-        document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
+        const container = document.getElementById('chat-stream-container');
+        if (container) container.scrollTop = container.scrollHeight;
         renderSessions();
     };
 
     if (newChatBtn) {
         newChatBtn.addEventListener('click', () => {
-            artemisVoice.stop();
+            voiceEngine.stop();
+            hologram.setState('idle');
             currentSessionId = Date.now().toString();
             sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
@@ -455,9 +502,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = promptInput.value.trim();
             if (!val) return;
 
-            artemisVoice.stop();
+            voiceEngine.stop();
             
-            // Fade Hologram immediately
             if (hologramContainer) {
                 hologramContainer.classList.add('hologram-fade-out');
                 hologramContainer.classList.remove('hologram-focus');
@@ -475,19 +521,21 @@ document.addEventListener('DOMContentLoaded', () => {
             chatStream.appendChild(userMsg);
             
             promptInput.value = '';
-            document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
+            
+            const container = document.getElementById('chat-stream-container');
+            if (container) container.scrollTop = container.scrollHeight;
 
             const aiMsg = document.createElement('div');
             aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
-                ${getCrystalAvatar(true)}
-                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Computing Data Lake nodes...</div>
+                ${getCoreAvatar(true)}
+                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
             `;
             chatStream.appendChild(aiMsg);
-            document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
+            if (container) container.scrollTop = container.scrollHeight;
 
-            setCoreThinking(true);
+            hologram.setState('thinking');
 
             try {
                 const historyPayload = sessions[currentSessionId].history || [];
@@ -501,13 +549,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Server returned HTTP ${response.status}.`);
-                }
+                if (!response.ok) throw new Error(`Server returned HTTP ${response.status}.`);
 
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
-                setCoreThinking(false);
+                hologram.setState('idle');
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
@@ -517,7 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
-                    // Parse Generative UI Artifacts
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
                     let parsedGenUI = null;
@@ -526,13 +571,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         try {
                             parsedGenUI = JSON.parse(match[1]);
                             aiText = aiText.replace(jsonBlockRegex, '').trim();
-                        } catch (e) { console.error("GenUI Parse error", e); }
+                        } catch (e) {}
                     }
 
                     const formattedText = marked.parse(aiText);
 
                     aiMsg.innerHTML = `
-                        ${getCrystalAvatar(false)}
+                        ${getCoreAvatar(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
@@ -549,33 +594,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
 
-                    // Inline Voice Control
                     const speakBtn = aiMsg.querySelector('.speak-resp-btn');
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
-                            artemisVoice.stop();
+                            voiceEngine.stop();
                             speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
+                            hologram.setState('idle');
                         } else {
                             speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
-                            artemisVoice.speak(
+                            voiceEngine.speak(
                                 aiText,
-                                () => setCoreThinking(true),
-                                () => {
-                                    setCoreThinking(false);
-                                    speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
-                                }
+                                () => hologram.setState('speaking'),
+                                () => { hologram.setState('idle'); speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`; },
+                                (freq) => hologram.setAudioPulse(freq)
                             );
                         }
                     });
 
-                    if (artemisVoice.autoSpeak) {
-                        artemisVoice.speak(aiText, () => setCoreThinking(true), () => setCoreThinking(false));
+                    if (voiceEngine.autoSpeak) {
+                        voiceEngine.speak(aiText, () => hologram.setState('speaking'), () => hologram.setState('idle'), (freq) => hologram.setAudioPulse(freq));
                     }
 
                     if (parsedGenUI) {
-                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => { 
-                            openArtifactCanvas(parsedGenUI); 
-                        });
+                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                         openArtifactCanvas(parsedGenUI);
                     }
                     renderSessions();
@@ -584,21 +625,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
                 }
             } catch (err) {
-                setCoreThinking(false);
+                hologram.setState('idle');
                 aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
-            document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
+            if (container) container.scrollTop = container.scrollHeight;
         });
 
         promptInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendBtn.click();
-            }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
         });
     }
 
-    // Init
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
