@@ -11,33 +11,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeArtifactBtn = document.getElementById('close-artifact-btn');
     const newChatBtn = document.getElementById('new-chat-btn');
     const sessionsList = document.getElementById('chat-sessions-list');
+    const pinnedList = document.getElementById('pinned-sessions-list');
+    const pinnedHeader = document.getElementById('pinned-header');
     const exportCanvasBtn = document.getElementById('export-canvas-csv-btn');
+    const crystalCore = document.getElementById('crystal-core');
 
     let currentSessionId = Date.now().toString();
-    let sessions = JSON.parse(localStorage.getItem('xoala_chat_sessions') || '{}');
+    let sessions = {};
+
+    // 1. Safe LocalStorage Hydration & Normalization
+    try {
+        const raw = localStorage.getItem('xoala_chat_sessions');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            for (const key in parsed) {
+                if (parsed[key] && typeof parsed[key] === 'object') {
+                    sessions[key] = {
+                        title: parsed[key].title || "Investigation",
+                        pinned: !!parsed[key].pinned,
+                        history: Array.isArray(parsed[key].history) ? parsed[key].history : []
+                    };
+                }
+            }
+        }
+    } catch (e) {
+        sessions = {};
+    }
+
     let activeCanvasData = null;
     let canvasChartInstance = null;
 
-    // FIX: The "Data Core" Mini-Avatar for Chat Feed
-    const getCoreAvatar = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'shadow-[0_0_4px_rgba(221,170,51,0.3)]'}">
-            <div class="absolute inset-[1px] rounded-full border border-gold/40 border-dotted ${isThinking ? 'spin-layer-2' : ''}"></div>
-            <div class="absolute inset-[2px] rounded-full border border-emerald-500/50 border-dashed ${isThinking ? 'spin-layer-1' : ''}"></div>
-            <div class="absolute inset-[4px] rounded-full bg-gradient-to-tr from-emerald-600 to-gold ${isThinking ? 'animate-pulse blur-[1px]' : 'opacity-40'}"></div>
-            <div class="absolute inset-[7px] rounded-full bg-obsidian z-10 flex items-center justify-center"><i class="ph ph-cpu text-[10px] ${isThinking ? 'text-white' : 'text-gray-500'}"></i></div>
+    // Geometric Crystal Mini-Avatar for message bubbles
+    const getCrystalAvatar = (isThinking = false) => `
+        <div class="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_14px_rgba(221,170,51,0.7)] animate-pulse' : 'shadow-[0_0_6px_rgba(16,185,129,0.3)]'}">
+            <svg viewBox="0 0 100 100" class="w-5 h-5">
+                <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="${isThinking ? '#DDAA33' : '#10b981'}" fill-opacity="0.25" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="4"/>
+                <polygon points="50,10 50,50 90,70" fill="${isThinking ? '#F0D788' : '#10b981'}" fill-opacity="0.4" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="2"/>
+                <polygon points="50,90 10,70 50,50" fill="${isThinking ? '#997722' : '#064e3b'}" fill-opacity="0.5" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="2"/>
+                <circle cx="50" cy="50" r="4" fill="#FFFFFF"/>
+            </svg>
         </div>
     `;
 
-    const setCoreProcessing = (isProcessing) => {
-        const glow = document.getElementById('core-glow');
-        if (glow) {
-            if (isProcessing) {
-                glow.classList.replace('from-emerald-600', 'from-red-500');
-                glow.classList.add('scale-125');
-            } else {
-                glow.classList.replace('from-red-500', 'from-emerald-600');
-                glow.classList.remove('scale-125');
-            }
+    const setCoreThinking = (isProcessing) => {
+        if (crystalCore) {
+            if (isProcessing) crystalCore.classList.add('crystal-thinking-fast');
+            else crystalCore.classList.remove('crystal-thinking-fast');
         }
     };
 
@@ -48,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Data Canvas Renderer (Supports both Table and Chart)
     const openArtifactCanvas = (parsedData) => {
         activeCanvasData = parsedData;
         let htmlContent = '';
@@ -55,7 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (parsedData.type === 'interactive_table') {
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
+                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Report'}</h2>
+                    <span class="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400">${parsedData.rows.length} Rows</span>
                 </div>
                 <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -85,30 +106,43 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             document.getElementById('artifact-content').innerHTML = htmlContent;
             
-            // Allow DOM to paint, then render Chart.js
             setTimeout(() => {
                 const ctx = document.getElementById('gen-ui-chart');
                 if (!ctx) return;
                 if (canvasChartInstance) canvasChartInstance.destroy();
                 
-                Chart.defaults.color = '#888'; Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
+                Chart.defaults.color = '#888'; 
+                Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
                 
-                // Colors
                 let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
                 if (parsedData.chartType === 'bar') {
                     const ctx2d = ctx.getContext('2d');
                     bgColors = parsedData.labels.map((_, i) => { 
                         const grad = ctx2d.createLinearGradient(0, 0, 0, 400); 
-                        grad.addColorStop(0, bgColors[i % bgColors.length]); grad.addColorStop(1, '#111111'); return grad; 
+                        grad.addColorStop(0, bgColors[i % bgColors.length]); 
+                        grad.addColorStop(1, '#111111'); 
+                        return grad; 
                     });
                 }
 
                 canvasChartInstance = new Chart(ctx, {
                     type: parsedData.chartType || 'bar',
-                    data: { labels: parsedData.labels, datasets: [{ data: parsedData.data, backgroundColor: bgColors, borderWidth: 0, borderRadius: parsedData.chartType==='bar'?4:0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: parsedData.chartType==='doughnut' || parsedData.chartType==='pie' } } }
+                    data: { 
+                        labels: parsedData.labels, 
+                        datasets: [{ 
+                            data: parsedData.data, 
+                            backgroundColor: bgColors, 
+                            borderWidth: 0, 
+                            borderRadius: parsedData.chartType==='bar'?4:0 
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: parsedData.chartType==='doughnut' || parsedData.chartType==='pie' } } 
+                    }
                 });
-            }, 300);
+            }, 250);
         }
 
         artifactPane.style.width = '50%';
@@ -139,25 +173,84 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- WORKING THREAD MANAGEMENT (Pinned, Rename, Delete) ---
     const renderSessions = () => {
-        if (!sessionsList) return;
-        sessionsList.innerHTML = Object.keys(sessions).reverse().map(id => `
-            <div class="session-item px-3 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer truncate transition-colors flex items-center justify-between ${id === currentSessionId ? 'bg-white/10 text-gold' : ''}" data-id="${id}">
-                <span class="truncate max-w-[170px]">${sessions[id].title || 'Investigation'}</span>
-                <i class="ph ph-trash hover:text-red-400 p-1 delete-session-btn" data-id="${id}"></i>
-            </div>
-        `).join('');
+        if (!sessionsList || !pinnedList) return;
+        const keys = Object.keys(sessions);
+        const pinnedKeys = keys.filter(k => sessions[k] && sessions[k].pinned);
+        const recentKeys = keys.filter(k => sessions[k] && !sessions[k].pinned).reverse();
 
-        sessionsList.querySelectorAll('.session-item').forEach(el => {
+        if (pinnedKeys.length > 0) pinnedHeader.classList.remove('hidden');
+        else pinnedHeader.classList.add('hidden');
+
+        const buildSessionNode = (id) => {
+            const s = sessions[id];
+            const isSelected = (id === currentSessionId);
+            return `
+                <div class="session-item group px-2.5 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold' : ''}" data-id="${id}">
+                    <span class="truncate max-w-[125px] session-title-text" title="${s.title}">${s.title}</span>
+                    <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="pin-btn p-1 hover:text-gold transition-colors" title="${s.pinned ? 'Unpin' : 'Pin'}">
+                            <i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i>
+                        </button>
+                        <button class="rename-btn p-1 hover:text-gold transition-colors" title="Rename">
+                            <i class="ph ph-pencil-simple"></i>
+                        </button>
+                        <button class="delete-btn p-1 hover:text-red-400 transition-colors" title="Delete">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
+        pinnedList.innerHTML = pinnedKeys.map(k => buildSessionNode(k)).join('');
+        sessionsList.innerHTML = recentKeys.map(k => buildSessionNode(k)).join('');
+
+        // Attach event listeners safely
+        document.querySelectorAll('.session-item').forEach(el => {
+            const id = el.getAttribute('data-id');
             el.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-session-btn')) {
-                    delete sessions[e.target.getAttribute('data-id')];
+                if (e.target.closest('button')) return;
+                loadSession(id);
+            });
+
+            const pinBtn = el.querySelector('.pin-btn');
+            if (pinBtn) {
+                pinBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sessions[id].pinned = !sessions[id].pinned;
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
                     renderSessions();
-                    return;
-                }
-                loadSession(el.getAttribute('data-id'));
-            });
+                });
+            }
+
+            const renameBtn = el.querySelector('.rename-btn');
+            if (renameBtn) {
+                renameBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newTitle = prompt('Rename Thread:', sessions[id].title);
+                    if (newTitle && newTitle.trim()) {
+                        sessions[id].title = newTitle.trim();
+                        localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+                        renderSessions();
+                    }
+                });
+            }
+
+            const deleteBtn = el.querySelector('.delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    delete sessions[id];
+                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+                    if (currentSessionId === id) {
+                        currentSessionId = Date.now().toString();
+                        sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
+                    }
+                    loadSession(currentSessionId);
+                });
+            }
         });
     };
 
@@ -167,7 +260,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatBox.appendChild(emptyState);
 
         const session = sessions[id];
-        if (!session || session.history.length === 0) {
+        // Safe check preventing 'Cannot read properties of undefined'
+        if (!session || !Array.isArray(session.history) || session.history.length === 0) {
             emptyState.classList.remove('opacity-0');
             renderSessions();
             return;
@@ -184,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const a = document.createElement('div');
                 a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
                 a.innerHTML = `
-                    ${getCoreAvatar(false)}
+                    ${getCrystalAvatar(false)}
                     <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                         <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
                     </div>
@@ -199,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newChatBtn) {
         newChatBtn.addEventListener('click', () => {
             currentSessionId = Date.now().toString();
-            sessions[currentSessionId] = { title: "New Query", history: [] };
+            sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
             loadSession(currentSessionId);
             if (closeArtifactBtn) closeArtifactBtn.click();
@@ -214,8 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (emptyState) emptyState.classList.add('opacity-0');
 
             if (!sessions[currentSessionId]) {
-                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", history: [] };
-            } else if (sessions[currentSessionId].history.length === 0) {
+                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] };
+            } else if (!sessions[currentSessionId].history || sessions[currentSessionId].history.length === 0) {
                 sessions[currentSessionId].title = val.substring(0, 24) + "...";
             }
 
@@ -231,35 +325,40 @@ document.addEventListener('DOMContentLoaded', () => {
             aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
-                ${getCoreAvatar(true)}
-                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Computing Data Lake nodes...</div>
+                ${getCrystalAvatar(true)}
+                <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
             `;
             chatBox.appendChild(aiMsg);
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            setCoreProcessing(true);
+            setCoreThinking(true);
 
             try {
-                const historyPayload = sessions[currentSessionId].history;
+                const historyPayload = sessions[currentSessionId].history || [];
                 const response = await fetch(ARTEMIS_API_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        prompt: val, history: historyPayload, secret: 'system_dashboard_init',
+                        prompt: val, 
+                        history: historyPayload, 
+                        secret: 'system_dashboard_init',
                         model: document.getElementById('model-select').value || 'gemini-3.5-flash-lite'
                     })
                 });
 
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
-                setCoreProcessing(false);
+                setCoreThinking(false);
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
 
+                    if (!sessions[currentSessionId].history) sessions[currentSessionId].history = [];
                     sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
+                    // Parse Generative UI Artifacts (Table or Chart)
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
                     let parsedGenUI = null;
@@ -274,10 +373,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formattedText = marked.parse(aiText);
 
                     aiMsg.innerHTML = `
-                        ${getCoreAvatar(false)}
+                        ${getCrystalAvatar(false)}
                         <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
-                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Execution Complete (${latency}ms)</span></div>
+                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
                                 <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
@@ -288,10 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
 
-                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
+                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { 
+                        navigator.clipboard.writeText(aiText); 
+                    });
 
                     if (parsedGenUI) {
-                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => { 
+                            openArtifactCanvas(parsedGenUI); 
+                        });
                         openArtifactCanvas(parsedGenUI);
                     }
                     renderSessions();
@@ -300,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
                 }
             } catch (err) {
-                setCoreProcessing(false);
+                setCoreThinking(false);
                 aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
