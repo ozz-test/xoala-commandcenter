@@ -41,13 +41,18 @@
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
 
-        @keyframes jarvis-glow-pulse {
-            0%, 100% { filter: drop-shadow(0 0 25px rgba(221, 170, 51, 0.35)) drop-shadow(0 0 55px rgba(16, 185, 129, 0.2)); }
-            50% { filter: drop-shadow(0 0 45px rgba(221, 170, 51, 0.75)) drop-shadow(0 0 85px rgba(16, 185, 129, 0.45)); }
+        /* 3D Geometric Crystal Core Animations */
+        @keyframes crystal-pulse {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(221,170,51,0.3)) drop-shadow(0 0 35px rgba(16,185,129,0.2)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 30px rgba(221,170,51,0.7)) drop-shadow(0 0 60px rgba(16,185,129,0.5)); transform: scale(1.06); }
         }
-        .jarvis-hologram-live {
-            animation: jarvis-glow-pulse 4s ease-in-out infinite;
-        }
+        @keyframes orbit-ring-a { 0% { transform: rotateZ(0deg) rotateX(65deg); } 100% { transform: rotateZ(360deg) rotateX(65deg); } }
+        @keyframes orbit-ring-b { 0% { transform: rotateZ(360deg) rotateY(65deg); } 100% { transform: rotateZ(0deg) rotateY(65deg); } }
+
+        .crystal-core-wrapper { animation: crystal-pulse 4s ease-in-out infinite; }
+        .crystal-orbit-a { animation: orbit-ring-a 14s linear infinite; }
+        .crystal-orbit-b { animation: orbit-ring-b 18s linear infinite; }
+        .crystal-thinking-fast { animation: crystal-pulse 1.2s ease-in-out infinite !important; }
 
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -115,37 +120,10 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mb-8">
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div>
-                        <div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div>
-                        <div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div>
-                        <div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
-                    
-                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div>
-                        <div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div>
-                        <div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div>
-                        <div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div>
-                        <div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div>
-                    </div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Total KYC Tickets</h3><i class="ph ph-files text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-total-tickets" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-trend-up"></i><span>Live from Data Lake</span></div><div class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">ALL-TIME</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold-light to-gold opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Today's Ingestion</h3><i class="ph ph-clock-counter-clockwise text-gold text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-today-volume" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-check-circle"></i><span>Registrations (24h)</span></div><div id="dash-today-date1" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Top Region (Today)</h3><i class="ph ph-globe text-blue-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-top-region" class="font-mono text-3xl text-white font-light mb-2 truncate mt-1">...</div><div class="flex items-center space-x-1 text-xs text-blue-400"><i class="ph ph-users"></i><span id="dash-top-region-count">Daily Volume: --</span></div><div id="dash-today-date2" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
+                    <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div><div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
                 </div>
                 
                 <div class="flex justify-between items-end w-full mb-4">
@@ -277,7 +255,7 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (3D Jarvis Hologram & Voice Transmission Engine) -->
+        <!-- View 3: Artemis AI Core (Jarvis 3D Geometric Crystal Core) -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
             <!-- Sidebar with Working Pinned & Recent Sessions -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
@@ -306,8 +284,8 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <!-- Voice Auto-Speech Toggle Button -->
-                            <button id="voice-auto-toggle-btn" class="bg-surface/80 border border-white/10 hover:border-gold/50 px-3 py-1.5 rounded-lg text-xs font-mono text-gray-400 hover:text-gold transition-all flex items-center space-x-1.5" title="Toggle Jarvis Voice Output">
+                            <!-- FIX: Tooltip corrected to Artemis Voice Output -->
+                            <button id="voice-auto-toggle-btn" class="bg-surface/80 border border-white/10 hover:border-gold/50 px-3 py-1.5 rounded-lg text-xs font-mono text-gray-400 hover:text-gold transition-all flex items-center space-x-1.5" title="Toggle Artemis Voice Output">
                                 <i class="ph ph-speaker-high text-sm text-gold" id="voice-auto-icon"></i>
                                 <span id="voice-auto-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-300">Voice: ON</span>
                             </button>
@@ -319,19 +297,58 @@
                     
                     <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide relative flex flex-col justify-start">
                         
-                        <!-- 3D JARVIS HOLOGRAPHIC GYROSCOPE HERO (Canvas Engine) -->
+                        <!-- 3D GEOMETRIC CRYSTAL CORE HERO (Jarvis Tier) -->
                         <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-100 transition-opacity duration-500">
-                            
-                            <div class="relative w-72 h-72 flex items-center justify-center mb-4 jarvis-hologram-live">
-                                <canvas id="jarvis-core-canvas" width="300" height="300" class="w-full h-full"></canvas>
+                            <div class="relative w-56 h-56 flex items-center justify-center mb-6">
+                                <!-- Background Multi-Axis Orbit Rings -->
+                                <div class="absolute inset-0 rounded-full border border-gold/30 border-dashed crystal-orbit-a"></div>
+                                <div class="absolute inset-2 rounded-full border border-emerald-500/40 border-dotted crystal-orbit-b"></div>
+                                <!-- 3D Geometric Polyhedron Core -->
+                                <div id="crystal-core" class="crystal-core-wrapper relative z-10 w-36 h-36 flex items-center justify-center">
+                                    <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow-[0_0_20px_rgba(221,170,51,0.4)]">
+                                        <!-- Outer Facets -->
+                                        <polygon points="60,10 105,35 105,85 60,110 15,85 15,35" fill="url(#core-facet-dark)" stroke="#DDAA33" stroke-width="1.2" stroke-linejoin="round"/>
+                                        <!-- Isometric Inner Crystals -->
+                                        <polygon points="60,10 60,60 105,85" fill="url(#core-facet-emerald)" fill-opacity="0.45" stroke="#10b981" stroke-width="1"/>
+                                        <polygon points="60,10 15,35 60,60" fill="url(#core-facet-gold)" fill-opacity="0.35" stroke="#DDAA33" stroke-width="1"/>
+                                        <polygon points="60,60 105,35 60,10" fill="url(#core-facet-gold)" fill-opacity="0.25" stroke="#F0D788" stroke-width="0.8"/>
+                                        <polygon points="15,35 15,85 60,60" fill="url(#core-facet-dark)" stroke="#10b981" stroke-width="1"/>
+                                        <polygon points="15,85 60,110 60,60" fill="url(#core-facet-emerald)" fill-opacity="0.5" stroke="#10b981" stroke-width="1.2"/>
+                                        <polygon points="60,110 105,85 60,60" fill="url(#core-facet-gold)" fill-opacity="0.4" stroke="#DDAA33" stroke-width="1.2"/>
+                                        <!-- Central Floating Node -->
+                                        <circle cx="60" cy="60" r="4.5" fill="#FFFFFF" class="drop-shadow-[0_0_8px_#FFFFFF]"/>
+                                        <defs>
+                                            <linearGradient id="core-facet-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#DDAA33"/><stop offset="100%" stop-color="#997722"/>
+                                            </linearGradient>
+                                            <linearGradient id="core-facet-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#064e3b"/>
+                                            </linearGradient>
+                                            <linearGradient id="core-facet-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#050505"/>
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
                             </div>
-
-                            <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(221,170,51,0.5)]">ARTEMIS QUANTITATIVE CORE</h2>
-                            <p class="text-xs font-mono text-gray-400 mt-2 tracking-wide">Data Lake Engine Operational • Audio Synthesis Active</p>
+                            <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
+                            <p class="text-xs font-mono text-gray-500 mt-2 tracking-wide">Data Lake Engine Operational • Audio Synthesis Active</p>
                         </div>
                     </div>
                     
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-20">
+                        
+                        <!-- FIX: Restored Command Palette HTML -->
+                        <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
+                            <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard.">
+                                <i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span>
+                            </button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month.">
+                                <i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span>
+                            </button>
+                        </div>
+
                         <div class="max-w-4xl mx-auto bg-obsidian/80 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 focus-within:bg-obsidian transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
                             <div id="quick-prompts" class="flex items-center space-x-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto scrollbar-hide">
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Can you make a graph showing the total registered tickets for the last 7 days?">📊 Weekly Ingestion Chart</button>
@@ -339,7 +356,7 @@
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by total resolved volume this month.">🏆 AM Leaderboard</button>
                             </div>
 
-                            <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-600" placeholder="Query data lake, calculate ratios, or command visual chart builds..."></textarea>
+                            <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-600" placeholder="Type '/' for macros, or ask Artemis to map data..."></textarea>
                             
                             <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
                                 <div class="flex items-center space-x-3">
