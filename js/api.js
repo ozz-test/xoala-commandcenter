@@ -3,7 +3,7 @@
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE
+// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE (FIXED RESIZING)
 // ==========================================
 class ArtemisHologram {
     constructor(canvasId) {
@@ -11,9 +11,11 @@ class ArtemisHologram {
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d');
         
-        this.resize = this.resize.bind(this);
-        window.addEventListener('resize', this.resize);
-        this.resize();
+        // Locked dimensions so it never shrinks to 0 on flexbox layouts
+        this.width = 400;
+        this.height = 400;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
 
         this.particles = [];
         this.time = 0;
@@ -35,13 +37,6 @@ class ArtemisHologram {
 
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
-    }
-
-    resize() {
-        this.width = this.canvas.parentElement.clientWidth;
-        this.height = this.canvas.parentElement.clientHeight;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
     }
 
     setState(s) { this.state = s; }
@@ -89,9 +84,8 @@ class ArtemisHologram {
         this.time += 0.01 * speed;
 
         const cx = this.width / 2;
-        const cy = this.height / 2 - 40; 
+        const cy = this.height / 2;
 
-        // Singularity Core
         let coreRadius = 25 + Math.sin(this.time * 3) * 3;
         if (this.state === 'speaking') coreRadius += this.audioPulse * 15;
         if (this.state === 'thinking') coreRadius += 10;
@@ -107,17 +101,15 @@ class ArtemisHologram {
         this.ctx.arc(cx, cy, coreRadius * 2.5, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // 3D Orbital Rings
         this.drawRing(60, this.time * 1.2, this.time * 0.9, 0, 'rgba(255,255,255,0.4)', true);
         this.drawRing(100, 0.4, this.time * 0.7, this.time * 0.5, 'rgba(221,170,51,0.5)', false);
         this.drawRing(140, -this.time * 0.3, 0.9, -this.time * 0.6, 'rgba(16,185,129,0.3)', true);
 
-        // Particles
         this.particles.forEach(p => {
             let zDistort = p.z;
             if (this.state === 'thinking') zDistort += Math.sin(this.time * 8 + p.x) * 20;
 
-            const proj = this.project(p.x, p.y - 40, zDistort, this.time * 0.3, this.time * 0.5, 0);
+            const proj = this.project(p.x, p.y, zDistort, this.time * 0.3, this.time * 0.5, 0);
             if (proj.scale > 0) {
                 this.ctx.beginPath();
                 this.ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI * 2);
@@ -169,7 +161,6 @@ class VoiceEngine {
         utterance.onstart = () => { if (onStart) onStart(); };
         utterance.onend = () => { if (onEnd) onEnd(); };
         utterance.onerror = () => { if (onEnd) onEnd(); };
-        
         utterance.onboundary = () => { if (onBoundary) onBoundary(Math.random()); };
 
         this.synth.speak(utterance);
@@ -246,12 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const getCoreAvatar = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_14px_rgba(221,170,51,0.7)] animate-pulse' : 'shadow-[0_0_6px_rgba(16,185,129,0.3)]'}">
-            <svg viewBox="0 0 100 100" class="w-5 h-5 ${isThinking ? 'animate-spin' : ''}" style="${isThinking ? 'animation-duration: 3s;' : ''}">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="${isThinking ? '#DDAA33' : '#10b981'}" stroke-width="6" stroke-dasharray="30 15" />
-                <circle cx="50" cy="50" r="15" fill="${isThinking ? '#DDAA33' : '#10b981'}" />
-            </svg>
+    // Elegant Artemis Avatar Node
+    const getAvatarNode = (isThinking = false) => `
+        <div class="w-8 h-8 rounded-full border border-emerald-500/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)] relative overflow-hidden">
+             <i class="ph ph-cpu text-emerald-400 text-sm ${isThinking ? 'animate-pulse' : ''}"></i>
         </div>
     `;
 
@@ -269,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (parsedData.type === 'interactive_table') {
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Report'}</h2>
+                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
                 </div>
                 <div class="overflow-x-auto glass-card rounded-xl border border-white/5 shadow-2xl">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -334,24 +323,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const isSelected = (id === currentSessionId);
             return `
                 <div class="session-item group px-2.5 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold' : ''}" data-id="${id}">
-                    <span class="truncate max-w-[125px] session-title-text" title="${s.title}">${s.title}</span>
+                    <span class="truncate max-w-[125px]">${s.title}</span>
                     <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="pin-btn p-1 hover:text-gold transition-colors" title="${s.pinned ? 'Unpin' : 'Pin'}"><i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i></button>
-                        <button class="rename-btn p-1 hover:text-gold transition-colors" title="Rename"><i class="ph ph-pencil-simple"></i></button>
-                        <button class="delete-btn p-1 hover:text-red-400 transition-colors" title="Delete"><i class="ph ph-trash"></i></button>
+                        <button class="pin-btn p-1 hover:text-gold" data-id="${id}"><i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i></button>
+                        <button class="delete-btn p-1 hover:text-red-400" data-id="${id}"><i class="ph ph-trash"></i></button>
                     </div>
                 </div>
             `;
         };
 
-        pinnedList.innerHTML = pinnedKeys.map(k => buildSessionNode(k)).join('');
-        sessionsList.innerHTML = recentKeys.map(k => buildSessionNode(k)).join('');
+        pinnedList.innerHTML = pinnedKeys.map(buildNode).join('');
+        sessionsList.innerHTML = recentKeys.map(buildNode).join('');
 
         document.querySelectorAll('.session-item').forEach(el => {
             const id = el.getAttribute('data-id');
             el.addEventListener('click', (e) => {
                 if (e.target.closest('button')) return;
-                loadSession(id);
+                currentSessionId = id;
+                voiceEngine.stop();
+                hologram.setState('idle');
+                renderChatHistory(sessions[id].history);
+                renderSessions();
             });
 
             const pinBtn = el.querySelector('.pin-btn');
@@ -364,19 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            const renameBtn = el.querySelector('.rename-btn');
-            if (renameBtn) {
-                renameBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const newTitle = prompt('Rename Thread:', sessions[id].title);
-                    if (newTitle && newTitle.trim()) {
-                        sessions[id].title = newTitle.trim();
-                        localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-                        renderSessions();
-                    }
-                });
-            }
-
             const deleteBtn = el.querySelector('.delete-btn');
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', (e) => {
@@ -385,48 +364,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
                     if (currentSessionId === id) {
                         currentSessionId = Date.now().toString();
-                        sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
+                        sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
+                        renderChatHistory([]);
                     }
-                    loadSession(currentSessionId);
+                    renderSessions();
                 });
             }
         });
     };
 
-    const loadSession = (id) => {
-        currentSessionId = id;
+    // Safely inject history into stream
+    const renderChatHistory = (historyArray) => {
+        if (!chatStream) return;
+        chatStream.innerHTML = '';
         
-        // 100% BULLETPROOF: Safely clear ONLY the chat stream. Hologram remains pristine.
-        if (chatStream) chatStream.innerHTML = '';
-
-        const session = sessions[id];
-        
-        if (!session || !Array.isArray(session.history) || session.history.length === 0) {
-            if (hologramContainer) {
-                hologramContainer.classList.remove('hologram-fade-out');
-                hologramContainer.classList.add('hologram-focus');
-            }
-            renderSessions();
+        if (!historyArray || historyArray.length === 0) {
+            hologramContainer.classList.remove('hologram-fade-out');
+            hologramContainer.classList.add('hologram-focus');
+            document.getElementById('hologram-text').style.opacity = '1';
             return;
         }
 
-        if (hologramContainer) {
-            hologramContainer.classList.add('hologram-fade-out');
-            hologramContainer.classList.remove('hologram-focus');
-        }
-        
-        session.history.forEach(msg => {
+        hologramContainer.classList.remove('hologram-focus');
+        hologramContainer.classList.add('hologram-fade-out');
+        document.getElementById('hologram-text').style.opacity = '0';
+
+        historyArray.forEach(msg => {
             try {
                 if (!msg.parts || !msg.parts[0] || !msg.parts[0].text) return;
                 
                 if (msg.role === 'user') {
                     const u = document.createElement('div');
-                    u.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
+                    u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
                     u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
                     chatStream.appendChild(u);
                 } else {
                     const a = document.createElement('div');
-                    a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
+                    a.className = "self-start bg-transparent w-full flex items-start space-x-4 mt-2 relative z-10";
                     
                     let cleanText = msg.parts[0].text;
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
@@ -437,24 +411,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         try {
                             parsedGenUI = JSON.parse(match[1]);
                             cleanText = cleanText.replace(jsonBlockRegex, '').trim();
-                        } catch (e) { }
+                        } catch (e) {}
                     }
 
                     a.innerHTML = `
-                        ${getCoreAvatar(false)}
+                        ${getAvatarNode(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy Response</span></button>
-                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 speak-resp-btn"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Artifact</span></button>` : ''}
+                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                <button class="speak-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
+                                ${parsedGenUI ? `<button class="open-ui-btn text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20"><i class="ph ph-layout mr-1"></i>Open Artifact</button>` : ''}
                             </div>
                         </div>
                     `;
 
-                    a.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(cleanText); });
+                    a.querySelector('.copy-btn').addEventListener('click', () => { navigator.clipboard.writeText(cleanText); });
                     
-                    const speakBtn = a.querySelector('.speak-resp-btn');
+                    const speakBtn = a.querySelector('.speak-btn');
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
                             voiceEngine.stop();
@@ -472,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (parsedGenUI) {
-                        a.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        a.querySelector('.open-ui-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                     }
 
                     chatStream.appendChild(a);
@@ -482,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const container = document.getElementById('chat-stream-container');
         if (container) container.scrollTop = container.scrollHeight;
-        renderSessions();
     };
 
     if (newChatBtn) {
@@ -490,9 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             hologram.setState('idle');
             currentSessionId = Date.now().toString();
-            sessions[currentSessionId] = { title: "New Query", pinned: false, history: [] };
+            sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-            loadSession(currentSessionId);
+            renderChatHistory([]);
+            renderSessions();
             if (closeArtifactBtn) closeArtifactBtn.click();
         });
     }
@@ -503,11 +477,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!val) return;
 
             voiceEngine.stop();
-            
-            if (hologramContainer) {
-                hologramContainer.classList.add('hologram-fade-out');
-                hologramContainer.classList.remove('hologram-focus');
-            }
+            hologramContainer.classList.add('hologram-fade-out');
+            hologramContainer.classList.remove('hologram-focus');
+            document.getElementById('hologram-text').style.opacity = '0';
 
             if (!sessions[currentSessionId]) {
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] };
@@ -526,10 +498,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (container) container.scrollTop = container.scrollHeight;
 
             const aiMsg = document.createElement('div');
-            aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
+            aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-4 mt-2 relative z-10";
             const reqStartTime = Date.now();
             aiMsg.innerHTML = `
-                ${getCoreAvatar(true)}
+                ${getAvatarNode(true)}
                 <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
             `;
             chatStream.appendChild(aiMsg);
@@ -558,7 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
 
-                    if (!sessions[currentSessionId].history) sessions[currentSessionId].history = [];
                     sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
@@ -577,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formattedText = marked.parse(aiText);
 
                     aiMsg.innerHTML = `
-                        ${getCoreAvatar(false)}
+                        ${getAvatarNode(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
@@ -585,16 +556,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 copy-resp-btn"><i class="ph ph-copy"></i><span>Copy Response</span></button>
-                                <button class="text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1 speak-resp-btn"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI ? `<button class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center space-x-1 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded open-canvas-btn"><i class="ph ph-layout"></i><span>Open Canvas Artifact</span></button>` : ''}
+                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                <button class="speak-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
+                                ${parsedGenUI ? `<button class="open-ui-btn text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded"><i class="ph ph-layout mr-1"></i>Open Artifact</button>` : ''}
                             </div>
                         </div>
                     `;
 
-                    aiMsg.querySelector('.copy-resp-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
+                    aiMsg.querySelector('.copy-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
 
-                    const speakBtn = aiMsg.querySelector('.speak-resp-btn');
+                    const speakBtn = aiMsg.querySelector('.speak-btn');
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
                             voiceEngine.stop();
@@ -616,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (parsedGenUI) {
-                        aiMsg.querySelector('.open-canvas-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        aiMsg.querySelector('.open-ui-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                         openArtifactCanvas(parsedGenUI);
                     }
                     renderSessions();
@@ -640,5 +611,5 @@ document.addEventListener('DOMContentLoaded', () => {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
     renderSessions();
-    loadSession(currentSessionId);
+    renderChatHistory(sessions[currentSessionId].history);
 });
