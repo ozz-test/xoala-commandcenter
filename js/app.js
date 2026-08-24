@@ -19,10 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if(targetSection) {
                 targetSection.classList.remove('hidden');
-                if (targetId === 'artemis-view') targetSection.classList.add('flex');
-                else {
+                if (targetId === 'artemis-view') {
+                    targetSection.classList.add('flex');
+                } else {
                     targetSection.classList.add('block');
-                    if (targetId === 'dashboard-view') fetchDashboardData(); 
+                    if (targetId === 'dashboard-view') {
+                        fetchDashboardData(); 
+                        if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
+                            setTimeout(() => geoMapInstance.updateSize(), 100);
+                        }
+                    }
                     if (targetId === 'daily-report-view') { fetchDashboardData(); fetchMatrixData(); }
                 }
             }
@@ -40,13 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
             navTexts.forEach(txt => txt.classList.toggle('hidden'));
             if(sidebar.classList.contains('w-20')) sidebarIcon.classList.replace('ph-caret-left', 'ph-caret-right');
             else sidebarIcon.classList.replace('ph-caret-right', 'ph-caret-left');
+            if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
+                setTimeout(() => geoMapInstance.updateSize(), 300);
+            }
         });
     }
 
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // GEO MAP UTILS
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "united states": "us", "usa": "us", "canada": "ca", "australia": "au", 
         "germany": "de", "france": "fr", "spain": "es", "italy": "it", "cyprus": "cy", "greece": "gr", 
@@ -69,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'NA': ['us', 'ca']
     };
 
-    // DASHBOARD LOGIC
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -321,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapDataObj = {};
         const hoverData = {}; 
         let unmappedCount = 0;
+        let unmappedDetails = {};
 
         geoData.labels.forEach((countryName, i) => {
             const cleanName = countryName.toLowerCase().trim();
@@ -332,8 +340,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     mapDataObj[codeUpper] = geoData.data[i];
                     hoverData[codeUpper] = { count: geoData.data[i], name: countryName, leads: geoData.leads[i], iso: isoCode };
                 }
-            } else { unmappedCount += geoData.data[i]; }
+            } else { 
+                unmappedCount += geoData.data[i]; 
+                unmappedDetails[countryName] = geoData.data[i];
+            }
         });
+
+        // 100% Fixed: Diagnostics for Unmapped Tickets
+        if (unmappedCount > 0) {
+            console.warn(`⚠️ [DIAGNOSTIC] ${unmappedCount} Tickets Unmapped in the Data Lake. These jurisdiction strings failed to resolve to an ISO-3166 code.`);
+            console.table(unmappedDetails);
+        }
 
         geoMapInstance = new jsVectorMap({
             selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
@@ -431,7 +448,9 @@ document.addEventListener('DOMContentLoaded', () => {
             geoCloseFsBtn.classList.add('hidden');
             document.getElementById('geo-map-container').style.height = 'auto'; 
         }
-        setTimeout(() => { if (geoMapInstance) geoMapInstance.updateSize(); }, 200);
+        if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
+            setTimeout(() => geoMapInstance.updateSize(), 200);
+        }
     });
 
     if (geoFullscreenBtn) geoFullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -449,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 geoViewToggleIcon.classList.replace('ph-list-dashes', 'ph-globe'); geoViewToggleBtn.title = "Switch to Map View";
             } else {
                 geoViewToggleIcon.classList.replace('ph-globe', 'ph-list-dashes'); geoViewToggleBtn.title = "Switch to Table View";
-                if (geoMapInstance) geoMapInstance.updateSize();
+                if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) geoMapInstance.updateSize();
             }
         });
     }
