@@ -1,4 +1,4 @@
-// === XOALA COMMAND CENTER: ARTEMIS AI CORE ENGINE ===
+// === XOALA COMMAND CENTER: ARTEMIS AI CORE ENGINE & SESSION MANAGER ===
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
@@ -75,8 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const promptInput = document.getElementById('prompt-input');
     const sendBtn = document.getElementById('send-btn');
-    const chatBox = document.getElementById('chat-box');
-    const emptyState = document.getElementById('artemis-empty-state');
+    const chatStream = document.getElementById('chat-stream'); 
+    const hologramContainer = document.getElementById('artemis-empty-state');
     const commandPalette = document.getElementById('command-palette');
     const artifactPane = document.getElementById('artemis-artifact-pane');
     const closeArtifactBtn = document.getElementById('close-artifact-btn');
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = {};
 
-    // 1. Safe LocalStorage Hydration & Normalization
+    // 1. Safe LocalStorage Hydration (Prevents length/null errors)
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
         if (raw) {
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeCanvasData = null;
     let canvasChartInstance = null;
 
-    // Synchronize Auto-Voice Toggle UI
+    // Synchronize Voice UI
     const updateVoiceToggleUI = () => {
         if (!voiceAutoIcon || !voiceAutoStatus) return;
         if (artemisVoice.autoSpeak) {
@@ -139,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mini Hologram Crystal Avatar for chat stream
     const getCrystalAvatar = (isThinking = false) => `
         <div class="w-8 h-8 rounded-full border border-gold/40 flex items-center justify-center bg-black flex-shrink-0 relative overflow-hidden ${isThinking ? 'shadow-[0_0_14px_rgba(221,170,51,0.7)] animate-pulse' : 'shadow-[0_0_6px_rgba(16,185,129,0.3)]'}">
             <svg viewBox="0 0 100 100" class="w-5 h-5">
@@ -158,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // FIX: Bulletproof Slash Commands Palette
+    // Safe Slash Command Palette
     if (promptInput) {
         promptInput.addEventListener('input', (e) => {
             if (!commandPalette) return;
@@ -181,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Data Canvas Renderer
     const openArtifactCanvas = (parsedData) => {
         activeCanvasData = parsedData;
         let htmlContent = '';
@@ -370,20 +368,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadSession = (id) => {
         currentSessionId = id;
         
-        // FIX: Safely clear chat bubbles without destroying the 3D SVG Empty State
-        Array.from(chatBox.children).forEach(child => {
-            if (child.id !== 'artemis-empty-state') child.remove();
-        });
+        // FIX: Safely clear ONLY the chat stream without breaking the Hologram Background Layer
+        chatStream.innerHTML = '';
 
         const session = sessions[id];
         
-        if (!session || !session.history || !Array.isArray(session.history) || session.history.length === 0) {
-            if (emptyState) emptyState.classList.remove('opacity-0');
+        if (!session || !Array.isArray(session.history) || session.history.length === 0) {
+            if (hologramContainer) {
+                hologramContainer.classList.remove('hologram-fade-out');
+                hologramContainer.classList.add('hologram-focus');
+            }
             renderSessions();
             return;
         }
 
-        if (emptyState) emptyState.classList.add('opacity-0');
+        // Fade Hologram to Watermark if history exists
+        if (hologramContainer) {
+            hologramContainer.classList.add('hologram-fade-out');
+            hologramContainer.classList.remove('hologram-focus');
+        }
         
         session.history.forEach(msg => {
             try {
@@ -391,24 +394,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (msg.role === 'user') {
                     const u = document.createElement('div');
-                    u.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
+                    u.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
                     u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
-                    chatBox.appendChild(u);
+                    chatStream.appendChild(u);
                 } else {
                     const a = document.createElement('div');
                     a.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
                     a.innerHTML = `
                         ${getCrystalAvatar(false)}
-                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
+                        <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(msg.parts[0].text)}</div>
                         </div>
                     `;
-                    chatBox.appendChild(a);
+                    chatStream.appendChild(a);
                 }
             } catch (err) { console.warn("Failed to load historical message", err); }
         });
         
-        chatBox.scrollTop = chatBox.scrollHeight;
+        // Scroll to the bottom of the scroll container
+        document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
         renderSessions();
     };
 
@@ -429,7 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!val) return;
 
             artemisVoice.stop();
-            if (emptyState) emptyState.classList.add('opacity-0');
+            
+            // Fade Hologram immediately
+            if (hologramContainer) {
+                hologramContainer.classList.add('hologram-fade-out');
+                hologramContainer.classList.remove('hologram-focus');
+            }
 
             if (!sessions[currentSessionId]) {
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] };
@@ -438,12 +447,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userMsg = document.createElement('div');
-            userMsg.className = "self-end bg-surface/50 border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
+            userMsg.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-2xl rounded-tr-none p-4 max-w-[80%] text-sm text-gray-300 shadow-md mt-4 relative z-10";
             userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-2 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
-            chatBox.appendChild(userMsg);
+            chatStream.appendChild(userMsg);
             
             promptInput.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
+            document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
 
             const aiMsg = document.createElement('div');
             aiMsg.className = "self-start bg-transparent p-4 w-full flex items-start space-x-4 mt-2 relative z-10";
@@ -452,8 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${getCrystalAvatar(true)}
                 <div class="text-sm text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Computing Data Lake nodes...</div>
             `;
-            chatBox.appendChild(aiMsg);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            chatStream.appendChild(aiMsg);
+            document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
 
             setCoreThinking(true);
 
@@ -481,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
-                    // Parse Generative UI Artifacts (Table or Chart)
+                    // Parse Generative UI Artifacts
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
                     let parsedGenUI = null;
@@ -497,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     aiMsg.innerHTML = `
                         ${getCrystalAvatar(false)}
-                        <div class="bg-surface/80 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
+                        <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
                                 <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
@@ -515,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         navigator.clipboard.writeText(aiText); 
                     });
 
-                    // Voice Output Trigger
+                    // Inline Voice Control
                     const speakBtn = aiMsg.querySelector('.speak-resp-btn');
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
@@ -535,11 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (artemisVoice.autoSpeak) {
-                        artemisVoice.speak(
-                            aiText,
-                            () => setCoreThinking(true),
-                            () => setCoreThinking(false)
-                        );
+                        artemisVoice.speak(aiText, () => setCoreThinking(true), () => setCoreThinking(false));
                     }
 
                     if (parsedGenUI) {
@@ -557,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setCoreThinking(false);
                 aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
-            chatBox.scrollTop = chatBox.scrollHeight;
+            document.getElementById('chat-stream-container').scrollTop = document.getElementById('chat-stream-container').scrollHeight;
         });
 
         promptInput.addEventListener('keypress', (e) => {
@@ -568,5 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Init
+    if (!sessions[currentSessionId]) {
+        sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
+    }
     renderSessions();
+    loadSession(currentSessionId);
 });
