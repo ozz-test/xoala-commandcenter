@@ -3,7 +3,7 @@
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE (FIXED RESIZING)
+// 1. 3D HTML5 CANVAS HOLOGRAM ENGINE
 // ==========================================
 class ArtemisHologram {
     constructor(canvasId) {
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('send-btn');
     const chatStream = document.getElementById('chat-stream'); 
     const hologramContainer = document.getElementById('artemis-empty-state');
-    const commandPalette = document.getElementById('command-palette');
+    const hologramText = document.getElementById('hologram-text');
     const artifactPane = document.getElementById('artemis-artifact-pane');
     const closeArtifactBtn = document.getElementById('close-artifact-btn');
     const newChatBtn = document.getElementById('new-chat-btn');
@@ -193,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const voiceAutoToggleBtn = document.getElementById('voice-auto-toggle-btn');
     const voiceAutoIcon = document.getElementById('voice-auto-icon');
     const voiceAutoStatus = document.getElementById('voice-auto-status');
+    const modelSelect = document.getElementById('model-select');
+    const syncTimeBadge = document.getElementById('sync-time-badge');
 
     let currentSessionId = Date.now().toString();
     let sessions = {};
@@ -254,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openArtifactCanvas = (parsedData) => {
         activeCanvasData = parsedData;
         let htmlContent = '';
+        const contentArea = document.getElementById('artifact-content');
 
         if (parsedData.type === 'interactive_table') {
             htmlContent = `
@@ -269,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </table>
                 </div>
             `;
-            document.getElementById('artifact-content').innerHTML = htmlContent;
+            contentArea.innerHTML = htmlContent;
         } 
         else if (parsedData.type === 'interactive_chart') {
             htmlContent = `
@@ -278,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
                 </div>
             `;
-            document.getElementById('artifact-content').innerHTML = htmlContent;
+            contentArea.innerHTML = htmlContent;
             
             setTimeout(() => {
                 const ctx = document.getElementById('gen-ui-chart');
@@ -318,12 +321,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pinnedKeys.length > 0) pinnedHeader.classList.remove('hidden');
         else pinnedHeader.classList.add('hidden');
 
-        const buildSessionNode = (id) => {
+        // LOCAL HELPER: Build node HTML
+        const buildSessionNodeHTML = (id) => {
             const s = sessions[id];
             const isSelected = (id === currentSessionId);
             return `
                 <div class="session-item group px-2.5 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold' : ''}" data-id="${id}">
-                    <span class="truncate max-w-[125px]">${s.title}</span>
+                    <span class="truncate max-w-[125px]" title="${s.title}">${s.title}</span>
                     <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button class="pin-btn p-1 hover:text-gold" data-id="${id}"><i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i></button>
                         <button class="delete-btn p-1 hover:text-red-400" data-id="${id}"><i class="ph ph-trash"></i></button>
@@ -332,9 +336,11 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         };
 
-        pinnedList.innerHTML = pinnedKeys.map(buildNode).join('');
-        sessionsList.innerHTML = recentKeys.map(buildNode).join('');
+        // Standard JS map usage
+        pinnedList.innerHTML = pinnedKeys.map(key => buildSessionNodeHTML(key)).join('');
+        sessionsList.innerHTML = recentKeys.map(key => buildSessionNodeHTML(key)).join('');
 
+        // Attach listeners
         document.querySelectorAll('.session-item').forEach(el => {
             const id = el.getAttribute('data-id');
             el.addEventListener('click', (e) => {
@@ -360,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    if(!confirm("Permanently delete this thread?")) return;
                     delete sessions[id];
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
                     if (currentSessionId === id) {
@@ -381,13 +388,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!historyArray || historyArray.length === 0) {
             hologramContainer.classList.remove('hologram-fade-out');
             hologramContainer.classList.add('hologram-focus');
-            document.getElementById('hologram-text').style.opacity = '1';
+            if(hologramText) hologramText.style.opacity = '1';
             return;
         }
 
         hologramContainer.classList.remove('hologram-focus');
         hologramContainer.classList.add('hologram-fade-out');
-        document.getElementById('hologram-text').style.opacity = '0';
+        if(hologramText) hologramText.style.opacity = '0';
 
         historyArray.forEach(msg => {
             try {
@@ -419,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
                                 ${parsedGenUI ? `<button class="open-ui-btn text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20"><i class="ph ph-layout mr-1"></i>Open Artifact</button>` : ''}
                             </div>
@@ -479,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             hologramContainer.classList.add('hologram-fade-out');
             hologramContainer.classList.remove('hologram-focus');
-            document.getElementById('hologram-text').style.opacity = '0';
+            if(hologramText) hologramText.style.opacity = '0';
 
             if (!sessions[currentSessionId]) {
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] };
@@ -517,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         prompt: val, 
                         history: historyPayload, 
                         secret: 'system_dashboard_init',
-                        model: document.getElementById('model-select').value || 'gemini-3.5-flash-lite'
+                        model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite'
                     })
                 });
 
@@ -552,11 +559,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="bg-surface/90 border border-white/5 rounded-2xl rounded-tl-none p-5 text-sm text-gray-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono text-emerald-400 mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
-                                <div class="text-gray-500">${document.getElementById('model-select').value.replace('gemini-','').toUpperCase()}</div>
+                                <div class="text-gray-500">${modelSelect ? modelSelect.value.replace('gemini-','').toUpperCase() : 'FLASH'}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-3 mt-3">
-                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy Response</span></button>
+                                <button class="copy-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-xs text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
                                 ${parsedGenUI ? `<button class="open-ui-btn text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded"><i class="ph ph-layout mr-1"></i>Open Artifact</button>` : ''}
                             </div>
