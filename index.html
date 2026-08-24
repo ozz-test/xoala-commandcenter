@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xoala Command Center | Sovereign</title>
     
+    <!-- Prevents favicon 404 error -->
+    <link rel="icon" href="data:,">
+    
+    <!-- NOTE: Tailwind CDN warning in console is standard for dev environments without a build step. Safe to ignore. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -41,18 +45,19 @@
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
 
-        /* 3D Geometric Crystal Core Animations */
-        @keyframes crystal-pulse {
-            0%, 100% { filter: drop-shadow(0 0 15px rgba(221,170,51,0.3)) drop-shadow(0 0 35px rgba(16,185,129,0.2)); transform: scale(1); }
-            50% { filter: drop-shadow(0 0 30px rgba(221,170,51,0.7)) drop-shadow(0 0 60px rgba(16,185,129,0.5)); transform: scale(1.06); }
+        /* --- THE JARVIS DATA CORE CSS ENGINE --- */
+        @keyframes spin-cw { 100% { transform: rotate(360deg); } }
+        @keyframes spin-ccw { 100% { transform: rotate(-360deg); } }
+        @keyframes core-pulse { 
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(16,185,129,0.4)); } 
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 40px rgba(221,170,51,0.6)); } 
         }
-        @keyframes orbit-ring-a { 0% { transform: rotateZ(0deg) rotateX(65deg); } 100% { transform: rotateZ(360deg) rotateX(65deg); } }
-        @keyframes orbit-ring-b { 0% { transform: rotateZ(360deg) rotateY(65deg); } 100% { transform: rotateZ(0deg) rotateY(65deg); } }
-
-        .crystal-core-wrapper { animation: crystal-pulse 4s ease-in-out infinite; }
-        .crystal-orbit-a { animation: orbit-ring-a 14s linear infinite; }
-        .crystal-orbit-b { animation: orbit-ring-b 18s linear infinite; }
-        .crystal-thinking-fast { animation: crystal-pulse 1.2s ease-in-out infinite !important; }
+        
+        .orbit-ring-1 { animation: spin-cw 20s linear infinite; }
+        .orbit-ring-2 { animation: spin-ccw 15s linear infinite; }
+        .orbit-ring-3 { animation: spin-cw 10s linear infinite; }
+        .core-singularity { animation: core-pulse 3s ease-in-out infinite; }
+        .core-thinking { animation: core-pulse 0.8s ease-in-out infinite !important; }
 
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -61,28 +66,18 @@
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
-    <!-- LEAD CONTEXT MENU -->
+    <!-- LEAD CONTEXT MENU & DRILLDOWN PANELS -->
     <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
-        <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors">
-            <i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span>
-        </button>
+        <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors"><i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span></button>
     </div>
-
-    <!-- DRILL-DOWN SLIDE PANEL -->
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
     <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-            <div>
-                <h3 id="drilldown-title" class="text-gold font-light tracking-tight text-xl">Category View</h3>
-                <p id="drilldown-count" class="text-xs text-gray-400 font-mono mt-1">-- Tickets Found</p>
-            </div>
+            <div><h3 id="drilldown-title" class="text-gold font-light tracking-tight text-xl">Category View</h3><p id="drilldown-count" class="text-xs text-gray-400 font-mono mt-1">-- Tickets Found</p></div>
             <button id="close-drilldown-btn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"><i class="ph ph-x"></i></button>
         </div>
         <div class="px-4 py-3 border-b border-white/5 bg-black/20 flex-shrink-0">
-            <div class="relative">
-                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                <input type="text" id="drilldown-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-gold/50 transition-colors" placeholder="Search leads in real-time...">
-            </div>
+            <div class="relative"><i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i><input type="text" id="drilldown-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-gold/50 transition-colors" placeholder="Search leads in real-time..."></div>
         </div>
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
@@ -91,10 +86,7 @@
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer"><i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i></button>
         <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
-            <div class="logo-container w-[160px] h-[50px] relative overflow-hidden rounded">
-                <div class="xoala-logo w-full h-full relative z-10 bg-no-repeat bg-contain bg-left"></div>
-                <div class="absolute top-0 left-0 h-full w-[45px] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full animate-liquid-shine z-20 pointer-events-none mix-blend-overlay"></div>
-            </div>
+            <div class="logo-container w-[160px] h-[50px] relative overflow-hidden rounded"><div class="xoala-logo w-full h-full relative z-10 bg-no-repeat bg-contain bg-left"></div><div class="absolute top-0 left-0 h-full w-[45px] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full animate-liquid-shine z-20 pointer-events-none mix-blend-overlay"></div></div>
         </div>
         <nav class="flex-1 py-8 px-4 space-y-2 overflow-hidden">
             <button data-target="dashboard-view" class="nav-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden"><i class="ph ph-squares-four text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Dashboard</span></button>
@@ -126,18 +118,13 @@
                     <div class="glass-card p-6 rounded-xl relative overflow-hidden group"><div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-50"></div><div class="flex justify-between items-start mb-4"><h3 class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Approval Rate (MTD)</h3><i class="ph ph-scales text-emerald-400 text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i></div><div id="dash-approval-rate" class="font-mono text-4xl text-white font-light mb-2">...</div><div class="flex items-center space-x-1 text-xs text-emerald-400"><i class="ph ph-activity"></i><span id="dash-approval-vol">Approved MTD: --</span></div><div id="dash-approval-dates" class="text-[9px] text-gray-600 font-mono mt-1 tracking-widest uppercase">...</div></div>
                 </div>
                 
-                <div class="flex justify-between items-end w-full mb-4">
-                    <h2 class="text-lg font-light tracking-tight text-white">Business Intelligence</h2>
-                </div>
+                <div class="flex justify-between items-end w-full mb-4"><h2 class="text-lg font-light tracking-tight text-white">Business Intelligence</h2></div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Risk Stratification</h3>
-                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5">
-                                <input type="date" id="risk-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="risk-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
-                                <button id="risk-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="risk-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button>
-                            </div>
+                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5"><input type="date" id="risk-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="risk-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><button id="risk-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="risk-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button></div>
                         </div>
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full canvas-glow flex-1" style="min-height: 220px;"><canvas id="riskChart"></canvas></div><div id="risk-legend" class="mt-6 flex flex-wrap justify-center gap-4"></div></div>
                     </div>
@@ -145,10 +132,7 @@
                     <div class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02]">
                             <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase">Stage Bottlenecks</h3>
-                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5">
-                                <input type="date" id="bot-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="bot-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
-                                <button id="bot-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="bot-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button>
-                            </div>
+                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5"><input type="date" id="bot-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="bot-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><button id="bot-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="bot-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button></div>
                         </div>
                         <div class="p-6 flex-1 flex flex-col"><div class="relative w-full flex-1" style="min-height: 220px;"><canvas id="bottleneckChart"></canvas></div><div id="bot-legend" class="mt-4 flex flex-wrap justify-center gap-3"></div></div>
                     </div>
@@ -156,49 +140,21 @@
                     <div id="geo-widget-container" class="glass-card rounded-xl border border-white/5 shadow-2xl flex flex-col lg:col-span-2 relative overflow-hidden transition-all duration-300">
                         <div class="flex justify-between items-center p-4 border-b border-white/5 bg-white/[0.02] z-10 relative">
                             <div class="flex items-center space-x-4">
-                                <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase flex items-center space-x-2">
-                                    <span>Geographic Distribution</span>
-                                    <button id="geo-view-toggle-btn" class="ml-2 text-gray-500 hover:text-gold transition-colors" title="Switch to Table View"><i class="ph ph-list-dashes text-lg" id="geo-view-toggle-icon"></i></button>
-                                    <button id="geo-fullscreen-btn" class="text-gray-500 hover:text-white transition-colors" title="Expand Native Fullscreen"><i class="ph ph-corners-out text-lg" id="geo-fullscreen-icon"></i></button>
-                                    <button id="geo-close-fs-btn" class="hidden bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all ml-4 px-3 py-1.5 rounded flex items-center space-x-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]" title="Close Fullscreen">
-                                        <i class="ph ph-x-circle text-lg"></i><span class="text-[10px] font-mono uppercase tracking-widest font-bold">Close Map</span>
-                                    </button>
-                                </h3>
-                                <div class="flex bg-black/40 border border-white/5 rounded-lg p-0.5" id="macro-region-toggles">
-                                    <button class="geo-region-btn active px-3 py-1 rounded text-[10px] font-mono tracking-widest text-white bg-white/10" data-region="ALL">GLOBAL</button>
-                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="EMEA">EMEA</button>
-                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="APAC">APAC</button>
-                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="LATAM">LATAM</button>
-                                    <button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="NA">NA</button>
-                                </div>
+                                <h3 class="text-sm tracking-widest text-gray-400 font-semibold uppercase flex items-center space-x-2"><span>Geographic Distribution</span><button id="geo-view-toggle-btn" class="ml-2 text-gray-500 hover:text-gold transition-colors" title="Switch to Table View"><i class="ph ph-list-dashes text-lg" id="geo-view-toggle-icon"></i></button><button id="geo-fullscreen-btn" class="text-gray-500 hover:text-white transition-colors" title="Expand Native Fullscreen"><i class="ph ph-corners-out text-lg" id="geo-fullscreen-icon"></i></button><button id="geo-close-fs-btn" class="hidden bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all ml-4 px-3 py-1.5 rounded flex items-center space-x-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]" title="Close Fullscreen"><i class="ph ph-x-circle text-lg"></i><span class="text-[10px] font-mono uppercase tracking-widest font-bold">Close Map</span></button></h3>
+                                <div class="flex bg-black/40 border border-white/5 rounded-lg p-0.5" id="macro-region-toggles"><button class="geo-region-btn active px-3 py-1 rounded text-[10px] font-mono tracking-widest text-white bg-white/10" data-region="ALL">GLOBAL</button><button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="EMEA">EMEA</button><button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="APAC">APAC</button><button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="LATAM">LATAM</button><button class="geo-region-btn px-3 py-1 rounded text-[10px] font-mono tracking-widest text-gray-500 hover:text-white transition-colors" data-region="NA">NA</button></div>
                             </div>
-                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5">
-                                <input type="date" id="geo-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="geo-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer">
-                                <button id="geo-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="geo-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button>
-                            </div>
+                            <div class="flex items-center space-x-2 bg-black/40 px-2 py-1 rounded border border-white/5"><input type="date" id="geo-start-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><span class="text-[10px] text-gray-600">-</span><input type="date" id="geo-end-date" class="bg-transparent text-gold text-[10px] uppercase font-mono outline-none cursor-pointer"><button id="geo-clear-btn" class="ml-1 text-[10px] text-gray-500 hover:text-white"><i class="ph ph-x-circle"></i></button><button id="geo-export-btn" class="ml-2 pl-2 border-l border-white/10 text-gold hover:text-white text-[12px]"><i class="ph ph-download-simple"></i></button></div>
                         </div>
-                        
                         <div id="geo-map-container" class="p-6 flex-1 flex flex-col relative z-0 bg-[#0a0a0a] transition-all">
-                            <div class="absolute bottom-6 left-6 flex flex-col space-y-2 z-20">
-                                <button id="map-zoom-in" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom In"><i class="ph ph-plus"></i></button>
-                                <button id="map-zoom-out" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom Out"><i class="ph ph-minus"></i></button>
-                                <button id="map-reset" class="w-8 h-8 mt-2 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Reset View"><i class="ph ph-arrows-clockwise"></i></button>
-                            </div>
+                            <div class="absolute bottom-6 left-6 flex flex-col space-y-2 z-20"><button id="map-zoom-in" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom In"><i class="ph ph-plus"></i></button><button id="map-zoom-out" class="w-8 h-8 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Zoom Out"><i class="ph ph-minus"></i></button><button id="map-reset" class="w-8 h-8 mt-2 bg-surface/80 backdrop-blur border border-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-gold hover:border-gold/50 transition-all shadow-lg" title="Reset View"><i class="ph ph-arrows-clockwise"></i></button></div>
                             <div id="geo-map" class="relative w-full flex-1" style="min-height: 400px; filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2));"></div>
                             <div id="geo-legend" class="mt-4 flex flex-col items-center justify-center gap-1 z-10 relative"></div>
                         </div>
-
                         <div id="geo-table-container" class="hidden p-6 flex-1 flex flex-col relative z-0 bg-surface overflow-hidden">
                             <div class="overflow-y-auto flex-1 h-full pr-2">
                                 <table class="w-full text-left border-collapse whitespace-nowrap">
-                                    <thead>
-                                        <tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono sticky top-0 bg-surface z-10">
-                                            <th class="py-3 px-4 font-semibold">Jurisdiction / Country</th>
-                                            <th class="py-3 px-4 font-semibold text-right">Total Active Tickets</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="geo-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200">
-                                    </tbody>
+                                    <thead><tr class="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-widest text-gray-500 font-mono sticky top-0 bg-surface z-10"><th class="py-3 px-4 font-semibold">Jurisdiction / Country</th><th class="py-3 px-4 font-semibold text-right">Total Active Tickets</th></tr></thead>
+                                    <tbody id="geo-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -214,15 +170,10 @@
                     <h1 class="text-3xl font-light tracking-tight text-white">Daily Operations Brief</h1>
                     <span class="text-gold font-mono text-sm tracking-widest" id="current-date"></span>
                 </div>
-                
                 <div class="glass-card p-8 rounded-xl border border-white/5 space-y-4">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-article"></i> Executive Summary</h2>
-                        <div class="px-2 py-1 border border-emerald-500/30 bg-emerald-500/10 rounded text-[10px] font-mono text-emerald-400 uppercase">Live Data</div>
-                    </div>
+                    <div class="flex justify-between items-center"><h2 class="text-xl font-light text-gold flex items-center gap-2"><i class="ph ph-article"></i> Executive Summary</h2><div class="px-2 py-1 border border-emerald-500/30 bg-emerald-500/10 rounded text-[10px] font-mono text-emerald-400 uppercase">Live Data</div></div>
                     <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">Awaiting data sync...</p>
                 </div>
-                
                 <div class="flex justify-between items-end w-full mt-4">
                     <h2 class="text-2xl font-light tracking-tight text-white">Pipeline Accountability Matrix</h2>
                     <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
@@ -233,61 +184,58 @@
                         <button id="matrix-refresh-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 rounded px-3 py-1 text-xs uppercase tracking-widest font-bold transition-all flex items-center space-x-1"><i class="ph ph-funnel" id="matrix-sync-icon"></i><span>Filter</span></button>
                     </div>
                 </div>
-                
                 <div class="glass-card rounded-xl border border-white/5 overflow-hidden shadow-2xl pb-16">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
-                            <thead>
-                                <tr class="bg-white/5 border-b border-white/10 text-[11px] uppercase tracking-widest text-gray-400 font-mono">
-                                    <th class="py-4 px-6 font-semibold w-2/5">Account Manager / Stage</th>
-                                    <th class="py-4 px-6 font-semibold text-right">Total Tickets</th>
-                                    <th class="py-4 px-6 font-semibold text-right">Introducer</th>
-                                    <th class="py-4 px-6 font-semibold text-right">Avg Queue Aging</th>
-                                    <th class="py-4 px-6 font-semibold text-right">Avg Time Since App</th>
-                                </tr>
-                            </thead>
-                            <tbody id="matrix-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200">
-                                <tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">Waiting for Data Lake Synchronization...</td></tr>
-                            </tbody>
+                            <thead><tr class="bg-white/5 border-b border-white/10 text-[11px] uppercase tracking-widest text-gray-400 font-mono"><th class="py-4 px-6 font-semibold w-2/5">Account Manager / Stage</th><th class="py-4 px-6 font-semibold text-right">Total Tickets</th><th class="py-4 px-6 font-semibold text-right">Introducer</th><th class="py-4 px-6 font-semibold text-right">Avg Queue Aging</th><th class="py-4 px-6 font-semibold text-right">Avg Time Since App</th></tr></thead>
+                            <tbody id="matrix-table-body" class="text-sm font-sans divide-y divide-white/5 text-gray-200"><tr><td colspan="5" class="py-12 text-center text-gray-500 font-mono text-xs">Waiting for Data Lake Synchronization...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core (Jarvis 3D Geometric Crystal Core) -->
+        <!-- View 3: Artemis AI Core -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden">
-            <!-- Sidebar with Working Pinned & Recent Sessions -->
+            <!-- Sidebar: Threads -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
-                
-                <!-- Pinned Threads Container -->
-                <div id="pinned-header" class="text-[9px] font-mono tracking-widest text-gold uppercase mb-2 px-2 flex items-center space-x-1"><i class="ph ph-push-pin-simple"></i><span>Pinned Threads</span></div>
+                <div id="pinned-header" class="text-[9px] font-mono tracking-widest text-gold uppercase mb-2 px-2 hidden flex items-center space-x-1"><i class="ph ph-push-pin-simple"></i><span>Pinned Threads</span></div>
                 <div id="pinned-sessions-list" class="space-y-1 mb-4 flex-none"></div>
-
-                <!-- Recent Sessions Container -->
                 <div class="text-[9px] font-mono tracking-widest text-gray-500 uppercase mb-2 px-2 flex items-center space-x-1"><i class="ph ph-clock-counter-clockwise"></i><span>Recent Sessions</span></div>
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian">
-                <!-- Left Pane: Conversational Stream -->
-                <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
-                    <div class="flex-none px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
+                <!-- Data Core Background (Safely isolated from chat deletion) -->
+                <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-700 z-0">
+                    <div class="relative w-72 h-72 flex items-center justify-center mb-8">
+                        <div class="absolute inset-0 rounded-full border-[1.5px] border-emerald-500/20 border-dashed orbit-ring-1"></div>
+                        <div class="absolute inset-8 rounded-full border-2 border-gold/30 border-dotted orbit-ring-2"></div>
+                        <div class="absolute inset-16 rounded-full border border-emerald-400/40 orbit-ring-3 opacity-60"></div>
+                        <div class="absolute inset-20 rounded-full bg-gradient-to-tr from-emerald-600/40 to-gold/20 blur-[15px] core-singularity" id="core-glow"></div>
+                        
+                        <div class="relative z-10 w-24 h-24 rounded-full border border-white/10 bg-obsidian flex items-center justify-center shadow-inner core-singularity" id="crystal-core">
+                            <i class="ph ph-cpu text-4xl text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-light text-white tracking-[0.3em] drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">ARTEMIS QUANTITATIVE CORE</h2>
+                    <p class="text-xs font-mono text-gray-500 mt-3 tracking-widest uppercase">Data Lake Engine Operational • Audio Synthesis Ready</p>
+                </div>
+
+                <!-- Chat Stream Foreground -->
+                <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full relative z-10">
+                    <div class="flex-none px-8 py-3 bg-surface/60 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
-                            <div class="flex items-center space-x-2 text-xs font-mono text-gray-400">
-                                <i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS QUANTITATIVE CORE</span>
-                            </div>
+                            <div class="flex items-center space-x-2 text-xs font-mono text-gray-400"><i class="ph ph-cpu text-gold text-base"></i><span>ARTEMIS CORE</span></div>
                             <div class="flex items-center space-x-2 bg-obsidian border border-white/10 px-3 py-1.5 rounded-lg text-[11px] font-mono text-gray-400 shadow-inner">
-                                <i class="ph ph-database text-emerald-400"></i><span>Synced: <strong id="sync-time-badge" class="text-white">Validating...</strong></span>
+                                <i class="ph ph-database text-emerald-400"></i><span>Synced: <strong id="sync-time-badge" class="text-white">Live</strong></span>
                                 <button id="resync-btn" class="ml-2 text-gray-400 hover:text-gold transition-colors bg-surface px-2 py-0.5 rounded border border-white/10 flex items-center space-x-1 text-[10px]"><i class="ph ph-arrows-clockwise" id="resync-icon"></i><span>Resync</span></button>
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <!-- FIX: Tooltip corrected to Artemis Voice Output -->
                             <button id="voice-auto-toggle-btn" class="bg-surface/80 border border-white/10 hover:border-gold/50 px-3 py-1.5 rounded-lg text-xs font-mono text-gray-400 hover:text-gold transition-all flex items-center space-x-1.5" title="Toggle Artemis Voice Output">
-                                <i class="ph ph-speaker-high text-sm text-gold" id="voice-auto-icon"></i>
-                                <span id="voice-auto-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-300">Voice: ON</span>
+                                <i class="ph ph-speaker-high text-sm text-gold" id="voice-auto-icon"></i><span id="voice-auto-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-300">Voice: ON</span>
                             </button>
                             <select id="model-select" class="bg-obsidian border border-gray-700 text-gold text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg outline-none cursor-pointer hover:border-gold/50 transition-all shadow-lg focus:ring-1 focus:ring-gold">
                                 <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option><option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
@@ -295,76 +243,27 @@
                         </div>
                     </div>
                     
-                    <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide relative flex flex-col justify-start">
-                        
-                        <!-- 3D GEOMETRIC CRYSTAL CORE HERO (Jarvis Tier) -->
-                        <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-100 transition-opacity duration-500">
-                            <div class="relative w-56 h-56 flex items-center justify-center mb-6">
-                                <!-- Background Multi-Axis Orbit Rings -->
-                                <div class="absolute inset-0 rounded-full border border-gold/30 border-dashed crystal-orbit-a"></div>
-                                <div class="absolute inset-2 rounded-full border border-emerald-500/40 border-dotted crystal-orbit-b"></div>
-                                <!-- 3D Geometric Polyhedron Core -->
-                                <div id="crystal-core" class="crystal-core-wrapper relative z-10 w-36 h-36 flex items-center justify-center">
-                                    <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow-[0_0_20px_rgba(221,170,51,0.4)]">
-                                        <!-- Outer Facets -->
-                                        <polygon points="60,10 105,35 105,85 60,110 15,85 15,35" fill="url(#core-facet-dark)" stroke="#DDAA33" stroke-width="1.2" stroke-linejoin="round"/>
-                                        <!-- Isometric Inner Crystals -->
-                                        <polygon points="60,10 60,60 105,85" fill="url(#core-facet-emerald)" fill-opacity="0.45" stroke="#10b981" stroke-width="1"/>
-                                        <polygon points="60,10 15,35 60,60" fill="url(#core-facet-gold)" fill-opacity="0.35" stroke="#DDAA33" stroke-width="1"/>
-                                        <polygon points="60,60 105,35 60,10" fill="url(#core-facet-gold)" fill-opacity="0.25" stroke="#F0D788" stroke-width="0.8"/>
-                                        <polygon points="15,35 15,85 60,60" fill="url(#core-facet-dark)" stroke="#10b981" stroke-width="1"/>
-                                        <polygon points="15,85 60,110 60,60" fill="url(#core-facet-emerald)" fill-opacity="0.5" stroke="#10b981" stroke-width="1.2"/>
-                                        <polygon points="60,110 105,85 60,60" fill="url(#core-facet-gold)" fill-opacity="0.4" stroke="#DDAA33" stroke-width="1.2"/>
-                                        <!-- Central Floating Node -->
-                                        <circle cx="60" cy="60" r="4.5" fill="#FFFFFF" class="drop-shadow-[0_0_8px_#FFFFFF]"/>
-                                        <defs>
-                                            <linearGradient id="core-facet-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stop-color="#DDAA33"/><stop offset="100%" stop-color="#997722"/>
-                                            </linearGradient>
-                                            <linearGradient id="core-facet-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#064e3b"/>
-                                            </linearGradient>
-                                            <linearGradient id="core-facet-dark" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#050505"/>
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                </div>
-                            </div>
-                            <h2 class="text-xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
-                            <p class="text-xs font-mono text-gray-500 mt-2 tracking-wide">Data Lake Engine Operational • Audio Synthesis Active</p>
-                        </div>
+                    <!-- Chat Bubbles Area (Separated from empty state) -->
+                    <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative flex flex-col justify-start">
+                        <div id="chat-stream" class="flex flex-col space-y-6 min-h-full pb-10 justify-end"></div>
                     </div>
                     
-                    <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-20">
-                        
-                        <!-- FIX: Restored Command Palette HTML -->
+                    <!-- Prompt Box -->
+                    <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative">
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard.">
-                                <i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span>
-                            </button>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month.">
-                                <i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span>
-                            </button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month."><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
                         </div>
-
                         <div class="max-w-4xl mx-auto bg-obsidian/80 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 focus-within:bg-obsidian transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
                             <div id="quick-prompts" class="flex items-center space-x-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto scrollbar-hide">
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Can you make a graph showing the total registered tickets for the last 7 days?">📊 Weekly Ingestion Chart</button>
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="What is the pipeline stage distribution for Ellie this month?">🗂️ Ellie's Stage Distribution</button>
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by total resolved volume this month.">🏆 AM Leaderboard</button>
                             </div>
-
                             <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-600" placeholder="Type '/' for macros, or ask Artemis to map data..."></textarea>
-                            
                             <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
-                                <div class="flex items-center space-x-3">
-                                    <label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5">
-                                        <i class="ph ph-plus-circle text-base"></i><span id="file-name-label">Add File</span><input type="file" id="file-input" class="hidden" accept=".csv,.txt,.pdf">
-                                    </label>
-                                    <button id="mic-btn" class="text-gray-400 hover:text-gold p-2 rounded-lg transition-colors bg-surface/50 border border-white/5 flex items-center space-x-1 text-xs font-mono"><i class="ph ph-microphone text-base" id="mic-icon"></i><span id="mic-status">Voice</span></button>
-                                </div>
+                                <div class="flex items-center space-x-3"><label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-lg transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-plus-circle text-base"></i><span id="file-name-label">Add File</span><input type="file" id="file-input" class="hidden" accept=".csv,.txt,.pdf"></label></div>
                                 <button id="send-btn" class="bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 py-2.5 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(224,192,96,0.4)] disabled:opacity-50 flex items-center space-x-2"><span>Execute</span><i class="ph ph-paper-plane-right font-bold text-sm"></i></button>
                             </div>
                         </div>
@@ -372,11 +271,9 @@
                 </div>
 
                 <!-- Right Pane: Artifact Canvas -->
-                <div id="artemis-artifact-pane" class="w-[0px] opacity-0 bg-surface/80 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-all duration-500 ease-in-out relative z-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+                <div id="artemis-artifact-pane" class="w-[0px] opacity-0 bg-surface/90 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-all duration-500 ease-in-out relative z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
                     <div class="h-14 flex-none border-b border-white/5 bg-black/40 flex items-center justify-between px-6">
-                        <div class="flex items-center space-x-2 text-gold">
-                            <i class="ph ph-layout text-lg"></i><span class="text-xs font-mono tracking-widest font-bold uppercase">Data Canvas</span>
-                        </div>
+                        <div class="flex items-center space-x-2 text-gold"><i class="ph ph-layout text-lg"></i><span class="text-xs font-mono tracking-widest font-bold uppercase">Data Canvas</span></div>
                         <div class="flex items-center space-x-3">
                             <button id="export-canvas-csv-btn" class="text-gray-400 hover:text-white transition-colors" title="Export CSV"><i class="ph ph-download-simple text-lg"></i></button>
                             <button id="close-artifact-btn" class="text-gray-400 hover:text-red-400 transition-colors" title="Close Canvas"><i class="ph ph-x text-lg"></i></button>
@@ -384,7 +281,6 @@
                     </div>
                     <div id="artifact-content" class="flex-1 p-8 overflow-y-auto w-full"></div>
                 </div>
-
             </div>
         </section>
     </main>
