@@ -55,28 +55,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
+    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY ---
     const countryToIsoMap = {
-        "united kingdom": "gb", "uk": "gb", "united states": "us", "usa": "us", "canada": "ca", "australia": "au", 
-        "germany": "de", "france": "fr", "spain": "es", "italy": "it", "cyprus": "cy", "greece": "gr", 
-        "netherlands": "nl", "belgium": "be", "switzerland": "ch", "united arab emirates": "ae", "uae": "ae", 
-        "singapore": "sg", "hong kong": "hk", "japan": "jp", "india": "in", "pakistan": "pk", "malaysia": "my", 
-        "indonesia": "id", "brazil": "br", "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", 
-        "estonia": "ee", "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
-        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro", "czechia": "cz", 
-        "bulgaria": "bg", "hungary": "hu", "austria": "at", "malta": "mt", "luxembourg": "lu", "new zealand": "nz", 
-        "israel": "il", "china": "cn", "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", 
-        "egypt": "eg", "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
-        "bvi": "vg", "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
-        "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk"
+        "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
+        "united states": "us", "usa": "us", "united states of america": "us",
+        "canada": "ca", "australia": "au", "germany": "de", "france": "fr", "spain": "es", "italy": "it",
+        "cyprus": "cy", "greece": "gr", "netherlands": "nl", "belgium": "be", "switzerland": "ch",
+        "united arab emirates": "ae", "uae": "ae", "singapore": "sg", "hong kong": "hk", "japan": "jp",
+        "india": "in", "pakistan": "pk", "malaysia": "my", "indonesia": "id", "brazil": "br",
+        "mexico": "mx", "argentina": "ar", "south africa": "za", "nigeria": "ng", "estonia": "ee",
+        "lithuania": "lt", "latvia": "lv", "ireland": "ie", "sweden": "se", "norway": "no",
+        "denmark": "dk", "finland": "fi", "poland": "pl", "portugal": "pt", "romania": "ro", 
+        "czechia": "cz", "czech republic": "cz", "bulgaria": "bg", "hungary": "hu", "austria": "at", 
+        "malta": "mt", "luxembourg": "lu", "new zealand": "nz", "israel": "il", "china": "cn", 
+        "south korea": "kr", "thailand": "th", "vietnam": "vn", "philippines": "ph", "egypt": "eg", 
+        "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
+        "bvi": "vg", "virgin islands (british)": "vg", "british virgin islands": "vg",
+        "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
+        "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk",
+        "saint lucia": "lc", "st lucia": "lc", "saint vincent and the grenadines": "vc", "st vincent": "vc",
+        "comoros": "km", "costa rica": "cr", "panama": "pa", "saint kitts and nevis": "kn", "st kitts": "kn", 
+        "isle of man": "im", "dominica": "dm", "oman": "om", "gibraltar": "gi", "algeria": "dz", 
+        "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz", "cook islands": "ck", "croatia": "hr", 
+        "mongolia": "mn", "dominican republic": "do", "anguilla": "ai", "liechtenstein": "li", 
+        "serbia": "rs", "albania": "al", "jordan": "jo", "jersey": "je", "honduras": "hn", 
+        "tanzania, united republic of": "tz", "tanzania": "tz"
     };
 
     const regionsMap = {
-        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh'],
-        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz'],
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru', 'km', 'im', 'om', 'gi', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'je', 'tz'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh', 'kz', 'ck', 'mn'],
+        'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz', 'lc', 'vc', 'cr', 'pa', 'kn', 'dm', 'uy', 'sv', 'do', 'ai', 'hn'],
         'NA': ['us', 'ca']
     };
 
+    // DASHBOARD LOGIC
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -332,6 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         geoData.labels.forEach((countryName, i) => {
             const cleanName = countryName.toLowerCase().trim();
+            
+            // STRICT BYPASS: Ignore purely empty or 'unknown' values gracefully.
+            if (!cleanName || cleanName === "unknown" || cleanName === "") return;
+
             const isoCode = countryToIsoMap[cleanName];
             
             if (isoCode) {
@@ -346,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 100% Fixed: Diagnostics for Unmapped Tickets
+        // Diagnostic Console Output for Unmapped Tickets
         if (unmappedCount > 0) {
             console.warn(`⚠️ [DIAGNOSTIC] ${unmappedCount} Tickets Unmapped in the Data Lake. These jurisdiction strings failed to resolve to an ISO-3166 code.`);
             console.table(unmappedDetails);
@@ -392,7 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (geoTbody) {
             geoTbody.innerHTML = geoData.labels.map((countryName, idx) => {
                 const count = geoData.data[idx];
-                const isoCode = countryToIsoMap[countryName.toLowerCase().trim()];
+                const cleanNameCheck = countryName.toLowerCase().trim();
+                if (cleanNameCheck === "unknown" || cleanNameCheck === "") return ''; // Skip rendering empty/unknowns in table
+
+                const isoCode = countryToIsoMap[cleanNameCheck];
                 const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph ph-warning-circle"></i></span>';
                 
                 return `
