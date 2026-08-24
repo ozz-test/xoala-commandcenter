@@ -204,7 +204,8 @@
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
-            <div class="flex-1 flex flex-col h-full relative overflow-hidden bg-obsidian z-10">
+            <!-- Corrected wrapper: NO flex-col, allows artifact pane to slide in alongside chat -->
+            <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian z-10">
                 
                 <!-- FOREGROUND LAYER: Chat Interface -->
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
@@ -229,24 +230,24 @@
                     </div>
                     
                     <!-- Chat Stream Area -->
-                    <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative z-20 flex flex-col justify-start pb-4">
+                    <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 scrollbar-hide relative z-20 flex flex-col justify-start">
                         
-                        <!-- BACKGROUND LAYER: Fixed Geometry Hologram Moved HERE for perfect flex centering -->
+                        <!-- BACKGROUND LAYER: Perfectly centered above the prompt box -->
                         <div id="artemis-empty-state" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none hologram-focus transition-all duration-700">
                             <div class="relative w-[400px] h-[400px] flex items-center justify-center">
                                 <canvas id="jarvis-core-canvas" class="absolute inset-0 w-full h-full opacity-90 mix-blend-screen"></canvas>
                             </div>
-                            <div id="hologram-text" class="text-center relative z-30 transition-opacity duration-500 opacity-100 -mt-20">
+                            <div id="hologram-text" class="text-center relative z-30 transition-opacity duration-500 opacity-100 -mt-16">
                                 <h2 class="text-2xl font-light text-white tracking-[0.25em] drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">ARTEMIS QUANTITATIVE CORE</h2>
                                 <p class="text-[10px] font-mono text-gray-500 mt-3 tracking-widest uppercase">Data Lake Engine Operational • Audio Synthesis Ready</p>
                             </div>
                         </div>
 
-                        <div id="chat-stream" class="flex flex-col space-y-6 min-h-full justify-end relative z-10"></div>
+                        <div id="chat-stream" class="flex flex-col space-y-6 min-h-full justify-end relative z-10 pb-4"></div>
                     </div>
                     
                     <!-- Prompt Box -->
-                    <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-30">
+                    <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-30 w-full">
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-sm shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
                             <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
@@ -267,7 +268,7 @@
                 </div>
 
                 <!-- Right Pane: Artifact Canvas -->
-                <div id="artemis-artifact-pane" class="w-[0px] opacity-0 bg-surface/90 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-all duration-500 ease-in-out relative z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
+                <div id="artemis-artifact-pane" class="w-[0px] h-full opacity-0 bg-surface/90 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-all duration-500 ease-in-out relative z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
                     <div class="h-14 flex-none border-b border-white/5 bg-black/40 flex items-center justify-between px-6">
                         <div class="flex items-center space-x-2 text-gold"><i class="ph ph-layout text-lg"></i><span class="text-xs font-mono tracking-widest font-bold uppercase">Data Canvas</span></div>
                         <div class="flex items-center space-x-3">
