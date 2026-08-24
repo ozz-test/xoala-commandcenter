@@ -41,13 +41,32 @@
         .jvm-container { cursor: grab !important; }
         .jvm-container:active { cursor: grabbing !important; }
 
-        /* Holographic Cyber-Koala Animations */
-        @keyframes koala-synapse { 
-            0% { filter: drop-shadow(0 0 2px rgba(221,170,51,0.3)); stroke: #DDAA33; } 
-            50% { filter: drop-shadow(0 0 16px rgba(16,185,129,0.7)); stroke: #10b981; } 
-            100% { filter: drop-shadow(0 0 2px rgba(221,170,51,0.3)); stroke: #DDAA33; } 
+        /* --- THE CYBER-KOALA ANIMATION SUITE --- */
+        @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse-slow { 100% { transform: rotate(-360deg); } }
+        .spin-slow { transform-origin: 50px 50px; animation: spin-slow 15s linear infinite; }
+        .spin-reverse-slow { transform-origin: 50px 50px; animation: spin-reverse-slow 20s linear infinite; }
+
+        @keyframes koala-breathe {
+            0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 10px rgba(221,170,51,0.1)); }
+            50% { transform: translateY(-5px) scale(1.03); filter: drop-shadow(0 0 25px rgba(16,185,129,0.3)); }
         }
-        .koala-thinking path { animation: koala-synapse 1.8s infinite ease-in-out; }
+        #cyber-koala { animation: koala-breathe 4s ease-in-out infinite; }
+
+        @keyframes koala-path-pulse {
+            0%, 100% { stroke: #DDAA33; }
+            50% { stroke: #10b981; }
+        }
+        .koala-glow-path { animation: koala-path-pulse 4s ease-in-out infinite; }
+
+        @keyframes koala-synapse { 
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(221,170,51,0.5)); stroke: #DDAA33; } 
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(16,185,129,0.9)); stroke: #10b981; } 
+        }
+        .koala-thinking svg { animation: koala-synapse 1.5s ease-in-out infinite; }
+        
+        .artifact-slide-in { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -283,10 +302,7 @@
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
-            <!-- SPLIT VIEW CONTAINER -->
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian">
-                
-                <!-- Left Pane: Conversational Stream -->
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
                     <div class="flex-none px-8 py-3 bg-surface/40 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
                         <div class="flex items-center space-x-4">
@@ -304,23 +320,36 @@
                     </div>
                     
                     <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide relative flex flex-col justify-start">
-                        <!-- CYBER-KOALA EMPTY STATE -->
+                        
+                        <!-- HIGH-FIDELITY CYBER-KOALA EMPTY STATE -->
                         <div id="artemis-empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-100 transition-opacity duration-500">
-                            <svg id="cyber-koala" width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="mb-6 opacity-30">
-                                <path d="M20 40 L10 20 L30 15 L40 30 Z" stroke="#DDAA33" stroke-width="1.5" stroke-linejoin="round"/>
-                                <path d="M80 40 L90 20 L70 15 L60 30 Z" stroke="#DDAA33" stroke-width="1.5" stroke-linejoin="round"/>
-                                <path d="M30 50 L50 25 L70 50 L80 75 L50 95 L20 75 Z" stroke="#DDAA33" stroke-width="1.5" stroke-linejoin="round"/>
-                                <path d="M40 65 L50 55 L60 65 L50 75 Z" fill="#111" stroke="#DDAA33" stroke-width="1.5" stroke-linejoin="round"/>
-                                <circle cx="35" cy="55" r="4" fill="#DDAA33"/>
-                                <circle cx="65" cy="55" r="4" fill="#DDAA33"/>
+                            <svg id="cyber-koala" width="160" height="160" viewBox="0 0 100 100" fill="none" class="mb-6 opacity-80">
+                                <!-- Orbital Tech Rings -->
+                                <circle cx="50" cy="50" r="48" stroke="#DDAA33" stroke-width="0.5" stroke-dasharray="4 8" class="spin-slow" opacity="0.5"/>
+                                <circle cx="50" cy="50" r="42" stroke="#10b981" stroke-width="0.5" stroke-dasharray="12 6" class="spin-reverse-slow" opacity="0.3"/>
+                                
+                                <!-- Neural Koala Path -->
+                                <path class="koala-glow-path" d="M25 40 C10 35 10 55 20 65 C30 85 70 85 80 65 C90 55 90 35 75 40 C65 25 35 25 25 40 Z" stroke="#DDAA33" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                
+                                <!-- Nose & Eyes -->
+                                <path d="M42 55 Q50 45 58 55 Q60 70 50 70 Q40 70 42 55 Z" stroke="#10b981" stroke-width="1.5" fill="none"/>
+                                <circle cx="33" cy="48" r="2.5" fill="#10b981"/>
+                                <circle cx="67" cy="48" r="2.5" fill="#10b981"/>
+                                
+                                <!-- Data Connection Nodes -->
+                                <circle cx="25" cy="40" r="1.5" fill="#DDAA33"/>
+                                <circle cx="75" cy="40" r="1.5" fill="#DDAA33"/>
+                                <circle cx="20" cy="65" r="1.5" fill="#DDAA33"/>
+                                <circle cx="80" cy="65" r="1.5" fill="#DDAA33"/>
+                                <circle cx="50" cy="28" r="1.5" fill="#10b981"/>
                             </svg>
                             <h2 class="text-xl font-light text-white tracking-widest">ARTEMIS IS ONLINE</h2>
                             <p class="text-sm font-mono text-gray-500 mt-2">Awaiting quantitative query parameters.</p>
                         </div>
+
                     </div>
                     
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-20">
-                        <!-- SLASH COMMAND PALETTE -->
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
                             <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard.">
@@ -332,7 +361,6 @@
                         </div>
 
                         <div class="max-w-4xl mx-auto bg-obsidian/80 border border-white/10 rounded-2xl p-4 focus-within:border-gold/50 focus-within:bg-obsidian transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
-                            <!-- Quick Prompt Pills -->
                             <div id="quick-prompts" class="flex items-center space-x-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto scrollbar-hide">
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Provide a data grid of top 10 ticket volumes by country of incorporation.">🌐 Top Geographies Grid</button>
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-full text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Format a leaderboard of Account Managers handling Critical Risk tickets.">⚖️ Critical Risk Handlers</button>
