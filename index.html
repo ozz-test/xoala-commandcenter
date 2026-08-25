@@ -204,9 +204,9 @@
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
-            <!-- Chat Pane Wrapper -->
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian z-10">
                 
+                <!-- FOREGROUND LAYER: Chat Interface -->
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
                     <div class="flex-none px-8 py-3 bg-surface/60 border-b border-white/5 flex items-center justify-between backdrop-blur-md z-30">
                         <div class="flex items-center space-x-4">
@@ -228,9 +228,8 @@
                         </div>
                     </div>
                     
-                    <!-- THE SCROLLING FIX: flex-col with a spacer to push content down -->
+                    <!-- THE SCROLLING FIX: Spacer pushes content down naturally -->
                     <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 relative z-20 flex flex-col">
-                        
                         <div id="artemis-empty-state" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none hologram-focus transition-all duration-700">
                             <div class="relative w-[400px] h-[400px] flex items-center justify-center">
                                 <canvas id="jarvis-core-canvas" class="absolute inset-0 w-full h-full opacity-90 mix-blend-screen"></canvas>
@@ -241,7 +240,7 @@
                             </div>
                         </div>
 
-                        <!-- Spacer element ensures chat stays bottom-anchored but scrolls naturally upwards -->
+                        <!-- Flexible spacer forces items to flow downwards and trigger scrolling natively -->
                         <div class="flex-1 min-h-[40%]"></div>
                         <div id="chat-stream" class="flex flex-col space-y-6 relative z-10 pb-4"></div>
                     </div>
