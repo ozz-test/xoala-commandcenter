@@ -100,7 +100,7 @@ class ArtemisHologram {
         let speed = this.baseSpeed;
         if (this.state === 'thinking') speed = 4;
         if (this.state === 'speaking') speed = 2;
-        if (this.state === 'macro') speed = 8; // Ultra-fast spin for macro execution
+        if (this.state === 'macro') speed = 8;
         this.time += 0.01 * speed;
 
         const parallaxX = (this.mouseX - this.width / 2) * 0.003;
@@ -247,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Map Palette Buttons to Macros
         document.querySelectorAll('.command-item').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const actionText = e.currentTarget.querySelector('span').innerText;
@@ -312,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // High Density Generative UI with Tabulator
+    // High Density Generative UI with Tabulator (Sanitized)
     const openArtifactCanvas = (parsedData) => {
         let htmlContent = '';
         const contentArea = document.getElementById('artifact-content');
@@ -328,13 +327,20 @@ document.addEventListener('DOMContentLoaded', () => {
             contentArea.innerHTML = htmlContent;
             
             setTimeout(() => {
-                const tableData = parsedData.rows.map(r => {
+                // SANITIZATION: Map complex header names to safe indexed fields (col0, col1)
+                const tableCols = parsedData.columns.map((colName, index) => ({ 
+                    title: colName, 
+                    field: `col${index}`, 
+                    headerFilter: "input" 
+                }));
+                
+                const tableData = parsedData.rows.map(rowArray => {
                     let obj = {};
-                    parsedData.columns.forEach((c, i) => obj[c] = r[i]);
+                    parsedData.columns.forEach((_, index) => {
+                        obj[`col${index}`] = rowArray[index];
+                    });
                     return obj;
                 });
-                
-                const tableCols = parsedData.columns.map(c => ({ title: c, field: c, headerFilter: "input" }));
                 
                 const table = new Tabulator("#tabulator-table", {
                     data: tableData,
@@ -533,7 +539,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         const container = document.getElementById('chat-stream-container');
-        if (container) container.scrollTop = container.scrollHeight;
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
     };
 
     if (sendBtn && promptInput) {
@@ -559,7 +567,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             promptInput.value = '';
             
-            // --- API ROUTING LOGIC ---
             let actionType = 'query_agent';
             let macroCmd = '';
             
@@ -679,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (parsedGenUI) {
                         aiMsg.querySelector('.open-ui-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
-                        if(isMacro) openArtifactCanvas(parsedGenUI); // Auto-open for fast macros
+                        if(isMacro) openArtifactCanvas(parsedGenUI); 
                     }
                     renderSessions();
 
