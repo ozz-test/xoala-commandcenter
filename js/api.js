@@ -22,7 +22,6 @@ class ArtemisHologram {
         this.audioPulse = 0;
         this.baseSpeed = 1.0;
         
-        // Interactive Mouse Physics
         this.mouseX = this.width / 2;
         this.mouseY = this.height / 2;
         this.targetMouseX = this.width / 2;
@@ -95,16 +94,15 @@ class ArtemisHologram {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.globalCompositeOperation = 'lighter';
 
-        // Smooth mouse interpolation for parallax
         this.mouseX += (this.targetMouseX - this.mouseX) * 0.1;
         this.mouseY += (this.targetMouseY - this.mouseY) * 0.1;
 
         let speed = this.baseSpeed;
         if (this.state === 'thinking') speed = 4;
         if (this.state === 'speaking') speed = 2;
+        if (this.state === 'macro') speed = 8; // Ultra-fast spin for macro execution
         this.time += 0.01 * speed;
 
-        // Apply interactive parallax offset
         const parallaxX = (this.mouseX - this.width / 2) * 0.003;
         const parallaxY = (this.mouseY - this.height / 2) * 0.003;
 
@@ -114,11 +112,12 @@ class ArtemisHologram {
         let coreRadius = 25 + Math.sin(this.time * 3) * 3;
         if (this.state === 'speaking') coreRadius += this.audioPulse * 15;
         if (this.state === 'thinking') coreRadius += 10;
+        if (this.state === 'macro') coreRadius += 5;
 
         const grad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 2.5);
         grad.addColorStop(0, '#FFFFFF');
         grad.addColorStop(0.2, '#DDAA33');
-        grad.addColorStop(0.6, 'rgba(16, 185, 129, 0.3)');
+        grad.addColorStop(0.6, this.state === 'macro' ? 'rgba(16, 185, 129, 0.6)' : 'rgba(16, 185, 129, 0.3)');
         grad.addColorStop(1, 'transparent');
         
         this.ctx.fillStyle = grad;
@@ -132,7 +131,7 @@ class ArtemisHologram {
 
         this.particles.forEach(p => {
             let zDistort = p.z;
-            if (this.state === 'thinking') zDistort += Math.sin(this.time * 8 + p.x) * 20;
+            if (this.state === 'thinking' || this.state === 'macro') zDistort += Math.sin(this.time * 8 + p.x) * 20;
 
             const proj = this.project(p.x, p.y, zDistort, this.time * 0.3 + parallaxY, this.time * 0.5 + parallaxX, 0);
             if (proj.scale > 0) {
@@ -206,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const promptInput = document.getElementById('prompt-input');
     const promptContainer = document.getElementById('prompt-container');
+    const commandPalette = document.getElementById('command-palette');
     const sendBtn = document.getElementById('send-btn');
     const chatStream = document.getElementById('chat-stream'); 
     const hologramContainer = document.getElementById('artemis-empty-state');
@@ -220,14 +220,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const voiceAutoIcon = document.getElementById('voice-auto-icon');
     const voiceAutoStatus = document.getElementById('voice-auto-status');
     const modelSelect = document.getElementById('model-select');
-    const syncTimeBadge = document.getElementById('sync-time-badge');
 
     let currentSessionId = Date.now().toString();
     let sessions = {};
-    let activeCanvasData = null;
 
-    // Terminal Input Mode Toggle
-    if (promptInput && promptContainer) {
+    // --- TERMINAL MACRO MODE TOGGLE ---
+    if (promptInput && promptContainer && commandPalette) {
         promptInput.addEventListener('input', (e) => {
             const val = e.target.value;
             if (val.startsWith('/')) {
@@ -235,12 +233,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 promptContainer.classList.remove('border-white/10');
                 promptInput.classList.add('text-emerald-400', 'font-mono');
                 promptInput.classList.remove('text-white', 'font-sans');
+                
+                commandPalette.classList.remove('hidden');
+                commandPalette.classList.add('flex');
             } else {
                 promptContainer.classList.remove('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
                 promptContainer.classList.add('border-white/10');
                 promptInput.classList.remove('text-emerald-400', 'font-mono');
                 promptInput.classList.add('text-white', 'font-sans');
+                
+                commandPalette.classList.add('hidden');
+                commandPalette.classList.remove('flex');
             }
+        });
+
+        // Map Palette Buttons to Macros
+        document.querySelectorAll('.command-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const actionText = e.currentTarget.querySelector('span').innerText;
+                if (actionText.includes("Bottlenecks")) promptInput.value = "/bottlenecks";
+                if (actionText.includes("Leaderboard")) promptInput.value = "/leaderboard";
+                
+                commandPalette.classList.add('hidden');
+                promptInput.focus();
+            });
         });
     }
 
@@ -298,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // High Density Generative UI with Tabulator
     const openArtifactCanvas = (parsedData) => {
-        activeCanvasData = parsedData;
         let htmlContent = '';
         const contentArea = document.getElementById('artifact-content');
 
@@ -369,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
             artifactPane.style.width = '0px';
             artifactPane.classList.add('opacity-0');
             artifactPane.classList.remove('artifact-slide-in');
-            activeCanvasData = null;
         });
     }
 
@@ -438,7 +452,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Safely inject history into stream (High Density Updates)
     const renderChatHistory = (historyArray) => {
         if (!chatStream) return;
         chatStream.innerHTML = '';
@@ -523,19 +536,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (container) container.scrollTop = container.scrollHeight;
     };
 
-    if (newChatBtn) {
-        newChatBtn.addEventListener('click', () => {
-            voiceEngine.stop();
-            hologram.setState('idle');
-            currentSessionId = Date.now().toString();
-            sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
-            localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-            renderChatHistory([]);
-            renderSessions();
-            if (closeArtifactBtn) closeArtifactBtn.click();
-        });
-    }
-
     if (sendBtn && promptInput) {
         sendBtn.addEventListener('click', async () => {
             const val = promptInput.value.trim();
@@ -558,12 +558,25 @@ document.addEventListener('DOMContentLoaded', () => {
             chatStream.appendChild(userMsg);
             
             promptInput.value = '';
-            // Reset input container style if Macro Mode was active
+            
+            // --- API ROUTING LOGIC ---
+            let actionType = 'query_agent';
+            let macroCmd = '';
+            
+            if (val.startsWith('/')) {
+                actionType = 'execute_macro';
+                macroCmd = val.substring(1).trim();
+            }
+
             if (promptContainer) {
                 promptContainer.classList.remove('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
                 promptContainer.classList.add('border-white/10');
                 promptInput.classList.remove('text-emerald-400', 'font-mono');
                 promptInput.classList.add('text-white', 'font-sans');
+            }
+            if (commandPalette) {
+                commandPalette.classList.add('hidden');
+                commandPalette.classList.remove('flex');
             }
             
             const container = document.getElementById('chat-stream-container');
@@ -572,21 +585,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const aiMsg = document.createElement('div');
             aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
             const reqStartTime = Date.now();
+            
+            const isMacro = actionType === 'execute_macro';
             aiMsg.innerHTML = `
                 ${getAvatarNode(true)}
-                <div class="text-[13px] text-gray-400 font-mono pt-2 tracking-widest uppercase animate-pulse">Running quantitative query...</div>
+                <div class="text-[13px] ${isMacro ? 'text-emerald-400' : 'text-gray-400'} font-mono pt-2 tracking-widest uppercase animate-pulse">
+                    ${isMacro ? 'Executing direct macro script...' : 'Running quantitative query...'}
+                </div>
             `;
             chatStream.appendChild(aiMsg);
             if (container) container.scrollTop = container.scrollHeight;
 
-            hologram.setState('thinking');
-            hologram.baseSpeed = 3.0; // Spikes the data visualization physics during query
+            hologram.setState(isMacro ? 'macro' : 'thinking');
 
             try {
                 const historyPayload = sessions[currentSessionId].history || [];
                 const response = await fetch(ARTEMIS_API_URL, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
+                        action: actionType,
+                        macro: macroCmd,
                         prompt: val, 
                         history: historyPayload, 
                         secret: 'system_dashboard_init',
@@ -599,7 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 const latency = Date.now() - reqStartTime;
                 hologram.setState('idle');
-                hologram.baseSpeed = 1.0;
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
@@ -624,9 +641,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiMsg.innerHTML = `
                         ${getAvatarNode(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
-                            <div class="text-[9px] font-mono text-emerald-400 mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
-                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>Query Complete (${latency}ms)</span></div>
-                                <div class="text-gray-500">${modelSelect ? modelSelect.value.replace('gemini-','').toUpperCase() : 'FLASH'}</div>
+                            <div class="text-[9px] font-mono ${isMacro ? 'text-emerald-400' : 'text-gold'} mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
+                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>${isMacro ? 'Macro Execution Complete' : 'Query Complete'} (${latency}ms)</span></div>
+                                <div class="text-gray-500">${isMacro ? 'SCRIPT' : (modelSelect ? modelSelect.value.replace('gemini-','').toUpperCase() : 'FLASH')}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
@@ -656,13 +673,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    if (voiceEngine.autoSpeak) {
+                    if (voiceEngine.autoSpeak && !isMacro) {
                         voiceEngine.speak(aiText, () => hologram.setState('speaking'), () => hologram.setState('idle'), (freq) => hologram.setAudioPulse(freq));
                     }
 
                     if (parsedGenUI) {
                         aiMsg.querySelector('.open-ui-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
-                        openArtifactCanvas(parsedGenUI);
+                        if(isMacro) openArtifactCanvas(parsedGenUI); // Auto-open for fast macros
                     }
                     renderSessions();
 
@@ -671,7 +688,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 hologram.setState('idle');
-                hologram.baseSpeed = 1.0;
                 aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded-sm relative z-10">Network Error: Unable to reach Artemis core.</div>`;
             }
             if (container) container.scrollTop = container.scrollHeight;
