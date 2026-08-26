@@ -278,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = {};
 
-    // Auto-inject Microphone Button if missing from HTML
     const actionRow = promptContainer?.querySelector('.border-t .flex.items-center.space-x-3');
     if (actionRow && !document.getElementById('voice-dictation-btn')) {
         const micBtn = document.createElement('button');
@@ -288,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
         actionRow.appendChild(micBtn);
     }
 
-    // Initialize Dictation
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
     if (commandPalette) {
@@ -384,7 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- MODULAR WORKSPACE: DRAG & RESIZE LOGIC ---
     let isDraggingCanvas = false;
     let dragStartX, dragStartY, initialLeft, initialTop;
 
@@ -590,9 +587,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // ==========================================
-    // INTERACTIVE COLUMN CONFIRMATION RENDERER
-    // ==========================================
     function renderColumnConfirmationCard(payload) {
         const slots = payload.slots || [];
         const queryIntent = payload.query_intent || "Quantitative Analysis";
@@ -687,20 +681,36 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (parsedGenUI.type === 'column_confirmation') {
                             genUIHtml = renderColumnConfirmationCard(parsedGenUI);
                         } else {
-                            genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>`;
+                            genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm mt-3"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>`;
                         }
+                    }
+
+                    let logsHtml = '';
+                    if (msg.parts[0].logs && msg.parts[0].logs.length > 0) {
+                        const logItems = msg.parts[0].logs.map(log => 
+                            `<div class="flex justify-between items-center text-[10px] text-gray-400 border-b border-white/5 py-1">
+                                <span><i class="ph ph-gear-six text-emerald-500 mr-1"></i> ${log.tool}</span>
+                                <span class="text-gray-500">${log.duration}ms</span>
+                            </div>`
+                        ).join('');
+                        logsHtml = `
+                            <div class="mb-3 bg-black/40 rounded-sm border border-white/5 p-2 font-mono">
+                                <div class="text-[9px] text-gray-500 uppercase tracking-widest mb-1 flex items-center"><i class="ph ph-activity mr-1"></i>Execution Trace</div>
+                                ${logItems}
+                            </div>
+                        `;
                     }
 
                     a.innerHTML = `
                         ${getAvatarNode(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
+                            ${logsHtml}
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
                                 <button class="copy-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI && parsedGenUI.type !== 'column_confirmation' ? genUIHtml : ''}
                             </div>
-                            ${parsedGenUI && parsedGenUI.type === 'column_confirmation' ? genUIHtml : ''}
+                            ${parsedGenUI ? genUIHtml : ''}
                         </div>
                     `;
 
@@ -832,17 +842,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
 
-                if (!response.ok) throw new Error(`Server returned HTTP ${response.status}.`);
+                let data;
+                let isJson = true;
+                try {
+                    data = await response.json();
+                } catch(e) {
+                    isJson = false;
+                    data = await response.text();
+                }
 
-                const data = await response.json();
+                if (!response.ok) {
+                    const errorMsg = isJson && data.error ? data.error : (isJson ? JSON.stringify(data) : data);
+                    throw new Error(errorMsg || `HTTP Error ${response.status}`);
+                }
+
                 const latency = Date.now() - reqStartTime;
                 hologram.setState('idle');
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
+                    const logsArray = data.logs || [];
 
                     sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
-                    sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
+                    sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText, logs: logsArray}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
@@ -863,8 +885,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (parsedGenUI.type === 'column_confirmation') {
                             genUIHtml = renderColumnConfirmationCard(parsedGenUI);
                         } else {
-                            genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>`;
+                            genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm mt-3"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>`;
                         }
+                    }
+
+                    let logsHtml = '';
+                    if (logsArray && logsArray.length > 0) {
+                        const logItems = logsArray.map(log => 
+                            `<div class="flex justify-between items-center text-[10px] text-gray-400 border-b border-white/5 py-1">
+                                <span><i class="ph ph-gear-six text-emerald-500 mr-1"></i> ${log.tool}</span>
+                                <span class="text-gray-500">${log.duration}ms</span>
+                            </div>`
+                        ).join('');
+                        logsHtml = `
+                            <div class="mb-3 bg-black/40 rounded-sm border border-white/5 p-2 font-mono">
+                                <div class="text-[9px] text-gray-500 uppercase tracking-widest mb-1 flex items-center"><i class="ph ph-activity mr-1"></i>Execution Trace</div>
+                                ${logItems}
+                            </div>
+                        `;
                     }
 
                     aiMsg.innerHTML = `
@@ -874,13 +912,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>${isMacro ? 'Macro Execution Complete' : 'Query Complete'} (${latency}ms)</span></div>
                                 <div class="text-gray-500">${isMacro ? 'SCRIPT' : (modelSelect ? modelSelect.value.replace('gemini-','').toUpperCase() : 'FLASH')}</div>
                             </div>
+                            ${logsHtml}
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
                                 <button class="copy-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI && parsedGenUI.type !== 'column_confirmation' ? genUIHtml : ''}
                             </div>
-                            ${parsedGenUI && parsedGenUI.type === 'column_confirmation' ? genUIHtml : ''}
+                            ${parsedGenUI ? genUIHtml : ''}
                         </div>
                     `;
 
@@ -934,11 +972,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderSessions();
 
                 } else {
-                    aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded-sm relative z-10">API Error: ${data.error || "Execution failed."}</div>`;
+                    throw new Error(data.error || "Execution failed without a specific error code.");
                 }
             } catch (err) {
                 hologram.setState('idle');
-                aiMsg.innerHTML = `<div class="text-red-400 font-mono text-sm border border-red-500/20 bg-red-500/10 p-3 rounded-sm relative z-10">Network Error: Unable to reach Artemis core.</div>`;
+                const errDetails = err.message || "Network Error: Unable to reach Artemis core.";
+                aiMsg.innerHTML = `
+                    ${getAvatarNode(false)}
+                    <div class="bg-red-500/10 border border-red-500/20 rounded-sm p-4 text-[13px] text-red-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm mt-2">
+                        <div class="text-[10px] font-mono text-red-400 mb-2 uppercase tracking-widest flex items-center space-x-1 border-b border-red-500/20 pb-2">
+                            <i class="ph ph-warning-circle"></i><span>System Exception Detected</span>
+                        </div>
+                        <div class="font-mono whitespace-pre-wrap">${errDetails}</div>
+                    </div>
+                `;
             }
             if (container) container.scrollTop = container.scrollHeight;
         });
