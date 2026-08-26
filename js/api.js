@@ -3,8 +3,8 @@
  * 
  * Purpose: Handles frontend logic, 3D Canvas rendering, and Zero-API Routing.
  * Architecture:
- * - Artemis (Default): Emerald/Gold. Triggers Local NLP & GAS execution. Zero API calls.
- * - Prometheus (@Prometheus): Crimson/Amber. Reveals Context Dock. Fires Gemini API for strategy.
+ * - Artemis (Default): Emerald/Gold. Triggers Local NLP. Female Voice Synthesis. Model selector hidden.
+ * - Prometheus (@Prometheus): Crimson/Amber. Reveals Context Dock. Male Voice Synthesis. Model selector visible.
  */
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
@@ -47,7 +47,6 @@ class CoreHologram {
         });
 
         this.initParticles();
-
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
     }
@@ -183,40 +182,58 @@ class CoreHologram {
 }
 
 // ==========================================
-// 2. VOICE SYNTHESIS ENGINE
+// 2. DUAL-PERSONA VOICE SYNTHESIS ENGINE
 // ==========================================
 class VoiceEngine {
     constructor() {
         this.synth = window.speechSynthesis;
         this.autoSpeak = localStorage.getItem('artemis_voice_enabled') !== 'false';
-        this.voice = null;
+        this.femaleVoice = null;
+        this.maleVoice = null;
         
         if (this.synth) {
             const loadVoices = () => {
                 const voices = this.synth.getVoices();
-                this.voice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha')) 
-                          || voices.find(v => v.lang.startsWith('en-GB')) 
-                          || voices[0];
+                // Artemis: Hunt for Female Voice
+                this.femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Google UK English Female')) || voices[0];
+                // Prometheus: Hunt for Male Voice
+                this.maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Google UK English Male')) || voices.reverse()[0];
             };
             loadVoices();
             if (this.synth.onvoiceschanged !== undefined) this.synth.onvoiceschanged = loadVoices;
         }
     }
+
     cleanText(markdown) { return markdown.replace(/```json[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').replace(/[*_~`#>]/g, '').trim(); }
-    speak(text, onStart, onEnd, onBoundary) {
+    
+    speak(text, persona, onStart, onEnd, onBoundary) {
         if (!this.synth) return;
         this.synth.cancel();
+        
         const clean = this.cleanText(text);
         if (!clean) return;
+        
         const utterance = new SpeechSynthesisUtterance(clean);
-        if (this.voice) utterance.voice = this.voice;
-        utterance.rate = 1.05;
+        
+        // Dynamically apply pitch, rate, and voice based on active persona
+        if (persona === 'prometheus') {
+            if (this.maleVoice) utterance.voice = this.maleVoice;
+            utterance.pitch = 0.8;  // Deeper voice
+            utterance.rate = 1.0;   // Measured pace
+        } else {
+            if (this.femaleVoice) utterance.voice = this.femaleVoice;
+            utterance.pitch = 1.1;  // Slightly higher
+            utterance.rate = 1.05;  // Brisk pace
+        }
+        
         utterance.onstart = () => { if (onStart) onStart(); };
         utterance.onend = () => { if (onEnd) onEnd(); };
         utterance.onerror = () => { if (onEnd) onEnd(); };
         utterance.onboundary = () => { if (onBoundary) onBoundary(Math.random()); };
+        
         this.synth.speak(utterance);
     }
+    
     stop() { if (this.synth && this.synth.speaking) this.synth.cancel(); }
 }
 
@@ -271,7 +288,7 @@ class SpeechInputEngine {
         this.recognition.stop();
         this.btn.classList.remove('text-red-500', 'bg-red-500/10', 'border-red-500/30', 'animate-pulse');
         this.btn.classList.add('text-gray-400', 'bg-surface/50', 'border-white/5');
-        this.input.placeholder = "Type '/' for macros, or query data lake...";
+        this.input.placeholder = "Type '/' for macros, or '@Prometheus' for Strategic Analysis...";
     }
 }
 
@@ -371,9 +388,10 @@ document.addEventListener('DOMContentLoaded', () => {
         sendBtn.style.backgroundImage = "linear-gradient(to right, #dc2626, #991b1b)";
         sendBtnText.textContent = "Synthesize (API)";
         
-        // Reveal Context Dock
+        // Dynamic Tools UI (Context Dock & Model Select)
         contextDock.classList.remove('hidden', 'opacity-0', 'h-0');
         contextDock.classList.add('h-10', 'opacity-100');
+        modelSelect.classList.remove('hidden');
     }
 
     function resetToArtemis() {
@@ -394,10 +412,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Button
         sendBtn.style.backgroundImage = "linear-gradient(to right, #DDAA33, #997722)";
         
-        // Hide Context Dock
+        // Dynamic Tools UI (Hide Context Dock & Model Select)
         contextDock.classList.add('opacity-0', 'h-0');
         setTimeout(() => { if (activePersona === 'artemis') contextDock.classList.add('hidden'); }, 300);
         clearContextPayload();
+        modelSelect.classList.add('hidden');
     }
 
     // --- Context Dock Actions ---
@@ -434,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Session UI Initialization (Unchanged)
+    // Session UI Initialization
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
         if (raw) {
@@ -447,51 +466,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (e) { sessions = {}; }
 
-    // --- Floating Canvas UI & Rendering Logics (Preserved for compatibility) ---
     const getAvatarNode = (isThinking = false) => `
         <div class="w-8 h-8 rounded-sm border border-${activePersona === 'prometheus' ? 'crimson' : 'emerald-500'}/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_currentColor] relative overflow-hidden">
              <i class="ph ph-${activePersona === 'prometheus' ? 'brain' : 'cpu'} text-${activePersona === 'prometheus' ? 'crimson' : 'emerald-400'} text-sm ${isThinking ? 'animate-pulse' : ''}"></i>
         </div>
     `;
-
-    function renderColumnConfirmationCard(payload) {
-        const slots = payload.slots || [];
-        const queryIntent = payload.query_intent || "Quantitative Analysis";
-        
-        let slotsHTML = slots.map((slot, sIdx) => {
-            const candidates = slot.candidates || [slot.selected_column];
-            const optionsHTML = candidates.map(c => `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`).join('');
-
-            return `
-                <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5 mt-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold">${slot.role || `Column ${sIdx + 1}`}</span>
-                        <span class="text-[9px] font-mono text-gray-500">${slot.inferred_type || 'String'}</span>
-                    </div>
-                    <div class="relative">
-                        <select class="column-slot-select w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-1.5 outline-none focus:border-gold/50 cursor-pointer" data-slot-index="${sIdx}">${optionsHTML}</select>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        return `
-            <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl">
-                <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-                    <div class="flex items-center space-x-2">
-                        <i class="ph ph-sliders-horizontal text-gold text-base"></i>
-                        <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm Target Schema</span>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">${slotsHTML}</div>
-                <div class="flex items-center justify-end pt-3 border-t border-white/5">
-                    <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
-                        <i class="ph ph-check-circle font-bold text-sm"></i><span>Confirm & Execute</span>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
 
     // --- Execution Engine ---
     if (sendBtn && promptInput) {
@@ -559,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     history: historyPayload, 
                     secret: 'system_dashboard_init',
                     model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
-                    context_payload: activeContextPayload // Sending attached dock data
+                    context_payload: activeContextPayload 
                 };
 
                 const response = await fetch(ARTEMIS_API_URL, {
@@ -567,11 +546,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(requestPayload)
                 });
 
+                // SAFE PARSE: Prevents "body stream already read" Error
+                const textResponse = await response.text();
                 let data;
                 let isJson = true;
-                try { data = await response.json(); } catch(e) { isJson = false; data = await response.text(); }
+                try { 
+                    data = JSON.parse(textResponse); 
+                } catch(e) { 
+                    isJson = false; 
+                    data = textResponse; // Retains raw text for error display
+                }
 
-                if (!response.ok) { throw new Error((isJson && data.error) ? data.error : `HTTP Error ${response.status}`); }
+                if (!response.ok) { throw new Error((isJson && data.error) ? data.error : `HTTP Error ${response.status}: ${data}`); }
 
                 const latency = Date.now() - reqStartTime;
                 hologram.setState('idle');
@@ -608,9 +594,53 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : 'LOCAL NLP'}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
+                            <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
+                                <button class="copy-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
+                                <button class="speak-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
+                            </div>
                             ${parsedGenUI ? `<button class="open-ui-btn text-[11px] ${colorClass} font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>` : ''}
                         </div>
                     `;
+
+                    aiMsg.querySelector('.copy-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
+
+                    const speakBtn = aiMsg.querySelector('.speak-btn');
+                    speakBtn.addEventListener('click', () => {
+                        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                            voiceEngine.stop();
+                            speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
+                            hologram.setState('idle');
+                        } else {
+                            speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
+                            // Pass the targetPersona to the voice engine to select male/female voice
+                            voiceEngine.speak(
+                                aiText,
+                                targetPersona.toLowerCase(),
+                                () => hologram.setState('speaking'),
+                                () => { hologram.setState('idle'); speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`; },
+                                (freq) => hologram.setAudioPulse(freq)
+                            );
+                        }
+                    });
+
+                    if (voiceEngine.autoSpeak && !isMacro) {
+                        voiceEngine.speak(
+                            aiText, 
+                            targetPersona.toLowerCase(), 
+                            () => hologram.setState('speaking'), 
+                            () => hologram.setState('idle'), 
+                            (freq) => hologram.setAudioPulse(freq)
+                        );
+                    }
+
+                    if (parsedGenUI) {
+                        const openBtn = aiMsg.querySelector('.open-ui-btn');
+                        if (openBtn) {
+                            openBtn.addEventListener('click', () => { 
+                                if(typeof openArtifactCanvas === 'function') openArtifactCanvas(parsedGenUI); 
+                            });
+                        }
+                    }
 
                 } else {
                     throw new Error(data.error || "Execution failed without a specific error code.");
@@ -633,10 +663,5 @@ document.addEventListener('DOMContentLoaded', () => {
         promptInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
         });
-    }
-    
-    // Fallback required empty objects
-    if (!sessions[currentSessionId]) {
-        sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
 });
