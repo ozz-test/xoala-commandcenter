@@ -224,7 +224,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = {};
 
-    // --- TERMINAL MACRO MODE TOGGLE ---
+    // --- RESTRUCTURED COMMAND PALETTE HTML ---
+    if (commandPalette) {
+        commandPalette.innerHTML = `
+            <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
+            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="/bottlenecks"><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
+            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/leaderboard"><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
+            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/summary"><i class="ph ph-list-dashes text-blue-400 text-lg"></i><span>Executive Pipeline Summary</span></button>
+            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/anomaly"><i class="ph ph-activity text-red-400 text-lg"></i><span>Daily Ingestion Anomaly Scan</span></button>
+        `;
+    }
+
     if (promptInput && promptContainer && commandPalette) {
         promptInput.addEventListener('input', (e) => {
             const val = e.target.value;
@@ -249,10 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelectorAll('.command-item').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const actionText = e.currentTarget.querySelector('span').innerText;
-                if (actionText.includes("Bottlenecks")) promptInput.value = "/bottlenecks";
-                if (actionText.includes("Leaderboard")) promptInput.value = "/leaderboard";
-                
+                promptInput.value = e.currentTarget.getAttribute('data-prompt');
                 commandPalette.classList.add('hidden');
                 promptInput.focus();
             });
@@ -311,7 +318,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // High Density Generative UI with Tabulator (Sanitized)
+    // --- MODULAR WORKSPACE: DRAG & RESIZE LOGIC ---
+    let isDraggingCanvas = false;
+    let dragStartX, dragStartY, initialLeft, initialTop;
+
+    const artifactHeader = artifactPane.querySelector('.h-14');
+    if (artifactHeader) {
+        artifactHeader.style.cursor = 'move';
+        
+        artifactHeader.addEventListener('mousedown', (e) => {
+            if(e.target.closest('button')) return; // Ignore buttons in the header
+            
+            isDraggingCanvas = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            // If it's not floating yet, undock it
+            if (!artifactPane.classList.contains('is-floating')) {
+                artifactPane.classList.add('is-floating');
+                const rect = artifactPane.getBoundingClientRect();
+                artifactPane.style.position = 'fixed';
+                artifactPane.style.left = rect.left + 'px';
+                artifactPane.style.top = rect.top + 'px';
+                artifactPane.style.height = '600px';
+                artifactPane.style.width = '800px';
+                artifactPane.style.resize = 'both';
+                artifactPane.style.overflow = 'auto';
+                artifactPane.style.zIndex = '9999';
+                artifactPane.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 1)';
+                artifactPane.classList.remove('artifact-slide-in'); // Kill slide animation
+            }
+            
+            initialLeft = parseInt(artifactPane.style.left || 0, 10);
+            initialTop = parseInt(artifactPane.style.top || 0, 10);
+            artifactPane.style.transition = 'none'; // Prevent lag
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingCanvas) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            artifactPane.style.left = `${initialLeft + dx}px`;
+            artifactPane.style.top = `${initialTop + dy}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDraggingCanvas) {
+                isDraggingCanvas = false;
+            }
+        });
+    }
+
     const openArtifactCanvas = (parsedData) => {
         let htmlContent = '';
         const contentArea = document.getElementById('artifact-content');
@@ -320,45 +377,39 @@ document.addEventListener('DOMContentLoaded', () => {
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
-                    <button id="download-tabulator" class="text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-download-simple mr-1"></i> Export Data</button>
+                    <div class="flex space-x-2">
+                        <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg" title="Pin to Dashboard"><i class="ph ph-push-pin mr-1"></i> Pin</button>
+                        <button id="download-tabulator" class="text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-download-simple mr-1"></i> Export Data</button>
+                    </div>
                 </div>
                 <div id="tabulator-table" class="w-full text-sm"></div>
             `;
             contentArea.innerHTML = htmlContent;
             
             setTimeout(() => {
-                // SANITIZATION: Map complex header names to safe indexed fields (col0, col1)
                 const tableCols = parsedData.columns.map((colName, index) => ({ 
-                    title: colName, 
-                    field: `col${index}`, 
-                    headerFilter: "input" 
+                    title: colName, field: `col${index}`, headerFilter: "input" 
                 }));
                 
                 const tableData = parsedData.rows.map(rowArray => {
                     let obj = {};
-                    parsedData.columns.forEach((_, index) => {
-                        obj[`col${index}`] = rowArray[index];
-                    });
+                    parsedData.columns.forEach((_, index) => { obj[`col${index}`] = rowArray[index]; });
                     return obj;
                 });
                 
                 const table = new Tabulator("#tabulator-table", {
-                    data: tableData,
-                    columns: tableCols,
-                    layout: "fitColumns",
-                    theme: "midnight",
-                    pagination: "local",
-                    paginationSize: 15,
+                    data: tableData, columns: tableCols, layout: "fitColumns", theme: "midnight", pagination: "local", paginationSize: 15,
                 });
                 
-                document.getElementById('download-tabulator').addEventListener('click', () => {
-                    table.download("csv", "artemis_data_export.csv");
-                });
+                document.getElementById('download-tabulator').addEventListener('click', () => { table.download("csv", "artemis_data_export.csv"); });
             }, 100);
         } 
         else if (parsedData.type === 'interactive_chart') {
             htmlContent = `
-                <h2 class="text-xl text-white font-light mb-6 tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
+                    <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg" title="Pin to Dashboard"><i class="ph ph-push-pin mr-1"></i> Pin Widget</button>
+                </div>
                 <div class="p-6 glass-card rounded-sm border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
                     <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
                 </div>
@@ -380,13 +431,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 250);
         }
 
-        artifactPane.style.width = '55%';
-        artifactPane.classList.remove('opacity-0');
-        artifactPane.classList.add('artifact-slide-in');
+        // Modular Pin Logic
+        const pinBtn = contentArea.querySelector('.pin-widget-btn');
+        if (pinBtn) {
+            pinBtn.addEventListener('click', () => {
+                let existingPins = [];
+                try { existingPins = JSON.parse(localStorage.getItem('xoala_pinned_widgets')) || []; } catch(e) {}
+                existingPins.push(parsedData);
+                localStorage.setItem('xoala_pinned_widgets', JSON.stringify(existingPins));
+                pinBtn.innerHTML = `<i class="ph ph-check text-emerald-400 mr-1"></i> <span class="text-emerald-400">Pinned!</span>`;
+                setTimeout(() => { pinBtn.innerHTML = `<i class="ph ph-push-pin mr-1"></i> Pin Widget`; }, 2000);
+            });
+        }
+
+        // Only trigger slide-in if it's not already floating
+        if (!artifactPane.classList.contains('is-floating')) {
+            artifactPane.style.width = '55%';
+            artifactPane.classList.remove('opacity-0');
+            artifactPane.classList.add('artifact-slide-in');
+        }
     };
 
     if (closeArtifactBtn) {
         closeArtifactBtn.addEventListener('click', () => {
+            // Reset state back to right-panel anchor
+            artifactPane.classList.remove('is-floating');
+            artifactPane.style = ''; // wipe inline fixed positioning
             artifactPane.style.width = '0px';
             artifactPane.classList.add('opacity-0');
             artifactPane.classList.remove('artifact-slide-in');
@@ -553,7 +623,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             voiceEngine.stop();
             
-            // --- HOLOGRAM VISIBILITY: Hide text on first message sent ---
             if(hologramText) {
                 hologramText.style.opacity = '0';
             }
