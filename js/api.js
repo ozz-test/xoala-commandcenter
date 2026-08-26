@@ -196,7 +196,61 @@ class VoiceEngine {
 }
 
 // ==========================================
-// 3. UI CONTROLLER & SESSION MANAGER
+// 3. SPEECH-TO-TEXT DICTATION ENGINE
+// ==========================================
+class SpeechInputEngine {
+    constructor(inputId, btnId) {
+        this.input = document.getElementById(inputId);
+        this.btn = document.getElementById(btnId);
+        this.isRecording = false;
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            if(this.btn) this.btn.style.display = 'none'; // Hide if browser unsupported
+            return;
+        }
+        
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        
+        this.recognition.onstart = () => {
+            this.isRecording = true;
+            this.btn.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/30', 'animate-pulse');
+            this.btn.classList.remove('text-gray-400', 'bg-surface/50', 'border-white/5');
+            this.input.placeholder = "Listening...";
+        };
+        
+        this.recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            this.input.value = transcript;
+        };
+        
+        this.recognition.onerror = () => this.stopRecording();
+        this.recognition.onend = () => this.stopRecording();
+        
+        if (this.btn) {
+            this.btn.addEventListener('click', () => {
+                if (this.isRecording) this.stopRecording();
+                else this.recognition.start();
+            });
+        }
+    }
+    
+    stopRecording() {
+        this.isRecording = false;
+        this.recognition.stop();
+        this.btn.classList.remove('text-red-500', 'bg-red-500/10', 'border-red-500/30', 'animate-pulse');
+        this.btn.classList.add('text-gray-400', 'bg-surface/50', 'border-white/5');
+        this.input.placeholder = "Type '/' for macros, or query data lake...";
+    }
+}
+
+// ==========================================
+// 4. UI CONTROLLER & SESSION MANAGER
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -224,7 +278,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = {};
 
-    // --- RESTRUCTURED COMMAND PALETTE HTML ---
+    // Auto-inject Microphone Button if missing from HTML
+    const actionRow = promptContainer?.querySelector('.border-t .flex.items-center.space-x-3');
+    if (actionRow && !document.getElementById('voice-dictation-btn')) {
+        const micBtn = document.createElement('button');
+        micBtn.id = 'voice-dictation-btn';
+        micBtn.className = 'text-gray-400 hover:text-gold p-2 rounded-sm transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5';
+        micBtn.innerHTML = '<i class="ph ph-microphone text-base"></i>';
+        actionRow.appendChild(micBtn);
+    }
+
+    // Initialize Dictation
+    new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
+
     if (commandPalette) {
         commandPalette.innerHTML = `
             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
@@ -327,13 +393,12 @@ document.addEventListener('DOMContentLoaded', () => {
         artifactHeader.style.cursor = 'move';
         
         artifactHeader.addEventListener('mousedown', (e) => {
-            if(e.target.closest('button')) return; // Ignore buttons in the header
+            if(e.target.closest('button')) return; 
             
             isDraggingCanvas = true;
             startX = e.clientX;
             startY = e.clientY;
             
-            // If it's not floating yet, undock it
             if (!artifactPane.classList.contains('is-floating')) {
                 artifactPane.classList.add('is-floating');
                 const rect = artifactPane.getBoundingClientRect();
@@ -346,12 +411,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 artifactPane.style.overflow = 'auto';
                 artifactPane.style.zIndex = '9999';
                 artifactPane.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 1)';
-                artifactPane.classList.remove('artifact-slide-in'); // Kill slide animation
+                artifactPane.classList.remove('artifact-slide-in'); 
             }
             
             initialLeft = parseInt(artifactPane.style.left || 0, 10);
             initialTop = parseInt(artifactPane.style.top || 0, 10);
-            artifactPane.style.transition = 'none'; // Prevent lag
+            artifactPane.style.transition = 'none'; 
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -431,7 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 250);
         }
 
-        // Modular Pin Logic
         const pinBtn = contentArea.querySelector('.pin-widget-btn');
         if (pinBtn) {
             pinBtn.addEventListener('click', () => {
@@ -444,7 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Only trigger slide-in if it's not already floating
         if (!artifactPane.classList.contains('is-floating')) {
             artifactPane.style.width = '55%';
             artifactPane.classList.remove('opacity-0');
@@ -454,9 +517,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (closeArtifactBtn) {
         closeArtifactBtn.addEventListener('click', () => {
-            // Reset state back to right-panel anchor
             artifactPane.classList.remove('is-floating');
-            artifactPane.style = ''; // wipe inline fixed positioning
+            artifactPane.style = ''; 
             artifactPane.style.width = '0px';
             artifactPane.classList.add('opacity-0');
             artifactPane.classList.remove('artifact-slide-in');
@@ -532,7 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chatStream) return;
         chatStream.innerHTML = '';
         
-        // --- HOLOGRAM VISIBILITY: Text returns if chat is empty ---
         if (!historyArray || historyArray.length === 0) {
             if(hologramText) {
                 hologramText.style.opacity = '1';
@@ -540,7 +601,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- HOLOGRAM VISIBILITY: Hide text but keep spinning canvas ---
         if(hologramText) {
             hologramText.style.opacity = '0';
         }
