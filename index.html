@@ -63,7 +63,13 @@
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
-    <!-- LEAD CONTEXT MENU & DRILLDOWN PANELS -->
+    <!-- 
+    ========================================================================
+    DRILLDOWN PANELS & CONTEXT MENUS
+    Purpose: Provides real-time ticket searching and individual record viewing
+    Action: Activated when users click on a stat card or table row
+    ======================================================================== 
+    -->
     <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
         <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors"><i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span></button>
     </div>
@@ -79,7 +85,12 @@
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
 
-    <!-- Sidebar -->
+    <!-- 
+    ========================================================================
+    MAIN SIDEBAR NAVIGATION
+    Purpose: Controls view routing between Dashboard, Reports, and Artemis AI
+    ======================================================================== 
+    -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer"><i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i></button>
         <div class="h-24 w-64 bg-surface/95 border-b border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.6)] flex-none flex items-center justify-start pl-6 relative z-50">
@@ -192,7 +203,12 @@
             </div>
         </section>
 
-        <!-- View 3: Artemis AI Core -->
+        <!-- 
+        ========================================================================
+        VIEW 3: ARTEMIS AI CORE
+        Purpose: The primary conversational interface for querying the Data Lake
+        ======================================================================== 
+        -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden relative">
             
             <!-- Sidebar: Threads -->
@@ -229,7 +245,7 @@
                         </div>
                     </div>
 
-                    <!-- FIXED BACKGROUND HOLOGRAM: Pulled entirely out of the scrolling container! -->
+                    <!-- FIXED BACKGROUND HOLOGRAM -->
                     <div id="artemis-empty-state" class="absolute inset-0 top-[60px] bottom-[120px] z-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-700">
                         <div class="relative w-[400px] h-[400px] flex items-center justify-center">
                             <canvas id="jarvis-core-canvas" class="absolute inset-0 w-full h-full opacity-90 mix-blend-screen"></canvas>
@@ -240,19 +256,24 @@
                         </div>
                     </div>
                     
-                    <!-- THE SCROLLING CHAT AREA (Sits on top of the hologram) -->
+                    <!-- THE SCROLLING CHAT AREA -->
                     <div id="chat-stream-container" class="flex-1 overflow-y-auto p-8 relative z-20 flex flex-col">
                         <div class="flex-1 min-h-[40%]"></div>
                         <div id="chat-stream" class="flex flex-col space-y-6 relative z-10 pb-4"></div>
                     </div>
                     
-                    <!-- Prompt Box -->
+                    <!-- Prompt Box & Command UI -->
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-30 w-full">
+                        
+                        <!-- COMMAND PALETTE: Displays zero-latency GAS macros when user types '/' -->
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-sm shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="Analyze the active pipeline and format all operational bottlenecks spanning greater than 5 days into a leaderboard."><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
-                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="Generate a tabular leaderboard of all Account Managers sorted by highest total resolved volume this month."><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="/bottlenecks"><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/leaderboard"><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/summary"><i class="ph ph-list-dashes text-blue-400 text-lg"></i><span>Executive Pipeline Summary</span></button>
+                            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/anomaly"><i class="ph ph-activity text-red-400 text-lg"></i><span>Daily Ingestion Anomaly Scan</span></button>
                         </div>
+
                         <div id="prompt-container" class="max-w-4xl mx-auto bg-surface/90 border border-white/10 rounded-md p-4 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-xl relative">
                             <div id="quick-prompts" class="flex items-center space-x-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto scrollbar-hide">
                                 <button class="quick-pill px-3 py-1 bg-white/5 hover:bg-gold/10 border border-white/10 rounded-sm text-[10px] font-mono text-gray-400 hover:text-gold transition-colors whitespace-nowrap" data-prompt="Can you make a graph showing the total registered tickets for the last 7 days?">📊 Weekly Ingestion Chart</button>
@@ -260,14 +281,25 @@
                             </div>
                             <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-sm font-sans px-2 py-1 outline-none resize-none placeholder-gray-500 transition-colors" placeholder="Type '/' for macros, or query data lake..."></textarea>
                             <div class="flex items-center justify-between pt-3 border-t border-white/5 px-2 mt-2">
-                                <div class="flex items-center space-x-3"><label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-sm transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-paperclip text-base"></i></label></div>
+                                
+                                <!-- INPUT ACTIONS: Attachments and Voice Dictation -->
+                                <div class="flex items-center space-x-3">
+                                    <label class="cursor-pointer text-gray-400 hover:text-gold p-2 rounded-sm transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-paperclip text-base"></i></label>
+                                    <button id="voice-dictation-btn" class="text-gray-400 hover:text-gold p-2 rounded-sm transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5"><i class="ph ph-microphone text-base"></i></button>
+                                </div>
+                                
                                 <button id="send-btn" class="bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-xs tracking-widest uppercase px-6 py-2 rounded-sm transition-all hover:shadow-[0_0_15px_rgba(224,192,96,0.4)] disabled:opacity-50 flex items-center space-x-2"><span>Execute</span><i class="ph ph-paper-plane-right font-bold text-sm"></i></button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Pane: Artifact Canvas -->
+                <!-- 
+                ========================================================================
+                ARTIFACT CANVAS (Right Pane)
+                Purpose: Handles rendering of Generative UI elements (Charts, Tables)
+                ======================================================================== 
+                -->
                 <div id="artemis-artifact-pane" class="w-[0px] h-full opacity-0 bg-surface/90 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-all duration-500 ease-in-out relative z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
                     <div class="h-14 flex-none border-b border-white/5 bg-black/40 flex items-center justify-between px-6">
                         <div class="flex items-center space-x-2 text-gold"><i class="ph ph-layout text-lg"></i><span class="text-xs font-mono tracking-widest font-bold uppercase">Data Canvas</span></div>
