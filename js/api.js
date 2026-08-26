@@ -462,16 +462,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chatStream) return;
         chatStream.innerHTML = '';
         
+        // --- HOLOGRAM VISIBILITY: Text returns if chat is empty ---
         if (!historyArray || historyArray.length === 0) {
-            hologramContainer.classList.remove('hologram-fade-out');
-            hologramContainer.classList.add('hologram-focus');
-            if(hologramText) hologramText.style.opacity = '1';
+            if(hologramText) {
+                hologramText.style.opacity = '1';
+            }
             return;
         }
 
-        hologramContainer.classList.remove('hologram-focus');
-        hologramContainer.classList.add('hologram-fade-out');
-        if(hologramText) hologramText.style.opacity = '0';
+        // --- HOLOGRAM VISIBILITY: Hide text but keep spinning canvas ---
+        if(hologramText) {
+            hologramText.style.opacity = '0';
+        }
 
         historyArray.forEach(msg => {
             try {
@@ -550,9 +552,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!val) return;
 
             voiceEngine.stop();
-            hologramContainer.classList.add('hologram-fade-out');
-            hologramContainer.classList.remove('hologram-focus');
-            if(hologramText) hologramText.style.opacity = '0';
+            
+            // --- HOLOGRAM VISIBILITY: Hide text on first message sent ---
+            if(hologramText) {
+                hologramText.style.opacity = '0';
+            }
 
             if (!sessions[currentSessionId]) {
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] };
