@@ -1,10 +1,5 @@
 /**
  * === XOALA COMMAND CENTER: DUAL-PERSONA TERMINAL ENGINE ===
- * 
- * Purpose: Handles frontend logic, 3D Canvas rendering, and Zero-API Routing.
- * Architecture:
- * - Artemis (Default): Emerald/Gold. Triggers Local NLP. Female Voice Synthesis. Model selector hidden.
- * - Prometheus (@Prometheus): Crimson/Amber. Reveals Context Dock. Male Voice Synthesis. Model selector visible.
  */
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
@@ -26,7 +21,7 @@ class CoreHologram {
         this.particles = [];
         this.time = 0;
         this.state = 'idle'; 
-        this.persona = 'artemis'; // Default Persona
+        this.persona = 'artemis'; 
         this.audioPulse = 0;
         this.baseSpeed = 1.0;
         
@@ -69,9 +64,9 @@ class CoreHologram {
 
     getParticleColor() {
         if (this.persona === 'prometheus') {
-            return Math.random() > 0.3 ? 'rgba(220, 38, 38, 0.8)' : 'rgba(251, 191, 36, 0.8)'; // Crimson / Amber
+            return Math.random() > 0.3 ? 'rgba(220, 38, 38, 0.8)' : 'rgba(251, 191, 36, 0.8)';
         }
-        return Math.random() > 0.3 ? 'rgba(221, 170, 51, 0.8)' : 'rgba(16, 185, 129, 0.8)'; // Gold / Emerald
+        return Math.random() > 0.3 ? 'rgba(221, 170, 51, 0.8)' : 'rgba(16, 185, 129, 0.8)';
     }
 
     setPersona(p) {
@@ -628,13 +623,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('chat-stream-container');
             if (container) container.scrollTop = container.scrollHeight;
 
-            // Loading UI
+            // Loading UI (Sleeker Text)
             const aiMsg = document.createElement('div');
             aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
             const reqStartTime = Date.now();
             
             const isMacro = actionType === 'execute_macro';
-            const loadingText = actionType === 'prometheus_query' ? 'Synthesizing Strategic Intelligence (API Route)...' : (isMacro ? 'Executing zero-latency macro...' : 'Processing Local NLP Query (Zero API)...');
+            
+            // NEW SLEEKER LOADING TEXT
+            const loadingText = actionType === 'prometheus_query' 
+                ? 'Synthesizing Strategy...' 
+                : (isMacro ? 'Executing Terminal Macro...' : 'Analyzing Data Lake...');
+                
             const colorClass = actionType === 'prometheus_query' ? 'text-crimson-light' : (isMacro ? 'text-emerald-400' : 'text-gold');
             
             aiMsg.innerHTML = `
