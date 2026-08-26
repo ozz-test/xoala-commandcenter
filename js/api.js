@@ -1,9 +1,20 @@
-// === XOALA COMMAND CENTER: ARTEMIS AI CORE ENGINE & SESSION MANAGER ===
+/**
+ * === XOALA COMMAND CENTER: ARTEMIS UI & SESSION MANAGER ===
+ * 
+ * Purpose: Handles all frontend logic for the Artemis AI Terminal.
+ * Responsibilities:
+ * 1. Rendering the 3D physics-based hologram engine.
+ * 2. Managing WebSocket/HTTP connections to the Cloudflare Middleware.
+ * 3. Rendering AI Chat sequences, including Generative UI (Data Canvas).
+ * 4. Human-in-the-Loop (HITL) column confirmation forms.
+ * 5. Audio Synthesis and Speech-to-Text Dictation.
+ */
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
 // 1. 3D HTML5 CANVAS HOLOGRAM ENGINE (Interactive Physics)
+// Purpose: Renders the central glowing core indicating AI state (thinking, speaking, macro execution).
 // ==========================================
 class ArtemisHologram {
     constructor(canvasId) {
@@ -148,6 +159,7 @@ class ArtemisHologram {
 
 // ==========================================
 // 2. VOICE SYNTHESIS ENGINE
+// Purpose: Utilizes browser-native Text-to-Speech API to vocalize Artemis's responses.
 // ==========================================
 class VoiceEngine {
     constructor() {
@@ -197,6 +209,7 @@ class VoiceEngine {
 
 // ==========================================
 // 3. SPEECH-TO-TEXT DICTATION ENGINE
+// Purpose: Enables users to speak queries directly into the terminal input box.
 // ==========================================
 class SpeechInputEngine {
     constructor(inputId, btnId) {
@@ -251,6 +264,7 @@ class SpeechInputEngine {
 
 // ==========================================
 // 4. UI CONTROLLER & SESSION MANAGER
+// Purpose: Binds frontend components, manages local storage session history, handles message rendering and HITL forms.
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -278,27 +292,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSessionId = Date.now().toString();
     let sessions = {};
 
-    const actionRow = promptContainer?.querySelector('.border-t .flex.items-center.space-x-3');
-    if (actionRow && !document.getElementById('voice-dictation-btn')) {
-        const micBtn = document.createElement('button');
-        micBtn.id = 'voice-dictation-btn';
-        micBtn.className = 'text-gray-400 hover:text-gold p-2 rounded-sm transition-colors flex items-center space-x-1 text-xs font-mono bg-surface/50 border border-white/5';
-        micBtn.innerHTML = '<i class="ph ph-microphone text-base"></i>';
-        actionRow.appendChild(micBtn);
-    }
-
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    if (commandPalette) {
-        commandPalette.innerHTML = `
-            <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Macro Command</div>
-            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="/bottlenecks"><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
-            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/leaderboard"><i class="ph ph-trophy text-gold text-lg"></i><span>AM Resolution Leaderboard</span></button>
-            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/summary"><i class="ph ph-list-dashes text-blue-400 text-lg"></i><span>Executive Pipeline Summary</span></button>
-            <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item border-t border-white/5" data-prompt="/anomaly"><i class="ph ph-activity text-red-400 text-lg"></i><span>Daily Ingestion Anomaly Scan</span></button>
-        `;
-    }
-
+    // -- Command Palette Input Detection --
     if (promptInput && promptContainer && commandPalette) {
         promptInput.addEventListener('input', (e) => {
             const val = e.target.value;
@@ -330,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // -- Session Initialization --
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
         if (raw) {
@@ -382,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // -- Floating & Draggable Data Canvas Logic --
     let isDraggingCanvas = false;
     let dragStartX, dragStartY, initialLeft, initialTop;
 
@@ -733,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
+                    // Execute Calculation from confirmed columns
                     if (parsedGenUI) {
                         if (parsedGenUI.type === 'column_confirmation') {
                             const confirmBtn = a.querySelector('.confirm-column-btn');
@@ -740,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 confirmBtn.addEventListener('click', () => {
                                     const selects = a.querySelectorAll('.column-slot-select');
                                     const confirmedColumns = Array.from(selects).map(s => s.value);
-                                    const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: [${confirmedColumns.map(c => `"${c}"`).join(', ')}]. Extract the subset and run the python calculation.`;
+                                    const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: [${confirmedColumns.map(c => `"${c}"`).join(', ')}]. Execute the calculation using your custom GAS tools.`;
                                     
                                     confirmBtn.disabled = true;
                                     confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
@@ -751,7 +750,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         } else {
                             const openBtn = a.querySelector('.open-ui-btn');
-                            if (openBtn) openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                            if (openBtn) {
+                                openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                            }
                         }
                     }
 
@@ -952,7 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 confirmBtn.addEventListener('click', () => {
                                     const selects = aiMsg.querySelectorAll('.column-slot-select');
                                     const confirmedColumns = Array.from(selects).map(s => s.value);
-                                    const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: [${confirmedColumns.map(c => `"${c}"`).join(', ')}]. Extract the subset and run the python calculation.`;
+                                    const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: [${confirmedColumns.map(c => `"${c}"`).join(', ')}]. Execute the calculation using your custom GAS tools.`;
                                     
                                     confirmBtn.disabled = true;
                                     confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
