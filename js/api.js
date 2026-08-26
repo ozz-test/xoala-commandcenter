@@ -466,6 +466,187 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (e) { sessions = {}; }
 
+    // --- Floating Canvas UI & Rendering Logics ---
+    let isDraggingCanvas = false;
+    let dragStartX, dragStartY, initialLeft, initialTop;
+
+    const artifactHeader = artifactPane.querySelector('.h-14');
+    if (artifactHeader) {
+        artifactHeader.style.cursor = 'move';
+        
+        artifactHeader.addEventListener('mousedown', (e) => {
+            if(e.target.closest('button')) return; 
+            
+            isDraggingCanvas = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            
+            if (!artifactPane.classList.contains('is-floating')) {
+                artifactPane.classList.add('is-floating');
+                const rect = artifactPane.getBoundingClientRect();
+                artifactPane.style.position = 'fixed';
+                artifactPane.style.left = rect.left + 'px';
+                artifactPane.style.top = rect.top + 'px';
+                artifactPane.style.height = '600px';
+                artifactPane.style.width = '800px';
+                artifactPane.style.resize = 'both';
+                artifactPane.style.overflow = 'auto';
+                artifactPane.style.zIndex = '9999';
+                artifactPane.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 1)';
+                artifactPane.classList.remove('artifact-slide-in'); 
+            }
+            
+            initialLeft = parseInt(artifactPane.style.left || 0, 10);
+            initialTop = parseInt(artifactPane.style.top || 0, 10);
+            artifactPane.style.transition = 'none'; 
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingCanvas) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            artifactPane.style.left = `${initialLeft + dx}px`;
+            artifactPane.style.top = `${initialTop + dy}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDraggingCanvas) {
+                isDraggingCanvas = false;
+            }
+        });
+    }
+
+    const openArtifactCanvas = (parsedData) => {
+        let htmlContent = '';
+        const contentArea = document.getElementById('artifact-content');
+
+        if (parsedData.type === 'interactive_table') {
+            htmlContent = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
+                    <div class="flex space-x-2">
+                        <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg" title="Pin to Dashboard"><i class="ph ph-push-pin mr-1"></i> Pin</button>
+                        <button id="download-tabulator" class="text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-download-simple mr-1"></i> Export Data</button>
+                    </div>
+                </div>
+                <div id="tabulator-table" class="w-full text-sm"></div>
+            `;
+            contentArea.innerHTML = htmlContent;
+            
+            setTimeout(() => {
+                const tableCols = parsedData.columns.map((colName, index) => ({ 
+                    title: colName, field: `col${index}`, headerFilter: "input" 
+                }));
+                
+                const tableData = parsedData.rows.map(rowArray => {
+                    let obj = {};
+                    parsedData.columns.forEach((_, index) => { obj[`col${index}`] = rowArray[index]; });
+                    return obj;
+                });
+                
+                const table = new Tabulator("#tabulator-table", {
+                    data: tableData, columns: tableCols, layout: "fitColumns", theme: "midnight", pagination: "local", paginationSize: 15,
+                });
+                
+                document.getElementById('download-tabulator').addEventListener('click', () => { table.download("csv", "artemis_data_export.csv"); });
+            }, 100);
+        } 
+        else if (parsedData.type === 'interactive_chart') {
+            htmlContent = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
+                    <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg" title="Pin to Dashboard"><i class="ph ph-push-pin mr-1"></i> Pin Widget</button>
+                </div>
+                <div class="p-6 glass-card rounded-sm border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
+                    <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
+                </div>
+            `;
+            contentArea.innerHTML = htmlContent;
+            
+            setTimeout(() => {
+                const ctx = document.getElementById('gen-ui-chart');
+                if (!ctx) return;
+                Chart.defaults.color = '#888'; 
+                Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
+                
+                let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444'];
+                new Chart(ctx, {
+                    type: parsedData.chartType || 'bar',
+                    data: { labels: parsedData.labels, datasets: [{ data: parsedData.data, backgroundColor: bgColors, borderWidth: 0, borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }, 250);
+        }
+
+        const pinBtn = contentArea.querySelector('.pin-widget-btn');
+        if (pinBtn) {
+            pinBtn.addEventListener('click', () => {
+                let existingPins = [];
+                try { existingPins = JSON.parse(localStorage.getItem('xoala_pinned_widgets')) || []; } catch(e) {}
+                existingPins.push(parsedData);
+                localStorage.setItem('xoala_pinned_widgets', JSON.stringify(existingPins));
+                pinBtn.innerHTML = `<i class="ph ph-check text-emerald-400 mr-1"></i> <span class="text-emerald-400">Pinned!</span>`;
+                setTimeout(() => { pinBtn.innerHTML = `<i class="ph ph-push-pin mr-1"></i> Pin Widget`; }, 2000);
+            });
+        }
+
+        if (!artifactPane.classList.contains('is-floating')) {
+            artifactPane.style.width = '55%';
+            artifactPane.classList.remove('opacity-0');
+            artifactPane.classList.add('artifact-slide-in');
+        }
+    };
+
+    const closeArtifactBtn = document.getElementById('close-artifact-btn');
+    if (closeArtifactBtn) {
+        closeArtifactBtn.addEventListener('click', () => {
+            artifactPane.classList.remove('is-floating');
+            artifactPane.style = ''; 
+            artifactPane.style.width = '0px';
+            artifactPane.classList.add('opacity-0');
+            artifactPane.classList.remove('artifact-slide-in');
+        });
+    }
+
+    function renderColumnConfirmationCard(payload) {
+        const slots = payload.slots || [];
+        const queryIntent = payload.query_intent || "Quantitative Analysis";
+        
+        let slotsHTML = slots.map((slot, sIdx) => {
+            const candidates = slot.candidates || [slot.selected_column];
+            const optionsHTML = candidates.map(c => `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`).join('');
+
+            return `
+                <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5 mt-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold">${slot.role || `Column ${sIdx + 1}`}</span>
+                        <span class="text-[9px] font-mono text-gray-500">${slot.inferred_type || 'String'}</span>
+                    </div>
+                    <div class="relative">
+                        <select class="column-slot-select w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-1.5 outline-none focus:border-gold/50 cursor-pointer" data-slot-index="${sIdx}">${optionsHTML}</select>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl">
+                <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="ph ph-sliders-horizontal text-gold text-base"></i>
+                        <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm Target Schema</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">${slotsHTML}</div>
+                <div class="flex items-center justify-end pt-3 border-t border-white/5">
+                    <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
+                        <i class="ph ph-check-circle font-bold text-sm"></i><span>Confirm & Execute</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
     const getAvatarNode = (isThinking = false) => `
         <div class="w-8 h-8 rounded-sm border border-${activePersona === 'prometheus' ? 'crimson' : 'emerald-500'}/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_currentColor] relative overflow-hidden">
              <i class="ph ph-${activePersona === 'prometheus' ? 'brain' : 'cpu'} text-${activePersona === 'prometheus' ? 'crimson' : 'emerald-400'} text-sm ${isThinking ? 'animate-pulse' : ''}"></i>
@@ -567,7 +748,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const logsArray = data.logs || [];
 
                     sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
-                    sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText, logs: logsArray}]});
+                    // FIX: Strict schema adherence for Gemini API. Removed "logs: logsArray" from history payload.
+                    sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
 
                     // Gen UI parsing (If GAS returns a table/chart)
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
@@ -612,7 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             hologram.setState('idle');
                         } else {
                             speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
-                            // Pass the targetPersona to the voice engine to select male/female voice
                             voiceEngine.speak(
                                 aiText,
                                 targetPersona.toLowerCase(),
@@ -637,7 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const openBtn = aiMsg.querySelector('.open-ui-btn');
                         if (openBtn) {
                             openBtn.addEventListener('click', () => { 
-                                if(typeof openArtifactCanvas === 'function') openArtifactCanvas(parsedGenUI); 
+                                openArtifactCanvas(parsedGenUI); 
                             });
                         }
                     }
@@ -663,5 +844,10 @@ document.addEventListener('DOMContentLoaded', () => {
         promptInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
         });
+    }
+    
+    // Fallback required empty objects
+    if (!sessions[currentSessionId]) {
+        sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
 });
