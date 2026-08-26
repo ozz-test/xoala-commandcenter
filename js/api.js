@@ -206,7 +206,7 @@ class SpeechInputEngine {
         
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            if(this.btn) this.btn.style.display = 'none'; // Hide if browser unsupported
+            if(this.btn) this.btn.style.display = 'none'; 
             return;
         }
         
@@ -590,6 +590,58 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // ==========================================
+    // INTERACTIVE COLUMN CONFIRMATION RENDERER
+    // ==========================================
+    function renderColumnConfirmationCard(payload) {
+        const slots = payload.slots || [];
+        const queryIntent = payload.query_intent || "Quantitative Analysis";
+        
+        let slotsHTML = slots.map((slot, sIdx) => {
+            const candidates = slot.candidates || [slot.selected_column];
+            const optionsHTML = candidates.map(c => 
+                `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`
+            ).join('');
+
+            return `
+                <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5 mt-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold">${slot.role || `Column ${sIdx + 1}`}</span>
+                        <span class="text-[9px] font-mono text-gray-500">${slot.inferred_type || 'String'}</span>
+                    </div>
+                    <div class="relative">
+                        <select class="column-slot-select w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-1.5 outline-none focus:border-gold/50 cursor-pointer" data-slot-index="${sIdx}">
+                            ${optionsHTML}
+                        </select>
+                    </div>
+                    ${slot.sample ? `<div class="text-[9px] font-mono text-gray-400 mt-1">Sample: <span class="text-gray-300 font-semibold">${slot.sample}</span></div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl">
+                <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="ph ph-sliders-horizontal text-gold text-base"></i>
+                        <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm Target Schema</span>
+                    </div>
+                    <span class="text-[9px] font-mono uppercase bg-gold/10 text-gold px-2 py-0.5 rounded border border-gold/20 truncate max-w-[120px]" title="${queryIntent}">${queryIntent}</span>
+                </div>
+                <p class="text-xs text-gray-300">Artemis identified candidate database fields. Verify or switch columns below before execution:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                    ${slotsHTML}
+                </div>
+                <div class="flex items-center justify-end pt-3 border-t border-white/5">
+                    <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
+                        <i class="ph ph-check-circle font-bold text-sm"></i>
+                        <span>Confirm & Execute</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
     const renderChatHistory = (historyArray) => {
         if (!chatStream) return;
         chatStream.innerHTML = '';
@@ -630,6 +682,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
                     }
 
+                    let genUIHtml = '';
+                    if (parsedGenUI) {
+                        if (parsedGenUI.type === 'column_confirmation') {
+                            genUIHtml = renderColumnConfirmationCard(parsedGenUI);
+                        } else {
+                            genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>`;
+                        }
+                    }
+
                     a.innerHTML = `
                         ${getAvatarNode(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
@@ -637,8 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
                                 <button class="copy-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI ? `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-sm border border-emerald-500/20"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>` : ''}
+                                ${parsedGenUI && parsedGenUI.type !== 'column_confirmation' ? genUIHtml : ''}
                             </div>
+                            ${parsedGenUI && parsedGenUI.type === 'column_confirmation' ? genUIHtml : ''}
                         </div>
                     `;
 
@@ -662,7 +724,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (parsedGenUI) {
-                        a.querySelector('.open-ui-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        if (parsedGenUI.type === 'column_confirmation') {
+                            const confirmBtn = a.querySelector('.confirm-column-btn');
+                            if (confirmBtn) {
+                                confirmBtn.addEventListener('click', () => {
+                                    const selects = a.querySelectorAll('.column-slot-select');
+                                    const confirmedColumns = Array.from(selects).map(s => s.value);
+                                    const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: [${confirmedColumns.map(c => `"${c}"`).join(', ')}]. Extract the subset and run the python calculation.`;
+                                    
+                                    confirmBtn.disabled = true;
+                                    confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
+                                    
+                                    promptInput.value = executePrompt;
+                                    sendBtn.click();
+                                });
+                            }
+                        } else {
+                            const openBtn = a.querySelector('.open-ui-btn');
+                            if (openBtn) openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        }
                     }
 
                     chatStream.appendChild(a);
@@ -778,6 +858,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const formattedText = marked.parse(aiText);
 
+                    let genUIHtml = '';
+                    if (parsedGenUI) {
+                        if (parsedGenUI.type === 'column_confirmation') {
+                            genUIHtml = renderColumnConfirmationCard(parsedGenUI);
+                        } else {
+                            genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>`;
+                        }
+                    }
+
                     aiMsg.innerHTML = `
                         ${getAvatarNode(false)}
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
@@ -789,8 +878,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
                                 <button class="copy-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-[11px] text-gray-500 hover:text-gold transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
-                                ${parsedGenUI ? `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-sm"><i class="ph ph-layout mr-1"></i>Open Data Grid</button>` : ''}
+                                ${parsedGenUI && parsedGenUI.type !== 'column_confirmation' ? genUIHtml : ''}
                             </div>
+                            ${parsedGenUI && parsedGenUI.type === 'column_confirmation' ? genUIHtml : ''}
                         </div>
                     `;
 
@@ -818,8 +908,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (parsedGenUI) {
-                        aiMsg.querySelector('.open-ui-btn').addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
-                        if(isMacro) openArtifactCanvas(parsedGenUI); 
+                        if (parsedGenUI.type === 'column_confirmation') {
+                            const confirmBtn = aiMsg.querySelector('.confirm-column-btn');
+                            if (confirmBtn) {
+                                confirmBtn.addEventListener('click', () => {
+                                    const selects = aiMsg.querySelectorAll('.column-slot-select');
+                                    const confirmedColumns = Array.from(selects).map(s => s.value);
+                                    const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: [${confirmedColumns.map(c => `"${c}"`).join(', ')}]. Extract the subset and run the python calculation.`;
+                                    
+                                    confirmBtn.disabled = true;
+                                    confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
+                                    
+                                    promptInput.value = executePrompt;
+                                    sendBtn.click();
+                                });
+                            }
+                        } else {
+                            const openBtn = aiMsg.querySelector('.open-ui-btn');
+                            if (openBtn) {
+                                openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                                if(isMacro) openArtifactCanvas(parsedGenUI); 
+                            }
+                        }
                     }
                     renderSessions();
 
