@@ -143,11 +143,11 @@ class CoreHologram {
         
         grad.addColorStop(0, '#FFFFFF');
         if (isPrometheus) {
-            grad.addColorStop(0.2, '#dc2626'); // Crimson
-            grad.addColorStop(0.6, this.state === 'macro' ? 'rgba(251, 191, 36, 0.6)' : 'rgba(251, 191, 36, 0.3)'); // Amber
+            grad.addColorStop(0.2, '#dc2626'); 
+            grad.addColorStop(0.6, this.state === 'macro' ? 'rgba(251, 191, 36, 0.6)' : 'rgba(251, 191, 36, 0.3)'); 
         } else {
-            grad.addColorStop(0.2, '#DDAA33'); // Gold
-            grad.addColorStop(0.6, this.state === 'macro' ? 'rgba(16, 185, 129, 0.6)' : 'rgba(16, 185, 129, 0.3)'); // Emerald
+            grad.addColorStop(0.2, '#DDAA33'); 
+            grad.addColorStop(0.6, this.state === 'macro' ? 'rgba(16, 185, 129, 0.6)' : 'rgba(16, 185, 129, 0.3)'); 
         }
         grad.addColorStop(1, 'transparent');
         
@@ -194,9 +194,7 @@ class VoiceEngine {
         if (this.synth) {
             const loadVoices = () => {
                 const voices = this.synth.getVoices();
-                // Artemis: Hunt for Female Voice
                 this.femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Google UK English Female')) || voices[0];
-                // Prometheus: Hunt for Male Voice
                 this.maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Google UK English Male')) || voices.reverse()[0];
             };
             loadVoices();
@@ -215,15 +213,14 @@ class VoiceEngine {
         
         const utterance = new SpeechSynthesisUtterance(clean);
         
-        // Dynamically apply pitch, rate, and voice based on active persona
         if (persona === 'prometheus') {
             if (this.maleVoice) utterance.voice = this.maleVoice;
-            utterance.pitch = 0.8;  // Deeper voice
-            utterance.rate = 1.0;   // Measured pace
+            utterance.pitch = 0.8; 
+            utterance.rate = 1.0;  
         } else {
             if (this.femaleVoice) utterance.voice = this.femaleVoice;
-            utterance.pitch = 1.1;  // Slightly higher
-            utterance.rate = 1.05;  // Brisk pace
+            utterance.pitch = 1.1; 
+            utterance.rate = 1.05; 
         }
         
         utterance.onstart = () => { if (onStart) onStart(); };
@@ -269,7 +266,7 @@ class SpeechInputEngine {
                 transcript += event.results[i][0].transcript;
             }
             this.input.value = transcript;
-            this.input.dispatchEvent(new Event('input')); // Ensure routing evaluates the speech
+            this.input.dispatchEvent(new Event('input')); 
         };
         
         this.recognition.onerror = () => this.stopRecording();
@@ -309,12 +306,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const hologramText = document.getElementById('hologram-text');
     const artifactPane = document.getElementById('artemis-artifact-pane');
     
-    // Context Dock Elements
     const contextDock = document.getElementById('context-dock');
     const contextStatusBadge = document.getElementById('context-status-badge');
     const clearContextBtn = document.getElementById('clear-context-btn');
 
-    // Header Elements
     const terminalHeader = document.getElementById('terminal-header');
     const personaBadge = document.getElementById('persona-badge');
     const personaIcon = document.getElementById('persona-icon');
@@ -325,17 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentSessionId = Date.now().toString();
     let sessions = {};
-    let activeContextPayload = null; // Stores data attached via Context Dock
+    let activeContextPayload = null; 
     let activePersona = 'artemis';
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    // --- Input Listener: Persona Switching & Macros ---
+    // --- Input Listener ---
     promptInput.addEventListener('input', (e) => {
         const val = e.target.value;
         
         if (val.startsWith('/')) {
-            // Local Macro Mode
             promptContainer.classList.add('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
             promptInput.classList.add('text-emerald-400');
             promptInput.classList.remove('text-white', 'text-crimson');
@@ -346,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sendBtnText.textContent = "Execute Macro";
             
         } else if (val.toLowerCase().startsWith('@prometheus')) {
-            // Prometheus API Mode
             promptContainer.classList.add('border-crimson/50', 'shadow-[0_0_15px_rgba(220,38,38,0.1)]');
             promptInput.classList.add('text-crimson-light');
             promptInput.classList.remove('text-white', 'text-emerald-400');
@@ -356,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
             switchToPrometheus();
             
         } else {
-            // Default Artemis NLP Mode
             promptContainer.classList.remove('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]', 'border-crimson/50', 'shadow-[0_0_15px_rgba(220,38,38,0.1)]');
             promptContainer.classList.add('border-white/10');
             promptInput.classList.remove('text-emerald-400', 'text-crimson-light');
@@ -374,21 +366,17 @@ document.addEventListener('DOMContentLoaded', () => {
         activePersona = 'prometheus';
         hologram.setPersona('prometheus');
         
-        // Header UI
-        personaBadge.style.color = '#dc2626'; // Crimson
+        personaBadge.style.color = '#dc2626'; 
         personaIcon.className = "ph ph-brain text-lg";
         personaTitle.textContent = "PROMETHEUS STRATEGIC CORE";
         
-        // Hologram Text
         holoTitle.textContent = "PROMETHEUS ACTIVE";
         holoTitle.style.color = '#dc2626';
         holoSubtitle.textContent = "Strategic Synthesis • Gemini API Routing";
         
-        // Button
         sendBtn.style.backgroundImage = "linear-gradient(to right, #dc2626, #991b1b)";
         sendBtnText.textContent = "Synthesize (API)";
         
-        // Dynamic Tools UI (Context Dock & Model Select)
         contextDock.classList.remove('hidden', 'opacity-0', 'h-0');
         contextDock.classList.add('h-10', 'opacity-100');
         modelSelect.classList.remove('hidden');
@@ -399,20 +387,16 @@ document.addEventListener('DOMContentLoaded', () => {
         activePersona = 'artemis';
         hologram.setPersona('artemis');
         
-        // Header UI
-        personaBadge.style.color = '#DDAA33'; // Gold
+        personaBadge.style.color = '#DDAA33'; 
         personaIcon.className = "ph ph-cpu text-lg";
         personaTitle.textContent = "ARTEMIS CORE";
         
-        // Hologram Text
         holoTitle.textContent = "ARTEMIS QUANTITATIVE CORE";
         holoTitle.style.color = '#ffffff';
         holoSubtitle.textContent = "NLP Processing Active • Zero-API Routing";
         
-        // Button
         sendBtn.style.backgroundImage = "linear-gradient(to right, #DDAA33, #997722)";
         
-        // Dynamic Tools UI (Hide Context Dock & Model Select)
         contextDock.classList.add('opacity-0', 'h-0');
         setTimeout(() => { if (activePersona === 'artemis') contextDock.classList.add('hidden'); }, 300);
         clearContextPayload();
@@ -441,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             promptInput.value = e.currentTarget.getAttribute('data-prompt');
             commandPalette.classList.add('hidden');
             promptInput.focus();
-            promptInput.dispatchEvent(new Event('input')); // Trigger logic
+            promptInput.dispatchEvent(new Event('input')); 
         });
     });
 
@@ -466,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (e) { sessions = {}; }
 
-    // --- Floating Canvas UI & Rendering Logics ---
+    // --- Floating Canvas UI ---
     let isDraggingCanvas = false;
     let dragStartX, dragStartY, initialLeft, initialTop;
 
@@ -608,51 +592,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderColumnConfirmationCard(payload) {
-        const slots = payload.slots || [];
-        const queryIntent = payload.query_intent || "Quantitative Analysis";
-        
-        let slotsHTML = slots.map((slot, sIdx) => {
-            const candidates = slot.candidates || [slot.selected_column];
-            const optionsHTML = candidates.map(c => `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`).join('');
-
-            return `
-                <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5 mt-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold">${slot.role || `Column ${sIdx + 1}`}</span>
-                        <span class="text-[9px] font-mono text-gray-500">${slot.inferred_type || 'String'}</span>
-                    </div>
-                    <div class="relative">
-                        <select class="column-slot-select w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-1.5 outline-none focus:border-gold/50 cursor-pointer" data-slot-index="${sIdx}">${optionsHTML}</select>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        return `
-            <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl">
-                <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-                    <div class="flex items-center space-x-2">
-                        <i class="ph ph-sliders-horizontal text-gold text-base"></i>
-                        <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm Target Schema</span>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">${slotsHTML}</div>
-                <div class="flex items-center justify-end pt-3 border-t border-white/5">
-                    <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
-                        <i class="ph ph-check-circle font-bold text-sm"></i><span>Confirm & Execute</span>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    const getAvatarNode = (isThinking = false) => `
-        <div class="w-8 h-8 rounded-sm border border-${activePersona === 'prometheus' ? 'crimson' : 'emerald-500'}/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_currentColor] relative overflow-hidden">
-             <i class="ph ph-${activePersona === 'prometheus' ? 'brain' : 'cpu'} text-${activePersona === 'prometheus' ? 'crimson' : 'emerald-400'} text-sm ${isThinking ? 'animate-pulse' : ''}"></i>
-        </div>
-    `;
-
     // --- Execution Engine ---
     if (sendBtn && promptInput) {
         sendBtn.addEventListener('click', async () => {
@@ -671,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatStream.appendChild(userMsg);
             
             promptInput.value = '';
-            promptInput.dispatchEvent(new Event('input')); // Reset UI state
+            promptInput.dispatchEvent(new Event('input')); 
             
             // Route Logic
             let actionType = 'artemis_query'; 
@@ -689,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('chat-stream-container');
             if (container) container.scrollTop = container.scrollHeight;
 
-            // Loading State UI
+            // Loading UI
             const aiMsg = document.createElement('div');
             aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
             const reqStartTime = Date.now();
@@ -727,7 +666,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(requestPayload)
                 });
 
-                // SAFE PARSE: Prevents "body stream already read" Error
                 const textResponse = await response.text();
                 let data;
                 let isJson = true;
@@ -735,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     data = JSON.parse(textResponse); 
                 } catch(e) { 
                     isJson = false; 
-                    data = textResponse; // Retains raw text for error display
+                    data = textResponse; 
                 }
 
                 if (!response.ok) { throw new Error((isJson && data.error) ? data.error : `HTTP Error ${response.status}: ${data}`); }
@@ -745,13 +683,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
-                    const logsArray = data.logs || [];
-
+                    
                     sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
-                    // FIX: Strict schema adherence for Gemini API. Removed "logs: logsArray" from history payload.
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
 
-                    // Gen UI parsing (If GAS returns a table/chart)
+                    // Gen UI parsing
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
                     let parsedGenUI = null;
@@ -776,16 +712,83 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : 'LOCAL NLP'}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
+                            
+                            <!-- DYNAMIC UI CONTAINER -->
+                            <div id="gen-ui-container-${latency}"></div>
+
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
                                 <button class="copy-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
                                 <button class="speak-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
                             </div>
-                            ${parsedGenUI ? `<button class="open-ui-btn text-[11px] ${colorClass} font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>` : ''}
                         </div>
                     `;
 
-                    aiMsg.querySelector('.copy-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
+                    // Generate Dynamic Card logic inside the message
+                    if (parsedGenUI) {
+                        const containerId = `gen-ui-container-${latency}`;
+                        const dynamicContainer = aiMsg.querySelector(`#${containerId}`);
 
+                        if (parsedGenUI.type === 'column_confirmation') {
+                            
+                            // 1. Build the confirm schema UI
+                            let slotsHTML = (parsedGenUI.slots || []).map((slot, sIdx) => {
+                                const candidates = slot.candidates || [slot.selected_column];
+                                const optionsHTML = candidates.map(c => `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`).join('');
+                                return `
+                                    <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5 mt-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold">${slot.role || `Column ${sIdx + 1}`}</span>
+                                        </div>
+                                        <div class="relative">
+                                            <select class="column-slot-select w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-1.5 outline-none focus:border-gold/50 cursor-pointer" data-slot-index="${sIdx}">${optionsHTML}</select>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+
+                            dynamicContainer.innerHTML = `
+                                <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl">
+                                    <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                                        <div class="flex items-center space-x-2">
+                                            <i class="ph ph-sliders-horizontal text-gold text-base"></i>
+                                            <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm Target Schema</span>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">${slotsHTML}</div>
+                                    <div class="flex items-center justify-end pt-3 border-t border-white/5">
+                                        <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
+                                            <i class="ph ph-check-circle font-bold text-sm"></i><span>Confirm & Execute</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+
+                            // 2. Attach Listener for the Confirm Click
+                            const confirmBtn = dynamicContainer.querySelector('.confirm-column-btn');
+                            confirmBtn.addEventListener('click', () => {
+                                const selects = dynamicContainer.querySelectorAll('.column-slot-select');
+                                const confirmedColumns = Array.from(selects).map(s => s.value);
+                                
+                                // THIS EXACT PROMPT FORMAT MATCHES MacroTool.gs logic 
+                                const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: ["${confirmedColumns[0]}"]. Execute the calculation using your custom GAS tools.`;
+                                
+                                confirmBtn.disabled = true;
+                                confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
+                                
+                                promptInput.value = executePrompt;
+                                sendBtn.click();
+                            });
+
+                        } else {
+                            // Render generic "View Artifact" button for charts and tables
+                            dynamicContainer.innerHTML = `<button class="open-ui-btn text-[11px] ${colorClass} font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
+                            const openBtn = dynamicContainer.querySelector('.open-ui-btn');
+                            openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        }
+                    }
+
+                    // Setup utility buttons
+                    aiMsg.querySelector('.copy-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
                     const speakBtn = aiMsg.querySelector('.speak-btn');
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
@@ -795,8 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
                             voiceEngine.speak(
-                                aiText,
-                                targetPersona.toLowerCase(),
+                                aiText, targetPersona.toLowerCase(),
                                 () => hologram.setState('speaking'),
                                 () => { hologram.setState('idle'); speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`; },
                                 (freq) => hologram.setAudioPulse(freq)
@@ -806,21 +808,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (voiceEngine.autoSpeak && !isMacro) {
                         voiceEngine.speak(
-                            aiText, 
-                            targetPersona.toLowerCase(), 
+                            aiText, targetPersona.toLowerCase(), 
                             () => hologram.setState('speaking'), 
                             () => hologram.setState('idle'), 
                             (freq) => hologram.setAudioPulse(freq)
                         );
-                    }
-
-                    if (parsedGenUI) {
-                        const openBtn = aiMsg.querySelector('.open-ui-btn');
-                        if (openBtn) {
-                            openBtn.addEventListener('click', () => { 
-                                openArtifactCanvas(parsedGenUI); 
-                            });
-                        }
                     }
 
                 } else {
@@ -846,7 +838,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Fallback required empty objects
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
