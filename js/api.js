@@ -5,6 +5,50 @@
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
+// NEW: CLIENT-SIDE WEBGPU AI ENGINE
+// ==========================================
+class LocalAIEngine {
+    constructor() {
+        this.engine = null;
+        this.isReady = false;
+        this.isLoading = false;
+    }
+    async initialize(statusCallback) {
+        if (this.isReady) return;
+        this.isLoading = true;
+        statusCallback("Downloading WebGPU Engine...");
+        try {
+            const webllm = await import("https://esm.run/@mlc.ai/web-llm");
+            this.engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", { 
+                initProgressCallback: (info) => statusCallback(info.text) 
+            });
+            this.isReady = true;
+            statusCallback("WebGPU Active");
+        } catch (e) {
+            console.error("WebLLM Init Failed:", e);
+            statusCallback("WebGPU Failed");
+        }
+        this.isLoading = false;
+    }
+    async extractAST(prompt) {
+        if (!this.isReady) return null;
+        try {
+            const messages = [
+                { role: "system", content: "You are a compiler. Convert the user query into a JSON object with keys: operation (filter_count, group_by, or time_series), title, filterValue (if applicable), and slots (array of objects with role, inferred_type, selected_column). Return ONLY valid JSON." },
+                { role: "user", content: prompt }
+            ];
+            const reply = await this.engine.chat.completions.create({ messages, temperature: 0.1 });
+            const jsonText = reply.choices[0].message.content;
+            const match = jsonText.match(/\{[\s\S]*\}/);
+            return match ? JSON.parse(match[0]) : null;
+        } catch (e) {
+            console.error("WebLLM Parse Error:", e);
+            return null;
+        }
+    }
+}
+
+// ==========================================
 // 1. DYNAMIC 3D HTML5 CANVAS HOLOGRAM ENGINE
 // ==========================================
 class CoreHologram {
@@ -291,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const hologram = new CoreHologram('jarvis-core-canvas');
     const voiceEngine = new VoiceEngine();
+    const localAI = new LocalAIEngine();
 
     const promptInput = document.getElementById('prompt-input');
     const promptContainer = document.getElementById('prompt-container');
@@ -317,6 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const pinnedList = document.getElementById('pinned-sessions-list');
     const pinnedHeader = document.getElementById('pinned-header');
     const newChatBtn = document.getElementById('new-chat-btn');
+    
+    const webgpuBtn = document.getElementById('webgpu-toggle-btn');
+    const webgpuStatus = document.getElementById('webgpu-status');
+    const webgpuIcon = document.getElementById('webgpu-icon');
 
     let currentSessionId = Date.now().toString();
     let sessions = {};
@@ -324,6 +373,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let activePersona = 'artemis';
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
+
+    // --- WebGPU Toggle Logic ---
+    if (webgpuBtn) {
+        webgpuBtn.addEventListener('click', async () => {
+            if (localAI.isReady) {
+                alert("WebGPU AI is already active and running in memory.");
+                return;
+            }
+            if (localAI.isLoading) return;
+            webgpuIcon.classList.remove('ph-lightning');
+            webgpuIcon.classList.add('ph-circle-notch', 'animate-spin', 'text-gold');
+            webgpuStatus.classList.add('text-gold');
+            
+            await localAI.initialize((msg) => {
+                webgpuStatus.textContent = msg.substring(0, 20) + "...";
+            });
+
+            if (localAI.isReady) {
+                webgpuIcon.classList.remove('ph-circle-notch', 'animate-spin', 'text-gold');
+                webgpuIcon.classList.add('ph-lightning-fill', 'text-emerald-400');
+                webgpuStatus.textContent = "WebGPU AI: ON";
+                webgpuStatus.classList.replace('text-gray-500', 'text-emerald-400');
+            } else {
+                webgpuIcon.className = "ph ph-warning-circle text-red-400 text-sm";
+                webgpuStatus.textContent = "WebGPU Failed";
+                webgpuStatus.classList.replace('text-gold', 'text-red-400');
+            }
+        });
+    }
 
     // --- Session Persistence Methods ---
     try {
@@ -439,7 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
                     }
 
-                    // FIX: Safe history rendering for old column confirmations
                     let genUIHtml = '';
                     if (parsedGenUI) {
                         if (parsedGenUI.type === 'column_confirmation') {
@@ -747,7 +824,6 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             if(hologramText) hologramText.style.opacity = '0';
 
-            // FIX: Instantly save session title & user prompt to memory
             if (!sessions[currentSessionId]) { 
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] }; 
             } else if (sessions[currentSessionId].title === "New Session" || !sessions[currentSessionId].history.length) {
@@ -757,7 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
             renderSessions();
 
-            // Display User Message
             const userMsg = document.createElement('div');
             userMsg.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
             userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
@@ -803,15 +878,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
+            // NEW: Attempt WebGPU AST extraction silently if engine is ready
+            let clientAstPayload = null;
+            if (actionType === 'artemis_query' && localAI.isReady && !val.includes("using exact confirmed columns")) {
+                clientAstPayload = await localAI.extractAST(val);
+            }
+
             try {
-                // FIX: Added session_id parameter to explicitly link frontend to backend Drive logger
                 const requestPayload = { 
                     action: actionType, macro: macroCmd, prompt: val, 
-                    history: sessions[currentSessionId].history.slice(0, -1), // Send history excluding current msg
+                    history: sessions[currentSessionId].history.slice(0, -1),
                     secret: 'system_dashboard_init', 
                     model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
                     context_payload: activeContextPayload,
-                    session_id: currentSessionId
+                    session_id: currentSessionId,
+                    client_ast: clientAstPayload // NEW: Passes to backend
                 };
 
                 const response = await fetch(ARTEMIS_API_URL, {
@@ -832,7 +913,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
                     
-                    // FIX: Save AI response immediately to local memory
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
@@ -856,7 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono ${colorClass} mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>${targetPersona} Execution (${latency}ms)</span></div>
-                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : 'LOCAL NLP'}</div>
+                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : (clientAstPayload ? 'WEBGPU LLM' : 'LOCAL NLP')}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             
@@ -977,7 +1057,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // INITIALIZATION RENDER CALLS
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
