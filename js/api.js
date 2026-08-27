@@ -20,7 +20,7 @@ class LocalAIEngine {
         try {
             // FIX: Corrected package name from @mlc.ai to @mlc-ai
             const webllm = await import("https://esm.run/@mlc-ai/web-llm");
-            this.engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", { 
+            this.engine = await webllm.CreateMLCEngine("Phi-3-mini-4k-instruct-q4f16_1-MLC", {
                 initProgressCallback: (info) => statusCallback(info.text) 
             });
             this.isReady = true;
