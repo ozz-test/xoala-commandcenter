@@ -1,4 +1,3 @@
-
 /**
  * === XOALA COMMAND CENTER: DUAL-PERSONA TERMINAL ENGINE ===
  */
@@ -19,7 +18,8 @@ class LocalAIEngine {
         this.isLoading = true;
         statusCallback("Downloading WebGPU Engine...");
         try {
-            const webllm = await import("https://esm.run/@mlc.ai/web-llm");
+            // FIX: Corrected package name from @mlc.ai to @mlc-ai
+            const webllm = await import("https://esm.run/@mlc-ai/web-llm");
             this.engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", { 
                 initProgressCallback: (info) => statusCallback(info.text) 
             });
@@ -518,6 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
                     }
 
+                    // FIX: Safe history rendering for old column confirmations
                     let genUIHtml = '';
                     if (parsedGenUI) {
                         if (parsedGenUI.type === 'column_confirmation') {
@@ -825,6 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             if(hologramText) hologramText.style.opacity = '0';
 
+            // FIX: Instantly save session title & user prompt to memory
             if (!sessions[currentSessionId]) { 
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] }; 
             } else if (sessions[currentSessionId].title === "New Session" || !sessions[currentSessionId].history.length) {
@@ -834,6 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
             renderSessions();
 
+            // Display User Message
             const userMsg = document.createElement('div');
             userMsg.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
             userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
@@ -886,9 +889,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
+                // FIX: Added session_id parameter to explicitly link frontend to backend Drive logger
                 const requestPayload = { 
                     action: actionType, macro: macroCmd, prompt: val, 
-                    history: sessions[currentSessionId].history.slice(0, -1),
+                    history: sessions[currentSessionId].history.slice(0, -1), // Send history excluding current msg
                     secret: 'system_dashboard_init', 
                     model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
                     context_payload: activeContextPayload,
@@ -914,6 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
                     
+                    // FIX: Save AI response immediately to local memory
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
@@ -1058,6 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // INITIALIZATION RENDER CALLS
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
