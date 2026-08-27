@@ -313,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const holoSubtitle = document.getElementById('holo-subtitle');
     const modelSelect = document.getElementById('model-select');
 
-    // UI List DOM Elements (RESTORED)
     const sessionsList = document.getElementById('chat-sessions-list');
     const pinnedList = document.getElementById('pinned-sessions-list');
     const pinnedHeader = document.getElementById('pinned-header');
@@ -326,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    // --- Session Persistence Methods (RESTORED) ---
+    // --- Session Persistence Methods ---
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
         if (raw) {
@@ -440,9 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
                     }
 
+                    // FIX: Safe history rendering for old column confirmations
                     let genUIHtml = '';
                     if (parsedGenUI) {
-                        genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
+                        if (parsedGenUI.type === 'column_confirmation') {
+                             genUIHtml = `<div class="text-[10px] text-gray-500 italic mt-2 border-t border-white/5 pt-2">Schema confirmation requested.</div>`;
+                        } else {
+                             genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
+                        }
                     }
 
                     a.innerHTML = `
@@ -455,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
 
-                    if (parsedGenUI) {
+                    if (parsedGenUI && parsedGenUI.type !== 'column_confirmation') {
                         const openBtn = a.querySelector('.open-ui-btn');
                         if (openBtn) {
                             openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
@@ -743,12 +747,15 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             if(hologramText) hologramText.style.opacity = '0';
 
-            // IMPORTANT: Create or update session title
+            // FIX: Instantly save session title & user prompt to memory
             if (!sessions[currentSessionId]) { 
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] }; 
             } else if (sessions[currentSessionId].title === "New Session" || !sessions[currentSessionId].history.length) {
                 sessions[currentSessionId].title = val.substring(0, 24) + "...";
             }
+            sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
+            localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+            renderSessions();
 
             // Display User Message
             const userMsg = document.createElement('div');
@@ -797,11 +804,14 @@ document.addEventListener('DOMContentLoaded', () => {
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
             try {
-                const historyPayload = sessions[currentSessionId].history || [];
+                // FIX: Added session_id parameter to explicitly link frontend to backend Drive logger
                 const requestPayload = { 
-                    action: actionType, macro: macroCmd, prompt: val, history: historyPayload, 
-                    secret: 'system_dashboard_init', model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
-                    context_payload: activeContextPayload 
+                    action: actionType, macro: macroCmd, prompt: val, 
+                    history: sessions[currentSessionId].history.slice(0, -1), // Send history excluding current msg
+                    secret: 'system_dashboard_init', 
+                    model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
+                    context_payload: activeContextPayload,
+                    session_id: currentSessionId
                 };
 
                 const response = await fetch(ARTEMIS_API_URL, {
@@ -822,11 +832,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
                     
-                    // SAVE HISTORY
-                    sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
+                    // FIX: Save AI response immediately to local memory
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
-                    renderSessions();
 
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
