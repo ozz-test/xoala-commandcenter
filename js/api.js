@@ -313,12 +313,172 @@ document.addEventListener('DOMContentLoaded', () => {
     const holoSubtitle = document.getElementById('holo-subtitle');
     const modelSelect = document.getElementById('model-select');
 
+    // UI List DOM Elements (RESTORED)
+    const sessionsList = document.getElementById('chat-sessions-list');
+    const pinnedList = document.getElementById('pinned-sessions-list');
+    const pinnedHeader = document.getElementById('pinned-header');
+    const newChatBtn = document.getElementById('new-chat-btn');
+
     let currentSessionId = Date.now().toString();
     let sessions = {};
     let activeContextPayload = null; 
     let activePersona = 'artemis';
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
+
+    // --- Session Persistence Methods (RESTORED) ---
+    try {
+        const raw = localStorage.getItem('xoala_chat_sessions');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            for (const key in parsed) {
+                if (parsed[key] && typeof parsed[key] === 'object') {
+                    sessions[key] = { title: parsed[key].title || "Investigation", pinned: !!parsed[key].pinned, history: Array.isArray(parsed[key].history) ? parsed[key].history : [] };
+                }
+            }
+        }
+    } catch (e) { sessions = {}; }
+
+    const renderSessions = () => {
+        if (!sessionsList || !pinnedList) return;
+        const keys = Object.keys(sessions);
+        const pinnedKeys = keys.filter(k => sessions[k] && sessions[k].pinned);
+        const recentKeys = keys.filter(k => sessions[k] && !sessions[k].pinned).reverse();
+
+        if (pinnedKeys.length > 0) pinnedHeader.classList.remove('hidden');
+        else pinnedHeader.classList.add('hidden');
+
+        const buildSessionNodeHTML = (id) => {
+            const s = sessions[id];
+            const isSelected = (id === currentSessionId);
+            return `
+                <div class="session-item group px-2.5 py-2 rounded-sm text-xs font-mono text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-white/10 text-gold font-semibold border-l border-gold pl-2' : ''}" data-id="${id}">
+                    <span class="truncate max-w-[125px]" title="${s.title}">${s.title}</span>
+                    <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="pin-btn p-1 hover:text-gold" data-id="${id}"><i class="ph ${s.pinned ? 'ph-push-pin text-gold' : 'ph-push-pin'}"></i></button>
+                        <button class="delete-btn p-1 hover:text-red-400" data-id="${id}"><i class="ph ph-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        };
+
+        pinnedList.innerHTML = pinnedKeys.map(key => buildSessionNodeHTML(key)).join('');
+        sessionsList.innerHTML = recentKeys.map(key => buildSessionNodeHTML(key)).join('');
+
+        document.querySelectorAll('.session-item').forEach(el => {
+            const id = el.getAttribute('data-id');
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('button')) return;
+                currentSessionId = id;
+                voiceEngine.stop();
+                hologram.setState('idle');
+                renderChatHistory(sessions[id].history);
+                renderSessions();
+            });
+
+            const pinBtn = el.querySelector('.pin-btn');
+            if (pinBtn) {
+                pinBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sessions[id].pinned = !sessions[id].pinned;
+                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+                    renderSessions();
+                });
+            }
+
+            const deleteBtn = el.querySelector('.delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if(!confirm("Permanently delete this thread?")) return;
+                    delete sessions[id];
+                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+                    if (currentSessionId === id) {
+                        currentSessionId = Date.now().toString();
+                        sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
+                        renderChatHistory([]);
+                    }
+                    renderSessions();
+                });
+            }
+        });
+    };
+
+    const renderChatHistory = (historyArray) => {
+        if (!chatStream) return;
+        chatStream.innerHTML = '';
+        
+        if (!historyArray || historyArray.length === 0) {
+            if(hologramText) hologramText.style.opacity = '1';
+            return;
+        }
+
+        if(hologramText) hologramText.style.opacity = '0';
+
+        historyArray.forEach(msg => {
+            try {
+                if (!msg.parts || !msg.parts[0] || !msg.parts[0].text) return;
+                
+                if (msg.role === 'user') {
+                    const u = document.createElement('div');
+                    u.className = "self-end bg-surface/80 border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
+                    u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
+                    chatStream.appendChild(u);
+                } else {
+                    const a = document.createElement('div');
+                    a.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
+                    
+                    let cleanText = msg.parts[0].text;
+                    const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
+                    const match = cleanText.match(jsonBlockRegex);
+                    let parsedGenUI = null;
+
+                    if (match && match[1]) {
+                        try {
+                            parsedGenUI = JSON.parse(match[1]);
+                            cleanText = cleanText.replace(jsonBlockRegex, '').trim();
+                        } catch (e) {}
+                    }
+
+                    let genUIHtml = '';
+                    if (parsedGenUI) {
+                        genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
+                    }
+
+                    a.innerHTML = `
+                        <div class="w-8 h-8 rounded-sm border border-emerald-500/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)] relative overflow-hidden">
+                             <i class="ph ph-cpu text-emerald-400 text-sm"></i>
+                        </div>
+                        <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
+                            ${genUIHtml}
+                        </div>
+                    `;
+
+                    if (parsedGenUI) {
+                        const openBtn = a.querySelector('.open-ui-btn');
+                        if (openBtn) {
+                            openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
+                        }
+                    }
+                    chatStream.appendChild(a);
+                }
+            } catch (err) {}
+        });
+        
+        const container = document.getElementById('chat-stream-container');
+        if (container) container.scrollTop = container.scrollHeight;
+    };
+
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', () => {
+            currentSessionId = Date.now().toString();
+            sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
+            renderSessions();
+            renderChatHistory([]);
+            promptInput.focus();
+        });
+    }
 
     // --- Input Listener ---
     promptInput.addEventListener('input', (e) => {
@@ -431,19 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
             promptInput.dispatchEvent(new Event('input'));
         });
     });
-
-    // Session UI Initialization
-    try {
-        const raw = localStorage.getItem('xoala_chat_sessions');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            for (const key in parsed) {
-                if (parsed[key] && typeof parsed[key] === 'object') {
-                    sessions[key] = { title: parsed[key].title || "Investigation", pinned: !!parsed[key].pinned, history: Array.isArray(parsed[key].history) ? parsed[key].history : [] };
-                }
-            }
-        }
-    } catch (e) { sessions = {}; }
 
     // --- Floating Canvas UI ---
     let isDraggingCanvas = false;
@@ -596,7 +743,12 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             if(hologramText) hologramText.style.opacity = '0';
 
-            if (!sessions[currentSessionId]) { sessions[currentSessionId] = { title: val.substring(0, 24) + "...", history: [] }; }
+            // IMPORTANT: Create or update session title
+            if (!sessions[currentSessionId]) { 
+                sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] }; 
+            } else if (sessions[currentSessionId].title === "New Session" || !sessions[currentSessionId].history.length) {
+                sessions[currentSessionId].title = val.substring(0, 24) + "...";
+            }
 
             // Display User Message
             const userMsg = document.createElement('div');
@@ -607,7 +759,6 @@ document.addEventListener('DOMContentLoaded', () => {
             promptInput.value = '';
             promptInput.dispatchEvent(new Event('input')); 
             
-            // Route Logic
             let actionType = 'artemis_query'; 
             let targetPersona = 'Artemis';
             let macroCmd = '';
@@ -623,14 +774,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('chat-stream-container');
             if (container) container.scrollTop = container.scrollHeight;
 
-            // Loading UI (Sleeker Text)
             const aiMsg = document.createElement('div');
             aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
             const reqStartTime = Date.now();
             
             const isMacro = actionType === 'execute_macro';
-            
-            // NEW SLEEKER LOADING TEXT
             const loadingText = actionType === 'prometheus_query' 
                 ? 'Synthesizing Strategy...' 
                 : (isMacro ? 'Executing Terminal Macro...' : 'Analyzing Data Lake...');
@@ -648,16 +796,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
-            // --- PAYLOAD CONSTRUCTION ---
             try {
                 const historyPayload = sessions[currentSessionId].history || [];
                 const requestPayload = { 
-                    action: actionType,
-                    macro: macroCmd,
-                    prompt: val, 
-                    history: historyPayload, 
-                    secret: 'system_dashboard_init',
-                    model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
+                    action: actionType, macro: macroCmd, prompt: val, history: historyPayload, 
+                    secret: 'system_dashboard_init', model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
                     context_payload: activeContextPayload 
                 };
 
@@ -669,12 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textResponse = await response.text();
                 let data;
                 let isJson = true;
-                try { 
-                    data = JSON.parse(textResponse); 
-                } catch(e) { 
-                    isJson = false; 
-                    data = textResponse; 
-                }
+                try { data = JSON.parse(textResponse); } catch(e) { isJson = false; data = textResponse; }
 
                 if (!response.ok) { throw new Error((isJson && data.error) ? data.error : `HTTP Error ${response.status}: ${data}`); }
 
@@ -684,10 +822,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
                     
+                    // SAVE HISTORY
                     sessions[currentSessionId].history.push({role: "user", parts: [{text: val}]});
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
+                    localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
+                    renderSessions();
 
-                    // Gen UI parsing
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
                     const match = aiText.match(jsonBlockRegex);
                     let parsedGenUI = null;
@@ -701,7 +841,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const formattedText = marked.parse(aiText);
                     
-                    // Final Response Render
                     aiMsg.innerHTML = `
                         <div class="w-8 h-8 rounded-sm border border-${colorClass.split('-')[1]}/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_currentColor] relative overflow-hidden">
                             <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'} ${colorClass} text-sm"></i>
@@ -713,7 +852,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             
-                            <!-- DYNAMIC UI CONTAINER -->
                             <div id="gen-ui-container-${latency}"></div>
 
                             <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
@@ -723,14 +861,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
 
-                    // Generate Dynamic Card logic inside the message
                     if (parsedGenUI) {
                         const containerId = `gen-ui-container-${latency}`;
                         const dynamicContainer = aiMsg.querySelector(`#${containerId}`);
 
                         if (parsedGenUI.type === 'column_confirmation') {
-                            
-                            // 1. Build the confirm schema UI
                             let slotsHTML = (parsedGenUI.slots || []).map((slot, sIdx) => {
                                 const candidates = slot.candidates || [slot.selected_column];
                                 const optionsHTML = candidates.map(c => `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`).join('');
@@ -763,13 +898,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             `;
 
-                            // 2. Attach Listener for the Confirm Click
                             const confirmBtn = dynamicContainer.querySelector('.confirm-column-btn');
                             confirmBtn.addEventListener('click', () => {
                                 const selects = dynamicContainer.querySelectorAll('.column-slot-select');
                                 const confirmedColumns = Array.from(selects).map(s => s.value);
                                 
-                                // THIS EXACT PROMPT FORMAT MATCHES MacroTool.gs logic 
                                 const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: ["${confirmedColumns[0]}"]. Execute the calculation using your custom GAS tools.`;
                                 
                                 confirmBtn.disabled = true;
@@ -780,14 +913,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
 
                         } else {
-                            // Render generic "View Artifact" button for charts and tables
                             dynamicContainer.innerHTML = `<button class="open-ui-btn text-[11px] ${colorClass} font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
                             const openBtn = dynamicContainer.querySelector('.open-ui-btn');
                             openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                         }
                     }
 
-                    // Setup utility buttons
                     aiMsg.querySelector('.copy-btn').addEventListener('click', () => { navigator.clipboard.writeText(aiText); });
                     const speakBtn = aiMsg.querySelector('.speak-btn');
                     speakBtn.addEventListener('click', () => {
@@ -838,7 +969,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // INITIALIZATION RENDER CALLS
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
+    renderSessions();
+    renderChatHistory(sessions[currentSessionId].history);
 });
