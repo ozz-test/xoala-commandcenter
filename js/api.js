@@ -1,11 +1,25 @@
 /**
- * === XOALA COMMAND CENTER: DUAL-PERSONA TERMINAL ENGINE ===
+ * === FILE: api.js (Xoala Command Center Frontend Engine) ===
+ * 
+ * ARCHITECTURE OVERVIEW:
+ * This file acts as the master client-side controller for the terminal UI.
+ * 
+ * CORE MODULES:
+ * 1. LocalAIEngine (WebGPU): Downloads and runs a 2-Billion parameter language model (Gemma) 
+ *    directly inside the browser's IndexedDB cache. It uses the user's local graphics card 
+ *    to translate English into JSON ASTs, completely bypassing server NLP routing.
+ * 2. CoreHologram: A 3D Canvas matrix that dynamically changes colors, rotation speed, 
+ *    and audio-pulse rings based on whether the AI is thinking, speaking, or executing macros.
+ * 3. VoiceEngine & SpeechInputEngine: Handles native browser Text-to-Speech (with distinct 
+ *    pitch/speed profiles for Artemis vs. Prometheus) and microphone dictation.
+ * 4. UI Controller & Session Manager: Manages chat history persistence via LocalStorage, 
+ *    handles DOM event listeners, and dynamically renders GenUI payloads (Chart.js / Tabulator).
  */
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// NEW: CLIENT-SIDE WEBGPU AI ENGINE
+// 1. CLIENT-SIDE WEBGPU AI ENGINE (WebLLM)
 // ==========================================
 class LocalAIEngine {
     constructor() {
@@ -13,17 +27,19 @@ class LocalAIEngine {
         this.isReady = false;
         this.isLoading = false;
     }
+    
     async initialize(statusCallback) {
         if (this.isReady) return;
         this.isLoading = true;
         statusCallback("Downloading WebGPU Engine...");
         try {
-            // FIX: Corrected package name from @mlc.ai to @mlc-ai
             const webllm = await import("https://esm.run/@mlc-ai/web-llm");
-            this.engine = await webllm.CreateMLCEngine("gemma-2b-it-q4f16_1-MLC", { 
-    initProgressCallback: (info) => statusCallback(info.text) 
-});
+            
+            // Fixed syntax: correctly closing the engine initialization object
+            this.engine = await webllm.CreateMLCEngine("gemma-2b-it-q4f16_1-MLC", {
+                initProgressCallback: (info) => statusCallback(info.text) 
             });
+            
             this.isReady = true;
             statusCallback("WebGPU Active");
         } catch (e) {
@@ -32,6 +48,7 @@ class LocalAIEngine {
         }
         this.isLoading = false;
     }
+    
     async extractAST(prompt) {
         if (!this.isReady) return null;
         try {
@@ -51,7 +68,7 @@ class LocalAIEngine {
 }
 
 // ==========================================
-// 1. DYNAMIC 3D HTML5 CANVAS HOLOGRAM ENGINE
+// 2. DYNAMIC 3D HTML5 CANVAS HOLOGRAM ENGINE
 // ==========================================
 class CoreHologram {
     constructor(canvasId) {
@@ -223,7 +240,7 @@ class CoreHologram {
 }
 
 // ==========================================
-// 2. DUAL-PERSONA VOICE SYNTHESIS ENGINE
+// 3. DUAL-PERSONA VOICE SYNTHESIS ENGINE
 // ==========================================
 class VoiceEngine {
     constructor() {
@@ -276,7 +293,7 @@ class VoiceEngine {
 }
 
 // ==========================================
-// 3. SPEECH-TO-TEXT DICTATION ENGINE
+// 4. SPEECH-TO-TEXT DICTATION ENGINE
 // ==========================================
 class SpeechInputEngine {
     constructor(inputId, btnId) {
@@ -331,7 +348,7 @@ class SpeechInputEngine {
 }
 
 // ==========================================
-// 4. UI CONTROLLER & ROUTER
+// 5. UI CONTROLLER & EVENT ROUTER
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -519,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
                     }
 
-                    // FIX: Safe history rendering for old column confirmations
+                    // Safe history rendering for old column confirmations
                     let genUIHtml = '';
                     if (parsedGenUI) {
                         if (parsedGenUI.type === 'column_confirmation') {
@@ -827,7 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             if(hologramText) hologramText.style.opacity = '0';
 
-            // FIX: Instantly save session title & user prompt to memory
+            // Save session title & user prompt to memory
             if (!sessions[currentSessionId]) { 
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] }; 
             } else if (sessions[currentSessionId].title === "New Session" || !sessions[currentSessionId].history.length) {
@@ -890,7 +907,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                // FIX: Added session_id parameter to explicitly link frontend to backend Drive logger
                 const requestPayload = { 
                     action: actionType, macro: macroCmd, prompt: val, 
                     history: sessions[currentSessionId].history.slice(0, -1), // Send history excluding current msg
@@ -898,7 +914,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
                     context_payload: activeContextPayload,
                     session_id: currentSessionId,
-                    client_ast: clientAstPayload // NEW: Passes to backend
+                    client_ast: clientAstPayload // Passes to backend
                 };
 
                 const response = await fetch(ARTEMIS_API_URL, {
@@ -919,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
                     
-                    // FIX: Save AI response immediately to local memory
+                    // Save AI response immediately to local memory
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
