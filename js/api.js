@@ -35,8 +35,8 @@ class LocalAIEngine {
         try {
             const webllm = await import("https://esm.run/@mlc-ai/web-llm");
             
-            // Using the elite Llama 3.2 1B Instruct Model (Optimized for WebGPU)
-            this.engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
+            // FIX: Exact registry ID for Llama 3.2 1B Q4F32_1 with correct syntax
+            this.engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f32_1-MLC", {
                 initProgressCallback: (info) => statusCallback(info.text) 
             });
             
@@ -536,7 +536,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
                     }
 
-                    // Safe history rendering for old column confirmations
                     let genUIHtml = '';
                     if (parsedGenUI) {
                         if (parsedGenUI.type === 'column_confirmation') {
@@ -900,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
-            // NEW: Attempt WebGPU AST extraction silently if engine is ready
+            // Attempt WebGPU AST extraction silently if engine is ready
             let clientAstPayload = null;
             if (actionType === 'artemis_query' && localAI.isReady && !val.includes("using exact confirmed columns")) {
                 clientAstPayload = await localAI.extractAST(val);
