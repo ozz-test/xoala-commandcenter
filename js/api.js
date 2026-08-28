@@ -5,7 +5,7 @@
  * This file acts as the master client-side controller for the terminal UI.
  * 
  * CORE MODULES:
- * 1. LocalAIEngine (WebGPU): Downloads and runs a 1-Billion parameter language model (Llama 3.2) 
+ * 1. LocalAIEngine (WebGPU): Downloads and runs a 1.5-Billion parameter language model (Qwen 2.5) 
  *    directly inside the browser's IndexedDB cache. It uses the user's local graphics card 
  *    to translate English into JSON ASTs, completely bypassing server NLP routing.
  * 2. CoreHologram: A 3D Canvas matrix that dynamically changes colors, rotation speed, 
@@ -35,8 +35,8 @@ class LocalAIEngine {
         try {
             const webllm = await import("https://esm.run/@mlc-ai/web-llm");
             
-            // FIX: Exact registry ID for Llama 3.2 1B Q4F32_1 with correct syntax
-            this.engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f32_1-MLC", {
+            // FIX: Using Qwen 2.5 1.5B. It is 100% Open Source and will not trigger HF License 404 blocks.
+            this.engine = await webllm.CreateMLCEngine("Qwen2.5-1.5B-Instruct-q4f16_1-MLC", {
                 initProgressCallback: (info) => statusCallback(info.text) 
             });
             
