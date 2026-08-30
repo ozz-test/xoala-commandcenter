@@ -2,66 +2,112 @@
  * === FILE: api.js (Xoala Command Center Frontend Engine) ===
  * 
  * ARCHITECTURE OVERVIEW:
- * This file acts as the master client-side controller for the terminal UI.
- * 
- * CORE MODULES:
- * 1. LocalAIEngine (WebGPU): Downloads and runs a 1.5-Billion parameter language model (Qwen 2.5) 
- *    directly inside the browser's IndexedDB cache. It uses the user's local graphics card 
- *    to translate English into JSON ASTs, completely bypassing server NLP routing.
- * 2. CoreHologram: A 3D Canvas matrix that dynamically changes colors, rotation speed, 
- *    and audio-pulse rings based on whether the AI is thinking, speaking, or executing macros.
- * 3. VoiceEngine & SpeechInputEngine: Handles native browser Text-to-Speech (with distinct 
- *    pitch/speed profiles for Artemis vs. Prometheus) and microphone dictation.
- * 4. UI Controller & Session Manager: Manages chat history persistence via LocalStorage, 
- *    handles DOM event listeners, and dynamically renders GenUI payloads (Chart.js / Tabulator).
+ * 1. VectorEmbeddingEngine: Uses Transformers.js (all-MiniLM-L6-v2) to calculate mathematical
+ *    vectors for user prompts. It uses Cosine Similarity to find the closest AST intent without
+ *    needing hardcoded keywords or massive generative LLMs.
+ * 2. CoreHologram: Dynamic 3D Canvas visualizer.
+ * 3. VoiceEngine & SpeechInputEngine: Audio I/O.
+ * 4. UI Controller & Session Manager: Chat persistence & rendering logic.
  */
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
 // ==========================================
-// 1. CLIENT-SIDE WEBGPU AI ENGINE (WebLLM)
+// 1. CLIENT-SIDE VECTOR EMBEDDING ENGINE
 // ==========================================
-class LocalAIEngine {
+class VectorEmbeddingEngine {
     constructor() {
-        this.engine = null;
+        this.extractor = null;
         this.isReady = false;
         this.isLoading = false;
+        this.intentAnchors = {};
     }
     
     async initialize(statusCallback) {
         if (this.isReady) return;
         this.isLoading = true;
-        statusCallback("Downloading WebGPU Engine...");
+        statusCallback("Loading Vector Engine...");
+        
         try {
-            const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+            // Import Transformers.js dynamically
+            const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
             
-            // FIX: Using Qwen 2.5 1.5B. It is 100% Open Source and will not trigger HF License 404 blocks.
-            this.engine = await webllm.CreateMLCEngine("Qwen2.5-1.5B-Instruct-q4f16_1-MLC", {
-                initProgressCallback: (info) => statusCallback(info.text) 
+            // Disable local model loading to force fetching from HF CDN
+            env.allowLocalModels = false;
+            
+            // Load the tiny 22MB embedding model
+            this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+                progress_callback: (x) => {
+                    if (x.status === 'progress') {
+                        statusCallback(`Downloading... ${Math.round(x.progress)}%`);
+                    }
+                }
             });
+
+            // Pre-calculate vectors for our anchor intents
+            this.intentAnchors = {
+                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created"),
+                "filter_count": await this.getVector("how many tickets count total number amount of items assigned"),
+                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction"),
+                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution"),
+                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution")
+            };
             
             this.isReady = true;
-            statusCallback("WebGPU Active");
+            statusCallback("Vector AI Active");
         } catch (e) {
-            console.error("WebLLM Init Failed:", e);
-            statusCallback("WebGPU Failed");
+            console.error("Vector Engine Init Failed:", e);
+            statusCallback("Engine Failed");
         }
         this.isLoading = false;
     }
     
+    // Calculates the 384-dimensional vector for a string
+    async getVector(text) {
+        const output = await this.extractor(text, { pooling: 'mean', normalize: true });
+        return output.data;
+    }
+
+    // Mathematical Dot Product to find angle between two vectors
+    cosineSimilarity(vecA, vecB) {
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+        for (let i = 0; i < vecA.length; i++) {
+            dotProduct += vecA[i] * vecB[i];
+            normA += vecA[i] * vecA[i];
+            normB += vecB[i] * vecB[i];
+        }
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
     async extractAST(prompt) {
         if (!this.isReady) return null;
         try {
-            const messages = [
-                { role: "system", content: "You are a compiler. Convert the user query into a JSON object with keys: operation (filter_count, group_by, or time_series), title, filterValue (if applicable), and slots (array of objects with role, inferred_type, selected_column). Return ONLY valid JSON." },
-                { role: "user", content: prompt }
-            ];
-            const reply = await this.engine.chat.completions.create({ messages, temperature: 0.1 });
-            const jsonText = reply.choices[0].message.content;
-            const match = jsonText.match(/\{[\s\S]*\}/);
-            return match ? JSON.parse(match[0]) : null;
+            const promptVec = await this.getVector(prompt.toLowerCase());
+            
+            let bestIntent = "filter_count";
+            let highestScore = -1;
+
+            // Find the closest mathematical intent
+            for (const [intent, anchorVec] of Object.entries(this.intentAnchors)) {
+                const score = this.cosineSimilarity(promptVec, anchorVec);
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestIntent = intent;
+                }
+            }
+
+            // We pass the parsed intent & raw query down to GAS via the API payload.
+            // The backend LexicalTokenizer will use 'client_ast.operation' to skip keyword guessing.
+            return {
+                operation: bestIntent,
+                confidence: highestScore.toFixed(3),
+                inferred_by: "client_vector_engine"
+            };
+
         } catch (e) {
-            console.error("WebLLM Parse Error:", e);
+            console.error("Vector Parsing Error:", e);
             return null;
         }
     }
@@ -354,7 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const hologram = new CoreHologram('jarvis-core-canvas');
     const voiceEngine = new VoiceEngine();
-    const localAI = new LocalAIEngine();
+    
+    // Initialized as Vector Engine
+    const localAI = new VectorEmbeddingEngine();
 
     const promptInput = document.getElementById('prompt-input');
     const promptContainer = document.getElementById('prompt-container');
@@ -393,11 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    // --- WebGPU Toggle Logic ---
+    // --- Vector Engine Toggle Logic ---
     if (webgpuBtn) {
         webgpuBtn.addEventListener('click', async () => {
             if (localAI.isReady) {
-                alert("WebGPU AI is already active and running in memory.");
+                alert("Vector Engine is already active.");
                 return;
             }
             if (localAI.isLoading) return;
@@ -412,11 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (localAI.isReady) {
                 webgpuIcon.classList.remove('ph-circle-notch', 'animate-spin', 'text-gold');
                 webgpuIcon.classList.add('ph-lightning-fill', 'text-emerald-400');
-                webgpuStatus.textContent = "WebGPU AI: ON";
+                webgpuStatus.textContent = "Vector AI: ON";
                 webgpuStatus.classList.replace('text-gray-500', 'text-emerald-400');
             } else {
                 webgpuIcon.className = "ph ph-warning-circle text-red-400 text-sm";
-                webgpuStatus.textContent = "WebGPU Failed";
+                webgpuStatus.textContent = "Vector AI Failed";
                 webgpuStatus.classList.replace('text-gold', 'text-red-400');
             }
         });
@@ -899,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
-            // Attempt WebGPU AST extraction silently if engine is ready
+            // Attempt Vector AST extraction silently if engine is ready
             let clientAstPayload = null;
             if (actionType === 'artemis_query' && localAI.isReady && !val.includes("using exact confirmed columns")) {
                 clientAstPayload = await localAI.extractAST(val);
@@ -958,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono ${colorClass} mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>${targetPersona} Execution (${latency}ms)</span></div>
-                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : (clientAstPayload ? 'WEBGPU LLM' : 'LOCAL NLP')}</div>
+                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : (clientAstPayload ? 'VECTOR NLP' : 'LOCAL NLP')}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             
