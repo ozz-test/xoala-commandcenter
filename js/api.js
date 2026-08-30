@@ -1,10 +1,50 @@
 /**
  * === FILE: api.js (Xoala Command Center Frontend Engine) ===
+ * ULTIMATE UI/UX UPGRADE: Elite Terminal Chat, HITL Widget, & Date Parsing
  */
 
 import { DATA_LAKE_SCHEMA } from './schema.js';
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
+
+// ==========================================
+// DATE PARAMETER EXTRACTION ENGINE
+// ==========================================
+function extractDateFilter(prompt) {
+    const rangeMatch = prompt.match(/(?:between|from)\s+([\d\-\/\w\s,]+)\s+(?:to|and)\s+([\d\-\/\w\s,]+)/i);
+    if (rangeMatch) {
+        const start = new Date(rangeMatch[1].trim());
+        const end = new Date(rangeMatch[2].trim());
+        if (!isNaN(start) && !isNaN(end)) {
+            return {
+                mode: "range",
+                startDate: start.toISOString(),
+                endDate: end.toISOString()
+            };
+        }
+    }
+
+    const singleMatch = prompt.match(/(?:on|for|dated?)\s+([0-9]{4}[-\/][0-9]{1,2}[-\/][0-9]{1,2}|[A-Za-z]+\s+[0-9]{1,2}(?:st|nd|rd|th)?,?\s+[0-9]{4}|[0-9]{1,2}\s+[A-Za-z]+(?:\s+[0-9]{4})?)/i);
+    if (singleMatch) {
+        const parsedDate = new Date(singleMatch[1].trim());
+        if (!isNaN(parsedDate)) {
+            const year = parsedDate.getUTCFullYear();
+            const month = parsedDate.getUTCMonth();
+            const day = parsedDate.getUTCDate();
+
+            const startWindow = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+            const endWindow = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+
+            return {
+                mode: "single_day",
+                targetDateFormatted: parsedDate.toISOString().split('T')[0],
+                startWindow: startWindow.toISOString(),
+                endWindow: endWindow.toISOString()
+            };
+        }
+    }
+    return null;
+}
 
 // ==========================================
 // 1. CLIENT-SIDE VECTOR EMBEDDING ENGINE
@@ -110,13 +150,16 @@ class VectorEmbeddingEngine {
                 columnScores.push({ name: schema.name, score: score });
             }
             columnScores.sort((a, b) => b.score - a.score);
-            const topColumns = columnScores.slice(0, 5).map(c => c.name);
+            const topColumns = columnScores.slice(0, 6).map(c => c.name);
+            
+            const dateFilter = extractDateFilter(prompt);
 
             return {
                 needs_confirmation: true,
                 operation: bestIntent,
                 confidence: highestIntentScore.toFixed(3),
-                top_columns: topColumns
+                top_columns: topColumns,
+                date_filter: dateFilter
             };
 
         } catch (e) {
@@ -452,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    // --- Vector AI Toggle Logic ---
     if (webgpuBtn) {
         webgpuBtn.addEventListener('click', async () => {
             if (localAI.isReady) {
@@ -481,7 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Session Persistence Methods ---
     try {
         const raw = localStorage.getItem('xoala_chat_sessions');
         if (raw) {
@@ -576,12 +617,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (msg.role === 'user') {
                     const u = document.createElement('div');
-                    u.className = "self-end bg-surface/80 border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
-                    u.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${msg.parts[0].text}`;
+                    u.className = "self-end bg-[#1a1a1a]/80 backdrop-blur-md border border-white/5 rounded-lg p-4 max-w-[80%] text-[13px] text-gray-200 shadow-lg mt-6 relative z-10";
+                    u.innerHTML = `
+                        <div class="text-[9px] font-mono text-gold/70 mb-2 uppercase tracking-widest flex items-center justify-end space-x-1.5">
+                            <span>Authorized Admin</span><i class="ph ph-user-circle text-gold text-sm"></i>
+                        </div>
+                        <div class="leading-relaxed font-sans">${msg.parts[0].text}</div>
+                    `;
                     chatStream.appendChild(u);
                 } else {
                     const a = document.createElement('div');
-                    a.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
+                    a.className = "self-start bg-transparent w-full flex items-start space-x-4 mt-4 relative z-10";
                     
                     let cleanText = msg.parts[0].text;
                     const jsonBlockRegex = /\`\`\`json\s*([\s\S]*?)\s*\`\`\`/;
@@ -596,20 +642,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     let genUIHtml = '';
-                    if (parsedGenUI) {
-                        if (parsedGenUI.type === 'column_confirmation') {
-                             genUIHtml = `<div class="text-[10px] text-gray-500 italic mt-2 border-t border-white/5 pt-2">Schema confirmation requested.</div>`;
-                        } else {
-                             genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
-                        }
+                    if (parsedGenUI && parsedGenUI.type !== 'column_confirmation') {
+                         genUIHtml = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 px-3 py-1.5 rounded mt-4 flex items-center transition-colors shadow-lg"><i class="ph ph-layout mr-1.5"></i>View Artifact Rendering</button>`;
                     }
 
+                    let cpuColor = activePersona === 'prometheus' ? 'text-crimson' : 'text-gold';
+                    let glowColor = activePersona === 'prometheus' ? 'rgba(220,38,38,0.15)' : 'rgba(221,170,51,0.15)';
+
                     a.innerHTML = `
-                        <div class="w-8 h-8 rounded-sm border border-emerald-500/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)] relative overflow-hidden">
-                             <i class="ph ph-cpu text-emerald-400 text-sm"></i>
+                        <div class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_${glowColor}] relative overflow-hidden mt-1">
+                             <i class="ph ph-cpu ${cpuColor} text-base drop-shadow-[0_0_5px_currentColor]"></i>
                         </div>
-                        <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
-                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${marked.parse(cleanText)}</div>
+                        <div class="bg-gradient-to-b from-[#111] to-[#0a0a0a] border border-white/5 rounded-lg p-5 text-[13px] text-gray-300 shadow-2xl w-full max-w-[calc(100%-3rem)] relative overflow-hidden group">
+                            <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-${activePersona === 'prometheus' ? 'red-500' : 'gold'}/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed font-sans">${marked.parse(cleanText)}</div>
                             ${genUIHtml}
                         </div>
                     `;
@@ -639,29 +685,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Input Listener ---
     promptInput.addEventListener('input', (e) => {
         const val = e.target.value;
-        
         if (val.startsWith('/')) {
             promptContainer.classList.add('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]');
             promptInput.classList.add('text-emerald-400');
             promptInput.classList.remove('text-white', 'text-crimson');
             commandPalette.classList.remove('hidden');
             commandPalette.classList.add('flex');
-            
             resetToArtemis();
             sendBtnText.textContent = "Execute Macro";
-            
         } else if (val.toLowerCase().startsWith('@prometheus')) {
             promptContainer.classList.add('border-crimson/50', 'shadow-[0_0_15px_rgba(220,38,38,0.1)]');
             promptInput.classList.add('text-crimson-light');
             promptInput.classList.remove('text-white', 'text-emerald-400');
             commandPalette.classList.add('hidden');
             commandPalette.classList.remove('flex');
-            
             switchToPrometheus();
-            
         } else {
             promptContainer.classList.remove('border-emerald-500/50', 'shadow-[0_0_15px_rgba(16,185,129,0.1)]', 'border-crimson/50', 'shadow-[0_0_15px_rgba(220,38,38,0.1)]');
             promptContainer.classList.add('border-white/10');
@@ -669,7 +709,6 @@ document.addEventListener('DOMContentLoaded', () => {
             promptInput.classList.add('text-white');
             commandPalette.classList.add('hidden');
             commandPalette.classList.remove('flex');
-            
             resetToArtemis();
             sendBtnText.textContent = "Execute Local";
         }
@@ -679,18 +718,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activePersona === 'prometheus') return;
         activePersona = 'prometheus';
         hologram.setPersona('prometheus');
-        
         personaBadge.style.color = '#dc2626'; 
         personaIcon.className = "ph ph-brain text-lg";
         personaTitle.textContent = "PROMETHEUS STRATEGIC CORE";
-        
         holoTitle.textContent = "PROMETHEUS ACTIVE";
         holoTitle.style.color = '#dc2626';
         holoSubtitle.textContent = "Strategic Synthesis • Gemini API Routing";
-        
         sendBtn.style.backgroundImage = "linear-gradient(to right, #dc2626, #991b1b)";
         sendBtnText.textContent = "Synthesize (API)";
-        
         contextDock.classList.remove('hidden', 'opacity-0', 'h-0');
         contextDock.classList.add('h-10', 'opacity-100');
         modelSelect.classList.remove('hidden');
@@ -700,24 +735,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activePersona === 'artemis') return;
         activePersona = 'artemis';
         hologram.setPersona('artemis');
-        
         personaBadge.style.color = '#DDAA33'; 
         personaIcon.className = "ph ph-cpu text-lg";
         personaTitle.textContent = "ARTEMIS CORE";
-        
         holoTitle.textContent = "ARTEMIS QUANTITATIVE CORE";
         holoTitle.style.color = '#ffffff';
         holoSubtitle.textContent = "NLP Processing Active • Zero-API Routing";
-        
         sendBtn.style.backgroundImage = "linear-gradient(to right, #DDAA33, #997722)";
-        
         contextDock.classList.add('opacity-0', 'h-0');
         setTimeout(() => { if (activePersona === 'artemis') contextDock.classList.add('hidden'); }, 300);
         clearContextPayload();
         modelSelect.classList.add('hidden');
     }
 
-    // --- Context Dock Actions ---
     document.getElementById('attach-grid-btn').addEventListener('click', () => {
         activeContextPayload = { type: 'active_grid_data' };
         contextStatusBadge.textContent = "Grid Attached";
@@ -751,21 +781,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Floating Canvas UI ---
     let isDraggingCanvas = false;
     let dragStartX, dragStartY, initialLeft, initialTop;
-
     const artifactHeader = artifactPane.querySelector('.h-14');
     if (artifactHeader) {
         artifactHeader.style.cursor = 'move';
-        
         artifactHeader.addEventListener('mousedown', (e) => {
             if(e.target.closest('button')) return; 
-            
             isDraggingCanvas = true;
             dragStartX = e.clientX;
             dragStartY = e.clientY;
-            
             if (!artifactPane.classList.contains('is-floating')) {
                 artifactPane.classList.add('is-floating');
                 const rect = artifactPane.getBoundingClientRect();
@@ -780,12 +805,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 artifactPane.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 1)';
                 artifactPane.classList.remove('artifact-slide-in'); 
             }
-            
             initialLeft = parseInt(artifactPane.style.left || 0, 10);
             initialTop = parseInt(artifactPane.style.top || 0, 10);
             artifactPane.style.transition = 'none'; 
         });
-
         document.addEventListener('mousemove', (e) => {
             if (!isDraggingCanvas) return;
             const dx = e.clientX - dragStartX;
@@ -793,12 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
             artifactPane.style.left = `${initialLeft + dx}px`;
             artifactPane.style.top = `${initialTop + dy}px`;
         });
-
-        document.addEventListener('mouseup', () => {
-            if (isDraggingCanvas) {
-                isDraggingCanvas = false;
-            }
-        });
+        document.addEventListener('mouseup', () => { if (isDraggingCanvas) isDraggingCanvas = false; });
     }
 
     const openArtifactCanvas = (parsedData) => {
@@ -810,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Data Grid'}</h2>
                     <div class="flex space-x-2">
-                        <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg" title="Pin to Dashboard"><i class="ph ph-push-pin mr-1"></i> Pin</button>
+                        <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-push-pin mr-1"></i> Pin</button>
                         <button id="download-tabulator" class="text-xs text-gold border border-gold/30 hover:bg-gold/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-download-simple mr-1"></i> Export Data</button>
                     </div>
                 </div>
@@ -819,20 +837,15 @@ document.addEventListener('DOMContentLoaded', () => {
             contentArea.innerHTML = htmlContent;
             
             setTimeout(() => {
-                const tableCols = parsedData.columns.map((colName, index) => ({ 
-                    title: colName, field: `col${index}`, headerFilter: "input" 
-                }));
-                
+                const tableCols = parsedData.columns.map((colName, index) => ({ title: colName, field: `col${index}`, headerFilter: "input" }));
                 const tableData = parsedData.rows.map(rowArray => {
                     let obj = {};
                     parsedData.columns.forEach((_, index) => { obj[`col${index}`] = rowArray[index]; });
                     return obj;
                 });
-                
                 const table = new Tabulator("#tabulator-table", {
                     data: tableData, columns: tableCols, layout: "fitColumns", theme: "midnight", pagination: "local", paginationSize: 15,
                 });
-                
                 document.getElementById('download-tabulator').addEventListener('click', () => { table.download("csv", "artemis_data_export.csv"); });
             }, 100);
         } 
@@ -840,9 +853,9 @@ document.addEventListener('DOMContentLoaded', () => {
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
-                    <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg" title="Pin to Dashboard"><i class="ph ph-push-pin mr-1"></i> Pin Widget</button>
+                    <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-push-pin mr-1"></i> Pin Widget</button>
                 </div>
-                <div class="p-6 glass-card rounded-sm border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
+                <div class="p-6 bg-[#0a0a0a] rounded-xl border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
                     <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
                 </div>
             `;
@@ -864,14 +877,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             data: parsedData.data, 
                             backgroundColor: bgColors, 
                             borderWidth: 0, 
-                            borderRadius: 4 
+                            borderRadius: 6 
                         }] 
                     },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { legend: { display: false } } 
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }, 250);
         }
@@ -915,7 +924,6 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceEngine.stop();
             if(hologramText) hologramText.style.opacity = '0';
 
-            // Save session title & user prompt to memory
             if (!sessions[currentSessionId]) { 
                 sessions[currentSessionId] = { title: val.substring(0, 24) + "...", pinned: false, history: [] }; 
             } else if (sessions[currentSessionId].title === "New Session" || !sessions[currentSessionId].history.length) {
@@ -925,10 +933,14 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
             renderSessions();
 
-            // Display User Message
             const userMsg = document.createElement('div');
-            userMsg.className = "self-end bg-surface/80 backdrop-blur border border-white/10 rounded-sm p-3 max-w-[85%] text-[13px] text-gray-300 shadow-md mt-4 relative z-10";
-            userMsg.innerHTML = `<div class="text-[10px] font-mono text-gold mb-1 uppercase tracking-widest flex items-center justify-end space-x-1"><span>Admin User</span><i class="ph ph-user"></i></div>${val}`;
+            userMsg.className = "self-end bg-[#1a1a1a]/80 backdrop-blur-md border border-white/5 rounded-lg p-4 max-w-[80%] text-[13px] text-gray-200 shadow-lg mt-6 relative z-10";
+            userMsg.innerHTML = `
+                <div class="text-[9px] font-mono text-gold/70 mb-2 uppercase tracking-widest flex items-center justify-end space-x-1.5">
+                    <span>Authorized Admin</span><i class="ph ph-user-circle text-gold text-sm"></i>
+                </div>
+                <div class="leading-relaxed font-sans">${val}</div>
+            `;
             chatStream.appendChild(userMsg);
             
             promptInput.value = '';
@@ -950,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (container) container.scrollTop = container.scrollHeight;
 
             const aiMsg = document.createElement('div');
-            aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-3 mt-2 relative z-10";
+            aiMsg.className = "self-start bg-transparent w-full flex items-start space-x-4 mt-4 relative z-10";
             const reqStartTime = Date.now();
             
             const isMacro = actionType === 'execute_macro';
@@ -959,19 +971,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 : (isMacro ? 'Executing Terminal Macro...' : 'Analyzing Data Lake...');
                 
             const colorClass = actionType === 'prometheus_query' ? 'text-crimson-light' : (isMacro ? 'text-emerald-400' : 'text-gold');
+            let cpuColor = targetPersona === 'Prometheus' ? 'text-crimson' : 'text-gold';
+            let glowColor = targetPersona === 'Prometheus' ? 'rgba(220,38,38,0.15)' : 'rgba(221,170,51,0.15)';
             
             aiMsg.innerHTML = `
-                <div class="w-8 h-8 rounded-sm border border-${colorClass.split('-')[1]}/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_currentColor] relative overflow-hidden">
-                    <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'} ${colorClass} text-sm animate-pulse"></i>
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_${glowColor}] relative overflow-hidden mt-1">
+                    <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'} ${cpuColor} text-base drop-shadow-[0_0_5px_currentColor] animate-pulse"></i>
                 </div>
-                <div class="text-[13px] ${colorClass} font-mono pt-2 tracking-widest uppercase animate-pulse">${loadingText}</div>
+                <div class="text-[13px] ${colorClass} font-mono pt-2.5 tracking-widest uppercase animate-pulse drop-shadow-[0_0_8px_currentColor]">${loadingText}</div>
             `;
             chatStream.appendChild(aiMsg);
             if (container) container.scrollTop = container.scrollHeight;
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
-            // Intercept backend using the local Vector AI
             let clientAstPayload = null;
             let skipBackend = false;
             
@@ -988,10 +1001,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 let latency = Date.now() - reqStartTime;
 
                 if (skipBackend) {
-                    // Create the exact JSON format that triggers the frontend Schema Confirmation UI
                     const payloadObj = {
                         type: "column_confirmation",
                         query_intent: clientAstPayload.operation,
+                        date_filter: clientAstPayload.date_filter,
                         slots: [
                             {
                                 role: "Target Schema Column",
@@ -1003,7 +1016,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     data = {
                         status: 200,
-                        response: `I have analyzed the Data Lake using Local Vector NLP. I identified the mathematical intent as **${clientAstPayload.operation.replace(/_/g, ' ').toUpperCase()}**.\n\nPlease confirm or search the target column to execute the pipeline.\n\n\`\`\`json\n${JSON.stringify(payloadObj, null, 2)}\n\`\`\``
+                        response: `Local semantic vectors mathematically aligned to intent: **${clientAstPayload.operation.replace(/_/g, ' ').toUpperCase()}**.\n\nPlease verify or manually override the target mapping below.\n\n\`\`\`json\n${JSON.stringify(payloadObj, null, 2)}\n\`\`\``
                     };
                 } else {
                     const requestPayload = { 
@@ -1049,21 +1062,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formattedText = marked.parse(aiText);
                     
                     aiMsg.innerHTML = `
-                        <div class="w-8 h-8 rounded-sm border border-${colorClass.split('-')[1]}/50 flex items-center justify-center bg-obsidian flex-shrink-0 shadow-[0_0_8px_currentColor] relative overflow-hidden">
-                            <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'} ${colorClass} text-sm"></i>
+                        <div class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_${glowColor}] relative overflow-hidden mt-1">
+                            <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'} ${cpuColor} text-base drop-shadow-[0_0_5px_currentColor]"></i>
                         </div>
-                        <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
-                            <div class="text-[9px] font-mono ${colorClass} mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
-                                <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>${targetPersona} Execution (${latency}ms)</span></div>
-                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : (skipBackend ? 'VECTOR NLP' : 'LOCAL NLP')}</div>
+                        <div class="bg-gradient-to-b from-[#111] to-[#050505] border border-white/5 rounded-lg p-5 text-[13px] text-gray-300 shadow-2xl w-full max-w-[calc(100%-3rem)] relative overflow-hidden group">
+                            <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-${targetPersona === 'Prometheus' ? 'red-500' : 'gold'}/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            
+                            <div class="text-[9px] font-mono ${colorClass} mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-3">
+                                <div class="flex items-center space-x-1.5"><i class="ph ph-check-circle text-sm"></i><span>${targetPersona} Execution (${latency}ms)</span></div>
+                                <div class="px-2 py-0.5 rounded-sm bg-white/5 text-gray-400 border border-white/10">${targetPersona === 'Prometheus' ? 'GEMINI API' : (skipBackend ? 'VECTOR AI' : 'LOCAL NLP')}</div>
                             </div>
-                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
+                            
+                            <div class="prose prose-invert prose-sm max-w-none leading-relaxed font-sans">${formattedText}</div>
                             
                             <div id="gen-ui-container-${latency}"></div>
 
-                            <div class="flex items-center space-x-3 border-t border-white/5 pt-2 mt-3">
-                                <button class="copy-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1"><i class="ph ph-copy"></i><span>Copy</span></button>
-                                <button class="speak-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1"><i class="ph ph-speaker-high"></i><span>Speak</span></button>
+                            <div class="flex items-center space-x-4 border-t border-white/5 pt-3 mt-4">
+                                <button class="copy-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1.5"><i class="ph ph-copy text-sm"></i><span>Copy Details</span></button>
+                                <button class="speak-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1.5"><i class="ph ph-speaker-high text-sm"></i><span>Synthesize Audio</span></button>
                             </div>
                         </div>
                     `;
@@ -1073,48 +1089,64 @@ document.addEventListener('DOMContentLoaded', () => {
                         const dynamicContainer = aiMsg.querySelector(`#${containerId}`);
 
                         if (parsedGenUI.type === 'column_confirmation') {
-                            // Render the live searchable combobox with all 1,520 columns + top recommendations
                             const topCandidates = parsedGenUI.slots[0].candidates || [];
                             const defaultCol = parsedGenUI.slots[0].selected_column;
                             const datalistId = `schema-dl-${latency}`;
                             
-                            const datalistOptions = DATA_LAKE_SCHEMA.map(col => `<option value="${col}"></option>`).join('');
+                            const datalistOptions = DATA_LAKE_SCHEMA.map(col => `<option value="${col}">`).join('');
                             const pillsHTML = topCandidates.map(c => `
-                                <button type="button" class="quick-col-pill text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-gold/20 border border-white/10 text-gray-300 hover:text-gold transition-colors" data-col="${c}">
+                                <button type="button" class="quick-col-pill text-[10px] font-mono px-2.5 py-1 rounded bg-white/5 hover:bg-gold/10 border border-white/10 hover:border-gold/30 text-gray-400 hover:text-gold transition-all shadow-sm" data-col="${c}">
                                     ${c}
                                 </button>
                             `).join('');
+                            
+                            let dateBadgeHTML = '';
+                            if (parsedGenUI.date_filter && parsedGenUI.date_filter.mode === 'single_day') {
+                                dateBadgeHTML = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded ml-2">Filtered: ${parsedGenUI.date_filter.targetDateFormatted}</span>`;
+                            } else if (parsedGenUI.date_filter && parsedGenUI.date_filter.mode === 'range') {
+                                dateBadgeHTML = `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded ml-2">Range Active</span>`;
+                            }
 
                             dynamicContainer.innerHTML = `
-                                <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl space-y-3">
-                                    <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                                        <div class="flex items-center space-x-2">
-                                            <i class="ph ph-sliders-horizontal text-gold text-base"></i>
-                                            <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm or Search Schema (${DATA_LAKE_SCHEMA.length} Properties)</span>
+                                <div class="mt-5 border border-white/10 bg-[#050505]/95 backdrop-blur-2xl rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,1)] relative overflow-hidden">
+                                    <div class="bg-gradient-to-r from-white/[0.03] to-transparent px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+                                                <i class="ph ph-git-branch text-blue-400 text-xs"></i>
+                                            </div>
+                                            <span class="text-xs font-mono tracking-widest uppercase text-white font-semibold">Schema Resolution Required</span>
                                         </div>
-                                    </div>
-                                    
-                                    <div>
-                                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1.5 flex items-center justify-between">
-                                            <span>AI Suggested Candidates (Click to apply):</span>
-                                        </div>
-                                        <div class="flex flex-wrap gap-1.5 mb-3">
-                                            ${pillsHTML}
+                                        <div class="px-2 py-1 rounded bg-black/50 border border-white/5 text-[9px] font-mono text-gray-400 flex items-center shadow-inner">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>${DATA_LAKE_SCHEMA.length} Properties
                                         </div>
                                     </div>
 
-                                    <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5">
-                                        <label class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold flex items-center">
-                                            <i class="ph ph-magnifying-glass mr-1"></i> Search Target Column (Type to filter 1,520 columns):
-                                        </label>
-                                        <input list="${datalistId}" id="column-search-input-${latency}" class="w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-2 outline-none focus:border-gold/50 cursor-pointer shadow-inner" value="${defaultCol}" placeholder="Type to search all 1,520 columns...">
-                                        <datalist id="${datalistId}">${datalistOptions}</datalist>
-                                    </div>
+                                    <div class="p-5 space-y-6">
+                                        <div class="flex flex-col space-y-2.5">
+                                            <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">AI Semantic Suggestions (Click to Apply):</div>
+                                            <div class="flex flex-wrap gap-2">${pillsHTML}</div>
+                                        </div>
 
-                                    <div class="flex items-center justify-end pt-2 border-t border-white/5">
-                                        <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
-                                            <i class="ph ph-check-circle font-bold text-sm"></i><span>Confirm & Execute</span>
-                                        </button>
+                                        <div class="relative group">
+                                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                                <i class="ph ph-magnifying-glass text-gray-500 group-focus-within:text-gold transition-colors text-sm"></i>
+                                            </div>
+                                            <input list="${datalistId}" id="column-search-input-${latency}" 
+                                                class="w-full bg-[#0a0a0a] border border-white/10 hover:border-white/20 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 text-white font-mono text-[13px] rounded-lg pl-10 pr-4 py-3 outline-none transition-all shadow-inner" 
+                                                value="${defaultCol}" 
+                                                placeholder="Type to search all mapped data properties...">
+                                            <datalist id="${datalistId}">${datalistOptions}</datalist>
+                                        </div>
+
+                                        <div class="pt-2 flex justify-between items-center">
+                                            <div class="text-[10px] font-mono uppercase tracking-widest font-bold">
+                                                ${dateBadgeHTML}
+                                            </div>
+                                            <button class="confirm-column-btn relative overflow-hidden group bg-gold text-obsidian font-bold text-[11px] uppercase tracking-widest px-6 py-2.5 rounded-md hover:bg-gold-light transition-colors flex items-center space-x-2 shadow-[0_0_15px_rgba(221,170,51,0.2)]">
+                                                <i class="ph ph-rocket-launch text-sm transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"></i>
+                                                <span>Engage Pipeline</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -1130,17 +1162,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             confirmBtn.addEventListener('click', () => {
                                 const selectedCol = searchInput.value.trim() || defaultCol;
                                 
-                                const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: ["${selectedCol}"]. Execute the calculation using your custom GAS tools.`;
+                                let executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: ["${selectedCol}"]. Execute the calculation using your custom GAS tools.`;
+                                if (parsedGenUI.date_filter) {
+                                    executePrompt += ` DATE_FILTER_JSON: ${JSON.stringify(parsedGenUI.date_filter)}`;
+                                }
                                 
                                 confirmBtn.disabled = true;
-                                confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
+                                confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian text-sm"></i><span class="text-obsidian">Executing...</span>`;
                                 
                                 promptInput.value = executePrompt;
                                 sendBtn.click();
                             });
 
                         } else {
-                            dynamicContainer.innerHTML = `<button class="open-ui-btn text-[11px] ${colorClass} font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-sm mt-3 flex items-center"><i class="ph ph-layout mr-1"></i>View Artifact</button>`;
+                            dynamicContainer.innerHTML = `<button class="open-ui-btn text-[11px] text-emerald-400 font-medium bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded mt-4 flex items-center transition-colors shadow-lg"><i class="ph ph-layout mr-1.5 text-sm"></i>View Artifact Rendering</button>`;
                             const openBtn = dynamicContainer.querySelector('.open-ui-btn');
                             openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                         }
@@ -1151,14 +1186,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     speakBtn.addEventListener('click', () => {
                         if (window.speechSynthesis && window.speechSynthesis.speaking) {
                             voiceEngine.stop();
-                            speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`;
+                            speakBtn.innerHTML = `<i class="ph ph-speaker-high text-sm"></i><span>Synthesize Audio</span>`;
                             hologram.setState('idle');
                         } else {
-                            speakBtn.innerHTML = `<i class="ph ph-stop text-red-400"></i><span class="text-red-400">Stop</span>`;
+                            speakBtn.innerHTML = `<i class="ph ph-stop text-red-400 text-sm"></i><span class="text-red-400">Stop Synthesis</span>`;
                             voiceEngine.speak(
                                 aiText, targetPersona.toLowerCase(),
                                 () => hologram.setState('speaking'),
-                                () => { hologram.setState('idle'); speakBtn.innerHTML = `<i class="ph ph-speaker-high"></i><span>Speak</span>`; },
+                                () => { hologram.setState('idle'); speakBtn.innerHTML = `<i class="ph ph-speaker-high text-sm"></i><span>Synthesize Audio</span>`; },
                                 (freq) => hologram.setAudioPulse(freq)
                             );
                         }
@@ -1180,9 +1215,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 hologram.setState('idle');
                 const errDetails = err.message || "Network Error: Unable to reach Core.";
                 aiMsg.innerHTML = `
-                    <div class="bg-red-500/10 border border-red-500/20 rounded-sm p-4 text-[13px] text-red-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm mt-2 ml-11">
-                        <div class="text-[10px] font-mono text-red-400 mb-2 uppercase tracking-widest flex items-center space-x-1 border-b border-red-500/20 pb-2">
-                            <i class="ph ph-warning-circle"></i><span>System Exception Detected</span>
+                    <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-5 text-[13px] text-red-200 shadow-lg w-full max-w-[calc(100%-3rem)] backdrop-blur-sm mt-4 ml-12">
+                        <div class="text-[10px] font-mono text-red-400 mb-3 uppercase tracking-widest flex items-center space-x-1.5 border-b border-red-500/20 pb-3">
+                            <i class="ph ph-warning-circle text-sm"></i><span>System Exception Detected</span>
                         </div>
                         <div class="font-mono whitespace-pre-wrap">${errDetails}</div>
                     </div>
