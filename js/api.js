@@ -36,7 +36,7 @@ class VectorEmbeddingEngine {
             env.allowLocalModels = false;
             
             // THE FIREWALL BYPASS: Route through public mirror to avoid the Cloudflare/HF block
-            env.remoteHost = 'https://hf-mirror.com/';
+            env.remoteHost = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/';
             
             // Load the tiny 22MB embedding model
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
