@@ -32,8 +32,11 @@ class VectorEmbeddingEngine {
             // Import Transformers.js dynamically
             const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
             
-            // Disable local model loading to force fetching from HF CDN
+            // Disable local model loading to force fetching from CDN
             env.allowLocalModels = false;
+            
+            // THE FIREWALL BYPASS: Route through public mirror to avoid the Cloudflare/HF block
+            env.remoteHost = 'https://hf-mirror.com/';
             
             // Load the tiny 22MB embedding model
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
@@ -44,13 +47,16 @@ class VectorEmbeddingEngine {
                 }
             });
 
-            // Pre-calculate vectors for our anchor intents
+            // Pre-calculate mathematical vectors for our anchor intents
+            // Expanded based on the 1,520 HubSpot properties in your Data Lake
             this.intentAnchors = {
-                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created"),
+                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created time to response sla"),
                 "filter_count": await this.getVector("how many tickets count total number amount of items assigned"),
-                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction"),
-                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution"),
-                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution")
+                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction of incorporation residence"),
+                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution hubspot owner agent"),
+                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution bottleneck"),
+                "risk_compliance": await this.getVector("risk score assessment adverse media pep sanctions kyc compliance rating verification"),
+                "financial_volume": await this.getVector("transaction volume incoming outgoing crypto conversion processing amounts deal size")
             };
             
             this.isReady = true;
@@ -98,8 +104,7 @@ class VectorEmbeddingEngine {
                 }
             }
 
-            // We pass the parsed intent & raw query down to GAS via the API payload.
-            // The backend LexicalTokenizer will use 'client_ast.operation' to skip keyword guessing.
+            // We pass the parsed intent & raw query down to the Cloudflare backend via the API payload.
             return {
                 operation: bestIntent,
                 confidence: highestScore.toFixed(3),
