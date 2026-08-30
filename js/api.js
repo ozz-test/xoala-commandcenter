@@ -1,6 +1,6 @@
 /**
  * === FILE: api.js (Xoala Command Center Frontend Engine) ===
- * ULTIMATE UI/UX UPGRADE: Elite Terminal Chat, HITL Widget, & Date Parsing
+ * STABLE RELEASE: Vector AI, Elite HITL UI, Date Extraction
  */
 
 import { DATA_LAKE_SCHEMA } from './schema.js';
@@ -1093,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const defaultCol = parsedGenUI.slots[0].selected_column;
                             const datalistId = `schema-dl-${latency}`;
                             
-                            const datalistOptions = DATA_LAKE_SCHEMA.map(col => `<option value="${col}">`).join('');
+                            const datalistOptions = DATA_LAKE_SCHEMA.map(col => `<option value="${col}"></option>`).join('');
                             const pillsHTML = topCandidates.map(c => `
                                 <button type="button" class="quick-col-pill text-[10px] font-mono px-2.5 py-1 rounded bg-white/5 hover:bg-gold/10 border border-white/10 hover:border-gold/30 text-gray-400 hover:text-gold transition-all shadow-sm" data-col="${c}">
                                     ${c}
