@@ -1,14 +1,8 @@
 /**
  * === FILE: api.js (Xoala Command Center Frontend Engine) ===
- * 
- * ARCHITECTURE OVERVIEW:
- * 1. VectorEmbeddingEngine: Uses Transformers.js (all-MiniLM-L6-v2) to calculate mathematical
- *    vectors for user prompts. It uses Cosine Similarity to find the closest AST intent without
- *    needing hardcoded keywords or massive generative LLMs.
- * 2. CoreHologram: Dynamic 3D Canvas visualizer.
- * 3. VoiceEngine & SpeechInputEngine: Audio I/O.
- * 4. UI Controller & Session Manager: Chat persistence & rendering logic.
  */
+
+import { DATA_LAKE_SCHEMA } from './schema.js';
 
 const ARTEMIS_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev';
 
@@ -21,6 +15,7 @@ class VectorEmbeddingEngine {
         this.isReady = false;
         this.isLoading = false;
         this.intentAnchors = {};
+        this.schemaVectors = [];
     }
     
     async initialize(statusCallback) {
@@ -29,16 +24,11 @@ class VectorEmbeddingEngine {
         statusCallback("Loading Vector Engine...");
         
         try {
-            // Import Transformers.js dynamically
             const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
             
-            // Disable local model loading to force fetching from CDN
             env.allowLocalModels = false;
-            
-            // THE FIREWALL BYPASS: Route through public mirror to avoid the Cloudflare/HF block
             env.remoteHost = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/';
             
-            // Load the tiny 22MB embedding model
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
                 progress_callback: (x) => {
                     if (x.status === 'progress') {
@@ -47,17 +37,35 @@ class VectorEmbeddingEngine {
                 }
             });
 
-            // Pre-calculate mathematical vectors for our anchor intents
-            // Expanded based on the 1,520 HubSpot properties in your Data Lake
+            statusCallback("Mapping Intents...");
             this.intentAnchors = {
-                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created time to response sla"),
+                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created"),
                 "filter_count": await this.getVector("how many tickets count total number amount of items assigned"),
-                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction of incorporation residence"),
-                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution hubspot owner agent"),
-                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution bottleneck"),
-                "risk_compliance": await this.getVector("risk score assessment adverse media pep sanctions kyc compliance rating verification"),
-                "financial_volume": await this.getVector("transaction volume incoming outgoing crypto conversion processing amounts deal size")
+                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction"),
+                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution"),
+                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution"),
+                "risk_compliance": await this.getVector("risk score adverse media pep sanctions kyc compliance verification"),
+                "financial_volume": await this.getVector("transaction volume incoming outgoing crypto conversion deal size")
             };
+            
+            // MAP ALL 1,520 COLUMNS FROM SCHEMA.JS
+            statusCallback("Mapping Data Lake...");
+            this.schemaVectors = [];
+            let batchSize = 50; 
+            
+            for (let i = 0; i < DATA_LAKE_SCHEMA.length; i += batchSize) {
+                let batch = DATA_LAKE_SCHEMA.slice(i, i + batchSize);
+                // Replace underscores with spaces so the NLP reads them as normal English words
+                let cleanBatch = batch.map(c => c.replace(/[_]/g, ' '));
+                
+                let outputs = await this.extractor(cleanBatch, { pooling: 'mean', normalize: true });
+                let vectors = outputs.tolist(); // Extract arrays from Tensor
+                
+                for (let j = 0; j < batch.length; j++) {
+                    this.schemaVectors.push({ name: batch[j], vector: vectors[j] });
+                }
+                statusCallback(`Mapping Schema... ${Math.round((i / DATA_LAKE_SCHEMA.length) * 100)}%`);
+            }
             
             this.isReady = true;
             statusCallback("Vector AI Active");
@@ -68,17 +76,13 @@ class VectorEmbeddingEngine {
         this.isLoading = false;
     }
     
-    // Calculates the 384-dimensional vector for a string
     async getVector(text) {
         const output = await this.extractor(text, { pooling: 'mean', normalize: true });
         return output.data;
     }
 
-    // Mathematical Dot Product to find angle between two vectors
     cosineSimilarity(vecA, vecB) {
-        let dotProduct = 0;
-        let normA = 0;
-        let normB = 0;
+        let dotProduct = 0; let normA = 0; let normB = 0;
         for (let i = 0; i < vecA.length; i++) {
             dotProduct += vecA[i] * vecB[i];
             normA += vecA[i] * vecA[i];
@@ -92,23 +96,32 @@ class VectorEmbeddingEngine {
         try {
             const promptVec = await this.getVector(prompt.toLowerCase());
             
+            // 1. Identify Mathematical Intent
             let bestIntent = "filter_count";
-            let highestScore = -1;
-
-            // Find the closest mathematical intent
+            let highestIntentScore = -1;
             for (const [intent, anchorVec] of Object.entries(this.intentAnchors)) {
                 const score = this.cosineSimilarity(promptVec, anchorVec);
-                if (score > highestScore) {
-                    highestScore = score;
+                if (score > highestIntentScore) {
+                    highestIntentScore = score;
                     bestIntent = intent;
                 }
             }
 
-            // We pass the parsed intent & raw query down to the Cloudflare backend via the API payload.
+            // 2. Identify Top 5 Schema Columns out of 1,520
+            let columnScores = [];
+            for (const schema of this.schemaVectors) {
+                const score = this.cosineSimilarity(promptVec, schema.vector);
+                columnScores.push({ name: schema.name, score: score });
+            }
+            // Sort by highest mathematical match
+            columnScores.sort((a, b) => b.score - a.score);
+            const topColumns = columnScores.slice(0, 5).map(c => c.name);
+
             return {
+                needs_confirmation: true,
                 operation: bestIntent,
-                confidence: highestScore.toFixed(3),
-                inferred_by: "client_vector_engine"
+                confidence: highestIntentScore.toFixed(3),
+                top_columns: topColumns
             };
 
         } catch (e) {
@@ -952,36 +965,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
-            // Attempt Vector AST extraction silently if engine is ready
+            // NEW: Intercept backend completely using the local Vector AI
             let clientAstPayload = null;
+            let skipBackend = false;
+            
             if (actionType === 'artemis_query' && localAI.isReady && !val.includes("using exact confirmed columns")) {
                 clientAstPayload = await localAI.extractAST(val);
+                if (clientAstPayload && clientAstPayload.needs_confirmation) {
+                    skipBackend = true;
+                }
             }
 
             try {
-                const requestPayload = { 
-                    action: actionType, macro: macroCmd, prompt: val, 
-                    history: sessions[currentSessionId].history.slice(0, -1), // Send history excluding current msg
-                    secret: 'system_dashboard_init', 
-                    model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
-                    context_payload: activeContextPayload,
-                    session_id: currentSessionId,
-                    client_ast: clientAstPayload // Passes to backend
-                };
-
-                const response = await fetch(ARTEMIS_API_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestPayload)
-                });
-
-                const textResponse = await response.text();
                 let data;
                 let isJson = true;
-                try { data = JSON.parse(textResponse); } catch(e) { isJson = false; data = textResponse; }
+                let latency = Date.now() - reqStartTime;
 
-                if (!response.ok) { throw new Error((isJson && data.error) ? data.error : `HTTP Error ${response.status}: ${data}`); }
+                if (skipBackend) {
+                    // Create the exact JSON format that triggers the frontend Schema Confirmation UI
+                    const payloadObj = {
+                        type: "column_confirmation",
+                        query_intent: clientAstPayload.operation,
+                        slots: [
+                            {
+                                role: "Target Schema Column",
+                                selected_column: clientAstPayload.top_columns[0],
+                                candidates: clientAstPayload.top_columns
+                            }
+                        ]
+                    };
+                    
+                    data = {
+                        status: 200,
+                        response: `I have analyzed the Data Lake using Local Vector NLP. I identified the mathematical intent as **${clientAstPayload.operation.replace(/_/g, ' ').toUpperCase()}**.\n\nPlease confirm the target column to execute the pipeline.\n\n\`\`\`json\n${JSON.stringify(payloadObj, null, 2)}\n\`\`\``
+                    };
+                } else {
+                    // Normal Request to backend if it's a Macro, Prometheus, or Final Execution Prompt
+                    const requestPayload = { 
+                        action: actionType, macro: macroCmd, prompt: val, 
+                        history: sessions[currentSessionId].history.slice(0, -1),
+                        secret: 'system_dashboard_init', 
+                        model: modelSelect ? modelSelect.value : 'gemini-3.5-flash-lite',
+                        context_payload: activeContextPayload,
+                        session_id: currentSessionId
+                    };
 
-                const latency = Date.now() - reqStartTime;
+                    const response = await fetch(ARTEMIS_API_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestPayload)
+                    });
+
+                    const textResponse = await response.text();
+                    try { data = JSON.parse(textResponse); } catch(e) { isJson = false; data = textResponse; }
+
+                    if (!response.ok) { throw new Error((isJson && data.error) ? data.error : `HTTP Error ${response.status}: ${data}`); }
+                    latency = Date.now() - reqStartTime;
+                }
+
                 hologram.setState('idle');
 
                 if (data.status === 200 && data.response) {
@@ -1011,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="bg-surface/90 border border-white/5 rounded-sm p-4 text-[13px] text-gray-200 shadow-lg w-full max-w-[calc(100%-2.5rem)] backdrop-blur-sm">
                             <div class="text-[9px] font-mono ${colorClass} mb-2 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-2">
                                 <div class="flex items-center space-x-1"><i class="ph ph-check-circle"></i><span>${targetPersona} Execution (${latency}ms)</span></div>
-                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : (clientAstPayload ? 'VECTOR NLP' : 'LOCAL NLP')}</div>
+                                <div class="text-gray-500">${targetPersona === 'Prometheus' ? 'GEMINI API' : (skipBackend ? 'VECTOR NLP' : 'LOCAL NLP')}</div>
                             </div>
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed prose-a:text-gold">${formattedText}</div>
                             
@@ -1132,7 +1172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // INITIALIZATION RENDER CALLS
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = { title: "New Session", pinned: false, history: [] };
     }
