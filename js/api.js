@@ -39,27 +39,25 @@ class VectorEmbeddingEngine {
 
             statusCallback("Mapping Intents...");
             this.intentAnchors = {
-                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created"),
+                "time_series": await this.getVector("show trends over time history dates timeline velocity when was created time to response sla createdate"),
                 "filter_count": await this.getVector("how many tickets count total number amount of items assigned"),
-                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction"),
-                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution"),
-                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution"),
+                "group_by_region": await this.getVector("break down by distribution categorize by country geography region jurisdiction of incorporation residence"),
+                "group_by_manager": await this.getVector("break down by manager owner assigned workload staff distribution hubspot owner agent"),
+                "group_by_stage": await this.getVector("break down by stage status pipeline state distribution bottleneck"),
                 "risk_compliance": await this.getVector("risk score adverse media pep sanctions kyc compliance verification"),
-                "financial_volume": await this.getVector("transaction volume incoming outgoing crypto conversion deal size")
+                "financial_volume": await this.getVector("transaction volume incoming outgoing crypto conversion deal size turnover")
             };
             
-            // MAP ALL 1,520 COLUMNS FROM SCHEMA.JS
             statusCallback("Mapping Data Lake...");
             this.schemaVectors = [];
-            let batchSize = 50; 
+            let batchSize = 60;
             
             for (let i = 0; i < DATA_LAKE_SCHEMA.length; i += batchSize) {
                 let batch = DATA_LAKE_SCHEMA.slice(i, i + batchSize);
-                // Replace underscores with spaces so the NLP reads them as normal English words
                 let cleanBatch = batch.map(c => c.replace(/[_]/g, ' '));
                 
                 let outputs = await this.extractor(cleanBatch, { pooling: 'mean', normalize: true });
-                let vectors = outputs.tolist(); // Extract arrays from Tensor
+                let vectors = outputs.tolist();
                 
                 for (let j = 0; j < batch.length; j++) {
                     this.schemaVectors.push({ name: batch[j], vector: vectors[j] });
@@ -96,7 +94,6 @@ class VectorEmbeddingEngine {
         try {
             const promptVec = await this.getVector(prompt.toLowerCase());
             
-            // 1. Identify Mathematical Intent
             let bestIntent = "filter_count";
             let highestIntentScore = -1;
             for (const [intent, anchorVec] of Object.entries(this.intentAnchors)) {
@@ -107,13 +104,11 @@ class VectorEmbeddingEngine {
                 }
             }
 
-            // 2. Identify Top 5 Schema Columns out of 1,520
             let columnScores = [];
             for (const schema of this.schemaVectors) {
                 const score = this.cosineSimilarity(promptVec, schema.vector);
                 columnScores.push({ name: schema.name, score: score });
             }
-            // Sort by highest mathematical match
             columnScores.sort((a, b) => b.score - a.score);
             const topColumns = columnScores.slice(0, 5).map(c => c.name);
 
@@ -418,8 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const hologram = new CoreHologram('jarvis-core-canvas');
     const voiceEngine = new VoiceEngine();
-    
-    // Initialized as Vector Engine
     const localAI = new VectorEmbeddingEngine();
 
     const promptInput = document.getElementById('prompt-input');
@@ -459,11 +452,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    // --- Vector Engine Toggle Logic ---
+    // --- Vector AI Toggle Logic ---
     if (webgpuBtn) {
         webgpuBtn.addEventListener('click', async () => {
             if (localAI.isReady) {
-                alert("Vector Engine is already active.");
+                alert("Vector AI is already active.");
                 return;
             }
             if (localAI.isLoading) return;
@@ -861,11 +854,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 Chart.defaults.color = '#888'; 
                 Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
                 
-                let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444'];
+                let bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
                 new Chart(ctx, {
                     type: parsedData.chartType || 'bar',
-                    data: { labels: parsedData.labels, datasets: [{ data: parsedData.data, backgroundColor: bgColors, borderWidth: 0, borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    data: { 
+                        labels: parsedData.labels, 
+                        datasets: [{ 
+                            label: parsedData.title || 'Count',
+                            data: parsedData.data, 
+                            backgroundColor: bgColors, 
+                            borderWidth: 0, 
+                            borderRadius: 4 
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } } 
+                    }
                 });
             }, 250);
         }
@@ -965,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             hologram.setState(isMacro ? 'macro' : 'thinking');
 
-            // NEW: Intercept backend completely using the local Vector AI
+            // Intercept backend using the local Vector AI
             let clientAstPayload = null;
             let skipBackend = false;
             
@@ -997,10 +1003,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     data = {
                         status: 200,
-                        response: `I have analyzed the Data Lake using Local Vector NLP. I identified the mathematical intent as **${clientAstPayload.operation.replace(/_/g, ' ').toUpperCase()}**.\n\nPlease confirm the target column to execute the pipeline.\n\n\`\`\`json\n${JSON.stringify(payloadObj, null, 2)}\n\`\`\``
+                        response: `I have analyzed the Data Lake using Local Vector NLP. I identified the mathematical intent as **${clientAstPayload.operation.replace(/_/g, ' ').toUpperCase()}**.\n\nPlease confirm or search the target column to execute the pipeline.\n\n\`\`\`json\n${JSON.stringify(payloadObj, null, 2)}\n\`\`\``
                     };
                 } else {
-                    // Normal Request to backend if it's a Macro, Prometheus, or Final Execution Prompt
                     const requestPayload = { 
                         action: actionType, macro: macroCmd, prompt: val, 
                         history: sessions[currentSessionId].history.slice(0, -1),
@@ -1027,7 +1032,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 200 && data.response) {
                     let aiText = data.response;
                     
-                    // Save AI response immediately to local memory
                     sessions[currentSessionId].history.push({role: "model", parts: [{text: aiText}]});
                     localStorage.setItem('xoala_chat_sessions', JSON.stringify(sessions));
 
@@ -1069,31 +1073,45 @@ document.addEventListener('DOMContentLoaded', () => {
                         const dynamicContainer = aiMsg.querySelector(`#${containerId}`);
 
                         if (parsedGenUI.type === 'column_confirmation') {
-                            let slotsHTML = (parsedGenUI.slots || []).map((slot, sIdx) => {
-                                const candidates = slot.candidates || [slot.selected_column];
-                                const optionsHTML = candidates.map(c => `<option value="${c}" ${c === slot.selected_column ? 'selected' : ''}>${c}</option>`).join('');
-                                return `
-                                    <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5 mt-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold">${slot.role || `Column ${sIdx + 1}`}</span>
-                                        </div>
-                                        <div class="relative">
-                                            <select class="column-slot-select w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-1.5 outline-none focus:border-gold/50 cursor-pointer" data-slot-index="${sIdx}">${optionsHTML}</select>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('');
+                            // Render the live searchable combobox with all 1,520 columns + top recommendations
+                            const topCandidates = parsedGenUI.slots[0].candidates || [];
+                            const defaultCol = parsedGenUI.slots[0].selected_column;
+                            const datalistId = `schema-dl-${latency}`;
+                            
+                            const datalistOptions = DATA_LAKE_SCHEMA.map(col => `<option value="${col}"></option>`).join('');
+                            const pillsHTML = topCandidates.map(c => `
+                                <button type="button" class="quick-col-pill text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-gold/20 border border-white/10 text-gray-300 hover:text-gold transition-colors" data-col="${c}">
+                                    ${c}
+                                </button>
+                            `).join('');
 
                             dynamicContainer.innerHTML = `
-                                <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl">
-                                    <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                                <div class="column-confirmation-widget border border-gold/30 bg-surface/95 rounded-sm p-4 mt-4 w-full shadow-2xl space-y-3">
+                                    <div class="flex items-center justify-between border-b border-white/5 pb-2">
                                         <div class="flex items-center space-x-2">
                                             <i class="ph ph-sliders-horizontal text-gold text-base"></i>
-                                            <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm Target Schema</span>
+                                            <span class="text-xs font-mono tracking-widest uppercase text-white font-bold">Confirm or Search Schema (${DATA_LAKE_SCHEMA.length} Properties)</span>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">${slotsHTML}</div>
-                                    <div class="flex items-center justify-end pt-3 border-t border-white/5">
+                                    
+                                    <div>
+                                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-400 mb-1.5 flex items-center justify-between">
+                                            <span>AI Suggested Candidates (Click to apply):</span>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1.5 mb-3">
+                                            ${pillsHTML}
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-black/40 border border-white/5 p-3 rounded-sm space-y-1.5">
+                                        <label class="text-[10px] font-mono uppercase tracking-widest text-gold font-semibold flex items-center">
+                                            <i class="ph ph-magnifying-glass mr-1"></i> Search Target Column (Type to filter 1,520 columns):
+                                        </label>
+                                        <input list="${datalistId}" id="column-search-input-${latency}" class="w-full bg-surface border border-white/10 text-white font-mono text-xs rounded px-2.5 py-2 outline-none focus:border-gold/50 cursor-pointer shadow-inner" value="${defaultCol}" placeholder="Type to search all 1,520 columns...">
+                                        <datalist id="${datalistId}">${datalistOptions}</datalist>
+                                    </div>
+
+                                    <div class="flex items-center justify-end pt-2 border-t border-white/5">
                                         <button class="confirm-column-btn bg-gradient-to-r from-gold-light to-gold text-obsidian font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-sm hover:shadow-[0_0_12px_rgba(221,170,51,0.4)] transition-all flex items-center space-x-1.5">
                                             <i class="ph ph-check-circle font-bold text-sm"></i><span>Confirm & Execute</span>
                                         </button>
@@ -1101,12 +1119,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             `;
 
+                            const searchInput = dynamicContainer.querySelector(`#column-search-input-${latency}`);
+                            dynamicContainer.querySelectorAll('.quick-col-pill').forEach(pill => {
+                                pill.addEventListener('click', () => {
+                                    searchInput.value = pill.getAttribute('data-col');
+                                });
+                            });
+
                             const confirmBtn = dynamicContainer.querySelector('.confirm-column-btn');
                             confirmBtn.addEventListener('click', () => {
-                                const selects = dynamicContainer.querySelectorAll('.column-slot-select');
-                                const confirmedColumns = Array.from(selects).map(s => s.value);
+                                const selectedCol = searchInput.value.trim() || defaultCol;
                                 
-                                const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: ["${confirmedColumns[0]}"]. Execute the calculation using your custom GAS tools.`;
+                                const executePrompt = `Run ${parsedGenUI.query_intent || 'analysis'} using exact confirmed columns: ["${selectedCol}"]. Execute the calculation using your custom GAS tools.`;
                                 
                                 confirmBtn.disabled = true;
                                 confirmBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-obsidian"></i><span class="text-obsidian">Executing...</span>`;
