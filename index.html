@@ -120,54 +120,81 @@
             </section>
 
             <!-- Tools Section -->
-            <section class="manual-section" data-tags="tools functions charts maps risk compliance pipeline volume">
+            <section class="manual-section" data-tags="tools functions charts maps risk compliance pipeline volume manager financial">
                 <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Analytical Toolset</h4>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-emerald-500/30 transition-colors">
                         <i class="ph ph-chart-line-up text-emerald-400 text-xl mb-2"></i>
                         <div class="text-xs text-white font-semibold mb-1">Time-Series</div>
-                        <div class="text-[10px] text-gray-400">Tracks ingestion velocity and aging across single days or ranges.</div>
+                        <div class="text-[10px] text-gray-400">Tracks ingestion velocity and aging across days or ranges.</div>
                     </div>
                     <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-blue-400/30 transition-colors">
                         <i class="ph ph-globe-hemisphere-west text-blue-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Geospatial Mapping</div>
-                        <div class="text-[10px] text-gray-400">Plots volume across jurisdictional and country borders.</div>
+                        <div class="text-xs text-white font-semibold mb-1">Geo Mapping</div>
+                        <div class="text-[10px] text-gray-400">Plots volume across jurisdictional borders.</div>
                     </div>
                     <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-red-400/30 transition-colors">
                         <i class="ph ph-shield-check text-red-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Risk & Compliance</div>
-                        <div class="text-[10px] text-gray-400">Audits adverse media, PEP influence, and sanction ratings.</div>
+                        <div class="text-xs text-white font-semibold mb-1">Compliance</div>
+                        <div class="text-[10px] text-gray-400">Audits adverse media, PEP influence, and sanctions.</div>
                     </div>
                     <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-amber-400/30 transition-colors">
                         <i class="ph ph-funnel text-amber-400 text-xl mb-2"></i>
                         <div class="text-xs text-white font-semibold mb-1">Stage Bottlenecks</div>
-                        <div class="text-[10px] text-gray-400">Identifies friction points in the approval pipelines.</div>
+                        <div class="text-[10px] text-gray-400">Identifies friction points in the pipeline.</div>
+                    </div>
+                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-purple-400/30 transition-colors">
+                        <i class="ph ph-users-three text-purple-400 text-xl mb-2"></i>
+                        <div class="text-xs text-white font-semibold mb-1">Workload Matrix</div>
+                        <div class="text-[10px] text-gray-400">Evaluates account manager ticket distribution.</div>
+                    </div>
+                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-green-400/30 transition-colors">
+                        <i class="ph ph-currency-circle-dollar text-green-400 text-xl mb-2"></i>
+                        <div class="text-xs text-white font-semibold mb-1">Financial Volume</div>
+                        <div class="text-[10px] text-gray-400">Analyzes transaction brackets and deal sizes.</div>
                     </div>
                 </div>
             </section>
 
             <!-- Usage & Syntax Section -->
-            <section class="manual-section" data-tags="how to use syntax examples charts tables date filters">
+            <section class="manual-section" data-tags="how to use syntax examples charts tables date filters manager">
                 <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Prompt Syntax & Examples</h4>
                 <p class="text-xs text-gray-400 mb-4">Artemis automatically renders <strong class="text-white">Charts</strong> if the result has $\le 10$ categories, and <strong class="text-white">Tables</strong> if $> 10$. Use natural language or precise dates.</p>
                 
                 <div class="space-y-4">
+                    <!-- Date Filters -->
                     <div class="bg-black/40 border border-white/5 rounded-lg p-4">
-                        <div class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-2">Single-Day Filtering</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-3">"How many tickets were registered on 2024-05-17?"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="How many tickets were registered on 2024-05-17?"><i class="ph ph-arrow-arc-left"></i><span>Inject to Terminal</span></button>
+                        <div class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-2">Temporal Filtering</div>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many tickets were registered on 2024-05-17?"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="How many tickets were registered on 2024-05-17?"><i class="ph ph-arrow-arc-left"></i><span>Inject Single-Day</span></button>
+                        
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Registration timeline from 2024-01-01 to 2024-06-30"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Registration timeline from 2024-01-01 to 2024-06-30"><i class="ph ph-arrow-arc-left"></i><span>Inject Date-Range</span></button>
                     </div>
 
+                    <!-- Categorical & Agent Filters -->
                     <div class="bg-black/40 border border-white/5 rounded-lg p-4">
-                        <div class="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-2">Date-Range Velocity</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-3">"Registration timeline from 2024-01-01 to 2024-06-30"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Registration timeline from 2024-01-01 to 2024-06-30"><i class="ph ph-arrow-arc-left"></i><span>Inject to Terminal</span></button>
+                        <div class="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-2">Categorical & Manager Splits</div>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Break down the pipeline by account manager"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="Break down the pipeline by account manager"><i class="ph ph-arrow-arc-left"></i><span>Inject Manager Split</span></button>
+
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Show distribution of estimated monthly volume"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="Show distribution of estimated monthly volume"><i class="ph ph-arrow-arc-left"></i><span>Inject Financial Split</span></button>
+
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many active tickets are assigned to Ellie?"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="How many active tickets are assigned to Ellie?"><i class="ph ph-arrow-arc-left"></i><span>Inject Specific Agent Filter</span></button>
                     </div>
 
+                    <!-- Prometheus Strategic -->
                     <div class="bg-black/40 border border-white/5 rounded-lg p-4">
-                        <div class="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-2">Categorical Splits (Charts)</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-3">"Show me the distribution of adverse media risk scores"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Show me the distribution of adverse media risk scores"><i class="ph ph-arrow-arc-left"></i><span>Inject to Terminal</span></button>
+                        <div class="text-[10px] font-mono text-crimson uppercase tracking-widest mb-2">Prometheus Strategic Intel (API)</div>
+                        <p class="text-[10px] text-gray-400 mb-3">Prepend <strong class="text-crimson">@Prometheus</strong> to access Gemini API capabilities like standard deviations, anomaly detection, and web search context.</p>
+                        
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"@Prometheus Run an anomaly scan on our daily ingestion volume."</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="@Prometheus Run an anomaly scan on our daily ingestion volume."><i class="ph ph-arrow-arc-left"></i><span>Inject Anomaly Scan</span></button>
+
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"@Prometheus Calculate the standard deviation and mean for risk scores."</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="@Prometheus Calculate the standard deviation and mean for risk scores."><i class="ph ph-arrow-arc-left"></i><span>Inject Stats Engine</span></button>
                     </div>
                 </div>
             </section>
