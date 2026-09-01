@@ -67,7 +67,6 @@ class VectorEmbeddingEngine {
             const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
             
             env.allowLocalModels = false;
-            // FIX: Removed useCustomCache to prevent crashes. useBrowserCache handles persistent storage natively.
             env.useBrowserCache = true; 
             env.remoteHost = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/';
             
@@ -155,7 +154,6 @@ class VectorEmbeddingEngine {
             
             let topColumns = columnScores.slice(0, 6).map(c => c.name);
             
-            // Override Alias fix for "create_date" -> "hs_createdate"
             if (prompt.toLowerCase().includes("create date") || prompt.toLowerCase().includes("createdate") || prompt.toLowerCase().includes("registered")) {
                 if (!topColumns.includes("hs_createdate")) {
                     topColumns.unshift("hs_createdate");
@@ -505,7 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
 
-    // --- Artemis Command Manual Logic ---
     const manualBtn = document.getElementById('open-manual-btn');
     const manualDrawer = document.getElementById('artemis-manual-drawer');
     const manualOverlay = document.getElementById('manual-overlay');
@@ -546,7 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Manual Inject Buttons
         document.querySelectorAll('.manual-inject-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const targetPrompt = e.currentTarget.getAttribute('data-inject');
@@ -554,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     promptInput.value = targetPrompt;
                     promptInput.focus();
                     promptInput.dispatchEvent(new Event('input'));
-                    toggleManual(); // Close drawer automatically
+                    toggleManual();
                 }
             });
         });
@@ -722,13 +718,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-${activePersona === 'prometheus' ? 'red-500' : 'gold'}/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                             
                             <div class="text-[9px] font-mono ${colorClass} mb-3 uppercase tracking-widest flex items-center justify-between border-b border-white/5 pb-3">
-                                <div class="flex items-center space-x-1.5"><i class="ph ph-check-circle text-sm"></i><span>${targetPersona} Execution (${latency}ms)</span></div>
-                                <div class="px-2 py-0.5 rounded-sm bg-white/5 text-gray-400 border border-white/10">${targetPersona === 'Prometheus' ? 'GEMINI API' : (skipBackend ? 'VECTOR AI' : 'LOCAL NLP')}</div>
+                                <div class="flex items-center space-x-1.5"><i class="ph ph-check-circle text-sm"></i><span>${targetPersona} Execution</span></div>
+                                <div class="px-2 py-0.5 rounded-sm bg-white/5 text-gray-400 border border-white/10">${targetPersona === 'Prometheus' ? 'GEMINI API' : 'LOCAL NLP'}</div>
                             </div>
                             
                             <div class="prose prose-invert prose-sm max-w-none leading-relaxed font-sans">${marked.parse(cleanText)}</div>
                             
-                            <div id="gen-ui-container-${latency}"></div>
+                            <div id="gen-ui-container"></div>
 
                             <div class="flex items-center space-x-4 border-t border-white/5 pt-3 mt-4">
                                 <button class="copy-btn text-[11px] text-gray-500 hover:text-white transition-colors flex items-center space-x-1.5"><i class="ph ph-copy text-sm"></i><span>Copy Details</span></button>
@@ -742,7 +738,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (openBtn) {
                             openBtn.addEventListener('click', () => { openArtifactCanvas(parsedGenUI); });
                         }
+                    } else if (parsedGenUI && parsedGenUI.type === 'column_confirmation') {
+                        // Append column confirmation HTML if needed here
                     }
+
                     chatStream.appendChild(a);
                 }
             } catch (err) {}
@@ -927,13 +926,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 100);
         } 
         else if (parsedData.type === 'interactive_chart') {
+            // FIX: Added overflow-hidden and bounds to prevent Chart.js blowout
             htmlContent = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl text-white font-light tracking-tight">${parsedData.title || 'Visual Analytics'}</h2>
                     <button class="pin-widget-btn text-xs text-blue-400 border border-blue-400/30 hover:bg-blue-400/10 px-3 py-1.5 rounded transition-colors flex items-center shadow-lg"><i class="ph ph-push-pin mr-1"></i> Pin Widget</button>
                 </div>
-                <div class="p-6 bg-[#0a0a0a] rounded-xl border border-white/5 shadow-2xl relative w-full flex flex-col" style="min-height: 400px;">
-                    <div class="relative w-full flex-1"><canvas id="gen-ui-chart"></canvas></div>
+                <div class="p-6 bg-[#0a0a0a] rounded-xl border border-white/5 shadow-2xl relative w-full flex flex-col overflow-hidden" style="min-height: 350px;">
+                    <div class="relative w-full flex-1" style="min-height: 0; min-width: 0;"><canvas id="gen-ui-chart"></canvas></div>
                 </div>
             `;
             contentArea.innerHTML = htmlContent;
@@ -974,8 +974,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // FIX: Bound pane to max 600px width so it doesn't push the close button off screen
         if (!artifactPane.classList.contains('is-floating')) {
-            artifactPane.style.width = '55%';
+            artifactPane.style.width = '45vw';
+            artifactPane.style.minWidth = '400px';
+            artifactPane.style.maxWidth = '600px';
             artifactPane.classList.remove('opacity-0');
             artifactPane.classList.add('artifact-slide-in');
         }
