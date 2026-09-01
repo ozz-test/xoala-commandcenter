@@ -190,13 +190,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     model: 'gemini-3.5-flash-lite' 
                 })
             });
+            
             if (!response.ok) throw new Error("Server Error HTTP " + response.status);
-            const responseData = await response.json();
+            
+            const textData = await response.text();
+            let responseData;
+            try {
+                responseData = JSON.parse(textData);
+            } catch (e) {
+                throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'.");
+            }
+
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
-            else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
+            else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">${responseData.error || 'API Error'}</td></tr>`;
         } catch (error) {
             console.error("Matrix Network Failure:", error);
-            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error. Check Middleware Link.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error: ${error.message}</td></tr>`;
         } finally { if (syncIcon) syncIcon.classList.remove('animate-spin'); }
     };
 
@@ -294,7 +303,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) throw new Error(`Server Error HTTP ${response.status}`);
 
-            const data = await response.json();
+            const textData = await response.text();
+            let data;
+            try {
+                data = JSON.parse(textData);
+            } catch (e) {
+                throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'.");
+            }
 
             if (data.status === 200 && data.stats) {
                 currentRiskData = data.stats.riskChart; currentBotData = data.stats.bottleneckChart; currentGeoData = data.stats.geoChart;
@@ -321,6 +336,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) { 
             console.error("Dashboard Network Failure:", error); 
+            // Display error cleanly without crashing UI
+            const reportEl = document.getElementById('daily-report-content');
+            if (reportEl) {
+                reportEl.innerHTML = `<span class="text-red-400">Connection Failed: ${error.message}</span>`;
+            }
         } finally { 
             if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); 
         }
