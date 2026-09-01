@@ -1,6 +1,6 @@
 /**
  * === FILE: api.js (Xoala Command Center Frontend Engine) ===
- * ULTIMATE UI/UX UPGRADE: Elite Terminal Chat, HITL Widget, Vector Cache & Date Parsing
+ * STABLE RELEASE: Vector Cache Fixed, Elite HITL UI, Date Extraction
  */
 
 import { DATA_LAKE_SCHEMA } from './schema.js';
@@ -67,9 +67,8 @@ class VectorEmbeddingEngine {
             const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
             
             env.allowLocalModels = false;
-            // FIX: Lock Vector AI into Cache Storage so it never re-downloads
-            env.useBrowserCache = true;
-            env.useCustomCache = true;
+            // FIX: Removed useCustomCache to prevent crashes. useBrowserCache handles persistent storage natively.
+            env.useBrowserCache = true; 
             env.remoteHost = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/';
             
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
@@ -157,7 +156,7 @@ class VectorEmbeddingEngine {
             let topColumns = columnScores.slice(0, 6).map(c => c.name);
             
             // Override Alias fix for "create_date" -> "hs_createdate"
-            if (prompt.toLowerCase().includes("create date") || prompt.toLowerCase().includes("createdate")) {
+            if (prompt.toLowerCase().includes("create date") || prompt.toLowerCase().includes("createdate") || prompt.toLowerCase().includes("registered")) {
                 if (!topColumns.includes("hs_createdate")) {
                     topColumns.unshift("hs_createdate");
                 }
