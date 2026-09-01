@@ -48,6 +48,8 @@
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
+        .drawer-slide-in { transform: translateX(0) !important; box-shadow: -20px 0 50px rgba(0,0,0,0.8); }
+
         .hologram-fade-out { opacity: 0.15; filter: blur(2px); transform: scale(0.9); transition: all 1s ease; }
         .hologram-focus { opacity: 0.9; filter: blur(0px); transform: scale(1); transition: all 1s ease; }
 
@@ -79,6 +81,123 @@
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
     </div>
 
+    <!-- ELITE ARTEMIS COMMAND MANUAL DRAWER -->
+    <div id="manual-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="artemis-manual-drawer" class="fixed top-0 right-0 h-full w-full max-w-[550px] bg-[#080808]/95 backdrop-blur-3xl border-l border-gold/20 z-[210] transform translate-x-full transition-all duration-500 flex flex-col shadow-2xl">
+        <div class="h-20 px-6 border-b border-white/10 bg-gradient-to-r from-gold/10 to-transparent flex items-center justify-between flex-shrink-0 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent"></div>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-black border border-gold/30 flex items-center justify-center shadow-[0_0_15px_rgba(221,170,51,0.2)]">
+                    <i class="ph ph-book-open-text text-gold text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-white font-light tracking-widest uppercase text-sm">Artemis Command Manual</h2>
+                    <p class="text-[9px] font-mono text-gold tracking-widest uppercase">System Operations Guide</p>
+                </div>
+            </div>
+            <button id="close-manual-btn" class="p-2 text-gray-500 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full"><i class="ph ph-x text-lg"></i></button>
+        </div>
+        <div class="px-6 py-3 border-b border-white/5 bg-black/40 flex-shrink-0">
+            <div class="relative"><i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i><input type="text" id="manual-search" class="w-full bg-surface border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50 transition-colors shadow-inner" placeholder="Search commands, syntax, or domains..."></div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide text-sm text-gray-300 font-sans leading-relaxed">
+            
+            <!-- Intro Section -->
+            <section class="manual-section" data-tags="intro what is artemis hologram core architecture">
+                <div class="bg-gradient-to-br from-[#111] to-black border border-white/5 rounded-xl overflow-hidden shadow-lg relative">
+                    <div class="h-32 bg-black flex items-center justify-center relative overflow-hidden">
+                        <i class="ph ph-atom text-gold/20 text-7xl absolute animate-pulse"></i>
+                        <div class="text-center z-10">
+                            <h3 class="text-lg font-light text-white tracking-[0.2em]">ARTEMIS CORE</h3>
+                            <p class="text-[9px] font-mono text-gray-400 mt-1 uppercase tracking-widest">Quantitative NLP Engine</p>
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <p class="mb-3"><strong class="text-gold">Artemis</strong> is a sovereign, zero-latency quantitative analytics terminal. It processes natural language queries locally in your browser using mathematically mapped Vector AI, ensuring maximum data privacy and bypassing the need for external LLM APIs for statistical data tasks.</p>
+                        <p>It acts as the primary orchestrator for your KYC Data Lake, capable of reading exact 24-hour timestamps, mapping 1,520 schema columns, and auto-rendering the correct visual artifact.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tools Section -->
+            <section class="manual-section" data-tags="tools functions charts maps risk compliance pipeline volume">
+                <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Analytical Toolset</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-emerald-500/30 transition-colors">
+                        <i class="ph ph-chart-line-up text-emerald-400 text-xl mb-2"></i>
+                        <div class="text-xs text-white font-semibold mb-1">Time-Series</div>
+                        <div class="text-[10px] text-gray-400">Tracks ingestion velocity and aging across single days or ranges.</div>
+                    </div>
+                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-blue-400/30 transition-colors">
+                        <i class="ph ph-globe-hemisphere-west text-blue-400 text-xl mb-2"></i>
+                        <div class="text-xs text-white font-semibold mb-1">Geospatial Mapping</div>
+                        <div class="text-[10px] text-gray-400">Plots volume across jurisdictional and country borders.</div>
+                    </div>
+                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-red-400/30 transition-colors">
+                        <i class="ph ph-shield-check text-red-400 text-xl mb-2"></i>
+                        <div class="text-xs text-white font-semibold mb-1">Risk & Compliance</div>
+                        <div class="text-[10px] text-gray-400">Audits adverse media, PEP influence, and sanction ratings.</div>
+                    </div>
+                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-amber-400/30 transition-colors">
+                        <i class="ph ph-funnel text-amber-400 text-xl mb-2"></i>
+                        <div class="text-xs text-white font-semibold mb-1">Stage Bottlenecks</div>
+                        <div class="text-[10px] text-gray-400">Identifies friction points in the approval pipelines.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Usage & Syntax Section -->
+            <section class="manual-section" data-tags="how to use syntax examples charts tables date filters">
+                <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Prompt Syntax & Examples</h4>
+                <p class="text-xs text-gray-400 mb-4">Artemis automatically renders <strong class="text-white">Charts</strong> if the result has $\le 10$ categories, and <strong class="text-white">Tables</strong> if $> 10$. Use natural language or precise dates.</p>
+                
+                <div class="space-y-4">
+                    <div class="bg-black/40 border border-white/5 rounded-lg p-4">
+                        <div class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-2">Single-Day Filtering</div>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-3">"How many tickets were registered on 2024-05-17?"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="How many tickets were registered on 2024-05-17?"><i class="ph ph-arrow-arc-left"></i><span>Inject to Terminal</span></button>
+                    </div>
+
+                    <div class="bg-black/40 border border-white/5 rounded-lg p-4">
+                        <div class="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-2">Date-Range Velocity</div>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-3">"Registration timeline from 2024-01-01 to 2024-06-30"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Registration timeline from 2024-01-01 to 2024-06-30"><i class="ph ph-arrow-arc-left"></i><span>Inject to Terminal</span></button>
+                    </div>
+
+                    <div class="bg-black/40 border border-white/5 rounded-lg p-4">
+                        <div class="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-2">Categorical Splits (Charts)</div>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-3">"Show me the distribution of adverse media risk scores"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Show me the distribution of adverse media risk scores"><i class="ph ph-arrow-arc-left"></i><span>Inject to Terminal</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Macros Section -->
+            <section class="manual-section" data-tags="macros tasks leaderboard bottlenecks summary anomaly">
+                <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Fast-Path Macros ( / Tasks )</h4>
+                <p class="text-xs text-gray-400 mb-4">Type <strong class="text-white">/</strong> to open the macro palette for instant tactical audits.</p>
+                <ul class="space-y-3">
+                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
+                        <div class="bg-gold/10 text-gold px-2 py-1 rounded border border-gold/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/leaderboard</div>
+                        <div class="text-xs text-gray-300"><strong>AM Resolution Leaderboard:</strong> Ranks account managers by throughput and queue aging.</div>
+                    </li>
+                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
+                        <div class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/bottlenecks</div>
+                        <div class="text-xs text-gray-300"><strong>Stage Bottlenecks:</strong> Identifies queues with highest latency and friction points.</div>
+                    </li>
+                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
+                        <div class="bg-blue-400/10 text-blue-400 px-2 py-1 rounded border border-blue-400/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/summary</div>
+                        <div class="text-xs text-gray-300"><strong>Executive Summary:</strong> High-level breakdown of approved, declined, and in-triage volume.</div>
+                    </li>
+                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
+                        <div class="bg-red-400/10 text-red-400 px-2 py-1 rounded border border-red-400/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/anomaly</div>
+                        <div class="text-xs text-gray-300"><strong>Daily Anomaly Scan:</strong> Scans rolling 30-day velocity to flag statistical deviations.</div>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </div>
+
     <!-- MAIN SIDEBAR NAVIGATION -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-surface/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.6)] relative transition-all duration-300">
         <button id="sidebar-toggle" class="absolute -right-3 top-32 bg-panel border border-white/10 rounded-full p-1 z-[100] text-gray-400 hover:text-gold shadow-lg transition-colors cursor-pointer"><i class="ph ph-caret-left text-sm" id="sidebar-toggle-icon"></i></button>
@@ -95,7 +214,12 @@
     </aside>
 
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)] overflow-hidden">
-        <header class="flex-none h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10">
+        <header class="flex-none h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10 space-x-6">
+            <!-- Artemis Manual Trigger Button -->
+            <button id="open-manual-btn" class="flex items-center space-x-2 text-xs font-mono text-gray-400 hover:text-gold transition-colors border border-white/10 hover:border-gold/30 px-3 py-1.5 rounded-sm bg-black/40 shadow-inner">
+                <i class="ph ph-book-open text-base"></i><span>Artemis Guide</span>
+            </button>
+            <div class="w-px h-6 bg-white/10"></div>
             <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
         </header>
 
@@ -220,14 +344,13 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <!-- NEW WEBGPU TOGGLE (Now Vector AI Toggle) -->
+                            <!-- WEBGPU TOGGLE (Now Vector AI Toggle) -->
                             <button id="webgpu-toggle-btn" class="bg-surface/80 border border-white/10 px-3 py-1.5 rounded-sm text-xs font-mono text-gray-400 hover:text-white transition-all flex items-center space-x-1.5">
                                 <i class="ph ph-lightning text-sm text-gray-500" id="webgpu-icon"></i><span id="webgpu-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-500">Vector Engine: OFF</span>
                             </button>
                             <button id="voice-auto-toggle-btn" class="bg-surface/80 border border-white/10 px-3 py-1.5 rounded-sm text-xs font-mono text-gray-400 hover:text-white transition-all flex items-center space-x-1.5" title="Toggle Audio Synthesis">
                                 <i class="ph ph-speaker-high text-sm text-gold" id="voice-auto-icon"></i><span id="voice-auto-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-300">Voice: ON</span>
                             </button>
-                            <!-- DEFAULT HIDDEN: Only visible when Prometheus is active -->
                             <select id="model-select" class="hidden bg-obsidian border border-gray-700 text-gray-300 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-sm outline-none cursor-pointer transition-all shadow-lg focus:ring-1 focus:ring-gray-500">
                                 <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
                                 <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
