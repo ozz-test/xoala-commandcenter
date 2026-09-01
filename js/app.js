@@ -1,6 +1,7 @@
 // === XOALA COMMAND CENTER: DASHBOARD & ROUTING ===
 
-const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev'; 
+// 🚨 EMERGENCY BYPASS: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BELOW 🚨
+const DASHBOARD_API_URL = 'https://script.google.com/macros/s/AKfycbweFCxva_Ya1FwOaU45VQcmVaI23B4HKrui96Ow5lt2l3qVVb9c6Jhhv8nV6WqvOBX-/exec'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -71,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "egypt": "eg", "kenya": "ke", "colombia": "co", "peru": "pe", "chile": "cl", "turkey": "tr", "saudi arabia": "sa",
         "bvi": "vg", "cayman islands": "ky", "seychelles": "sc", "mauritius": "mu", "bahamas": "bs", "belize": "bz", 
         "vanuatu": "vu", "marshall islands": "mh", "georgia": "ge", "armenia": "am", "russia": "ru", "slovakia": "sk",
-        // RESTORED ISLANDS & MISSING JURISDICTIONS
         "saint lucia": "lc", "czech republic": "cz", "saint vincent and the grenadines": "vc",
         "virgin islands (british)": "vg", "comoros": "km", "costa rica": "cr", "panama": "pa",
         "saint kitts and nevis": "kn", "isle of man": "im", "dominica": "dm", "oman": "om",
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">API Error.</td></tr>`;
         } catch (error) {
             console.error("Matrix Network Failure:", error);
-            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">Network Error. Check Google Apps Script Link.</td></tr>`;
         } finally { if (syncIcon) syncIcon.classList.remove('animate-spin'); }
     };
 
