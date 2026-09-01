@@ -1,6 +1,6 @@
 /**
  * === FILE: api.js (Xoala Command Center Frontend Engine) ===
- * STABLE RELEASE: Vector AI, Elite HITL UI, Date Extraction
+ * ULTIMATE UI/UX UPGRADE: Elite Terminal Chat, HITL Widget, Vector Cache & Date Parsing
  */
 
 import { DATA_LAKE_SCHEMA } from './schema.js';
@@ -67,6 +67,9 @@ class VectorEmbeddingEngine {
             const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
             
             env.allowLocalModels = false;
+            // FIX: Lock Vector AI into Cache Storage so it never re-downloads
+            env.useBrowserCache = true;
+            env.useCustomCache = true;
             env.remoteHost = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev/';
             
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
@@ -150,8 +153,16 @@ class VectorEmbeddingEngine {
                 columnScores.push({ name: schema.name, score: score });
             }
             columnScores.sort((a, b) => b.score - a.score);
-            const topColumns = columnScores.slice(0, 6).map(c => c.name);
             
+            let topColumns = columnScores.slice(0, 6).map(c => c.name);
+            
+            // Override Alias fix for "create_date" -> "hs_createdate"
+            if (prompt.toLowerCase().includes("create date") || prompt.toLowerCase().includes("createdate")) {
+                if (!topColumns.includes("hs_createdate")) {
+                    topColumns.unshift("hs_createdate");
+                }
+            }
+
             const dateFilter = extractDateFilter(prompt);
 
             return {
@@ -494,6 +505,61 @@ document.addEventListener('DOMContentLoaded', () => {
     let activePersona = 'artemis';
 
     new SpeechInputEngine('prompt-input', 'voice-dictation-btn');
+
+    // --- Artemis Command Manual Logic ---
+    const manualBtn = document.getElementById('open-manual-btn');
+    const manualDrawer = document.getElementById('artemis-manual-drawer');
+    const manualOverlay = document.getElementById('manual-overlay');
+    const closeManualBtn = document.getElementById('close-manual-btn');
+    const manualSearch = document.getElementById('manual-search');
+
+    if (manualBtn && manualDrawer) {
+        const toggleManual = () => {
+            const isOpen = manualDrawer.classList.contains('drawer-slide-in');
+            if (isOpen) {
+                manualDrawer.classList.remove('drawer-slide-in');
+                manualOverlay.classList.remove('opacity-100');
+                setTimeout(() => manualOverlay.classList.add('hidden'), 300);
+            } else {
+                manualOverlay.classList.remove('hidden');
+                setTimeout(() => {
+                    manualOverlay.classList.add('opacity-100');
+                    manualDrawer.classList.add('drawer-slide-in');
+                }, 10);
+            }
+        };
+
+        manualBtn.addEventListener('click', toggleManual);
+        closeManualBtn.addEventListener('click', toggleManual);
+        manualOverlay.addEventListener('click', toggleManual);
+
+        if (manualSearch) {
+            manualSearch.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.manual-section').forEach(section => {
+                    const tags = section.getAttribute('data-tags') || '';
+                    if (term === '' || tags.includes(term) || section.textContent.toLowerCase().includes(term)) {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Manual Inject Buttons
+        document.querySelectorAll('.manual-inject-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetPrompt = e.currentTarget.getAttribute('data-inject');
+                if (targetPrompt && promptInput) {
+                    promptInput.value = targetPrompt;
+                    promptInput.focus();
+                    promptInput.dispatchEvent(new Event('input'));
+                    toggleManual(); // Close drawer automatically
+                }
+            });
+        });
+    }
 
     if (webgpuBtn) {
         webgpuBtn.addEventListener('click', async () => {
