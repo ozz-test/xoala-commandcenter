@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY ---
+    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY (Updated for Attio Spellings) ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -77,12 +77,16 @@ document.addEventListener('DOMContentLoaded', () => {
         "gibraltar": "gi", "algeria": "dz", "uruguay": "uy", "el salvador": "sv", "kazakhstan": "kz",
         "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
         "anguilla": "ai", "liechtenstein": "li", "serbia": "rs", "albania": "al", "jordan": "jo",
-        "jersey": "je", "honduras": "hn", "tanzania, united republic of": "tz"
+        "jersey": "je", "honduras": "hn", "tanzania, united republic of": "tz",
+        "bahrain": "bh", "bangladesh": "bd", "british virgin islands": "vg", 
+        "hong kong sar china": "hk", "sri lanka": "lk", "st. kitts & nevis": "kn", 
+        "st. lucia": "lc", "st. vincent & grenadines": "vc", "tanzania": "tz", 
+        "türkiye": "tr", "ukraine": "ua"
     };
 
     const regionsMap = {
-        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru', 'km', 'im', 'om', 'gi', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'je', 'tz'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh', 'kz', 'ck', 'mn'],
+        'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru', 'km', 'im', 'om', 'gi', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'je', 'tz', 'bh', 'ua'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh', 'kz', 'ck', 'mn', 'bd', 'lk'],
         'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz', 'lc', 'vc', 'cr', 'pa', 'kn', 'dm', 'uy', 'sv', 'do', 'ai', 'hn'],
         'NA': ['us', 'ca']
     };
@@ -297,7 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     secret: 'system_dashboard_init', 
                     prompt: 'system_dashboard_init', 
                     model: 'gemini-3.5-flash-lite', 
-                    history: [] 
+                    history: [],
+                    forceRefresh: true 
                 })
             });
 
@@ -336,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) { 
             console.error("Dashboard Network Failure:", error); 
-            // Display error cleanly without crashing UI
             const reportEl = document.getElementById('daily-report-content');
             if (reportEl) {
                 reportEl.innerHTML = `<span class="text-red-400">Connection Failed: ${error.message}</span>`;
