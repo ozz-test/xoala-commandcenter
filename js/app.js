@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
         "anguilla": "ai", "liechtenstein": "li", "serbia": "rs", "albania": "al", "jordan": "jo",
         "jersey": "je", "honduras": "hn", "tanzania, united republic of": "tz",
+        // ATTIO SPECIFIC ADDITIONS:
         "bahrain": "bh", "bangladesh": "bd", "british virgin islands": "vg", 
         "hong kong sar china": "hk", "sri lanka": "lk", "st. kitts & nevis": "kn", 
         "st. lucia": "lc", "st. vincent & grenadines": "vc", "tanzania": "tz", 
@@ -357,7 +358,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (riskCanvas) {
             const riskCtx = riskCanvas.getContext('2d');
             if (riskChartInstance) riskChartInstance.destroy();
-            const rawColors = riskData.labels.map(label => { if (label === 'Critical') return '#ef4444'; if (label === 'High') return '#f97316'; if (label === 'Medium') return '#DDAA33'; if (label === 'Low') return '#10b981'; return '#333333'; });
+            
+            // FIX: Case-insensitive match for the new Attio Risk Categories
+            const rawColors = riskData.labels.map(label => { 
+                const l = label.toLowerCase();
+                if (l.includes('critical') || l.includes('decline')) return '#ef4444'; // Red
+                if (l.includes('high')) return '#f97316'; // Orange
+                if (l.includes('medium')) return '#DDAA33'; // Gold
+                if (l.includes('low')) return '#10b981'; // Green
+                return '#333333'; // Default Gray (Blank / Unassessed)
+            });
+            
             riskChartInstance = new Chart(riskCtx, {
                 type: 'doughnut', data: { labels: riskData.labels, datasets: [{ data: riskData.data, backgroundColor: rawColors, borderWidth: 0, hoverOffset: 4 }] },
                 options: { devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } }, onClick: (e, elements) => { if (elements.length > 0) openDrilldown(riskData.labels[elements[0].index], riskData.leads[elements[0].index]); } }
