@@ -154,9 +154,10 @@ class VectorEmbeddingEngine {
             
             let topColumns = columnScores.slice(0, 6).map(c => c.name);
             
+            // FIX: Updated override to look for Attio's `created_at` column instead of HubSpot's `hs_createdate`
             if (prompt.toLowerCase().includes("create date") || prompt.toLowerCase().includes("createdate") || prompt.toLowerCase().includes("registered")) {
-                if (!topColumns.includes("hs_createdate")) {
-                    topColumns.unshift("hs_createdate");
+                if (!topColumns.includes("created_at")) {
+                    topColumns.unshift("created_at");
                 }
             }
 
@@ -1056,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             aiMsg.innerHTML = `
                 <div class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_${glowColor}] relative overflow-hidden mt-1">
-                    <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'} ${cpuColor} text-base drop-shadow-[0_0_5px_currentColor] animate-pulse"></i>
+                    <i class="ph ph-${targetPersona === 'Prometheus' ? 'brain' : 'cpu'}${cpuColor} text-base drop-shadow-[0_0_5px_currentColor] animate-pulse"></i>
                 </div>
                 <div class="text-[13px] ${colorClass} font-mono pt-2.5 tracking-widest uppercase animate-pulse drop-shadow-[0_0_8px_currentColor]">${loadingText}</div>
             `;
