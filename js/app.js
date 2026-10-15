@@ -433,6 +433,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!mapEl) return;
         mapEl.innerHTML = ''; 
 
+        // PREVENTS scale(NaN) ERROR: Do not draw if the container is hidden / has 0 width
+        if (mapEl.offsetWidth === 0) return;
+
         const mapDataObj = {};
         const hoverData = {}; 
         let unmappedCount = 0;
