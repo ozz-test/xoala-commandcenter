@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -78,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
         "anguilla": "ai", "liechtenstein": "li", "serbia": "rs", "albania": "al", "jordan": "jo",
         "jersey": "je", "honduras": "hn", "tanzania, united republic of": "tz",
-        // ATTIO SPECIFIC & NEW ADDITIONS:
         "bahrain": "bh", "bangladesh": "bd", "british virgin islands": "vg", 
         "hong kong sar china": "hk", "sri lanka": "lk", "st. kitts & nevis": "kn", 
         "st. lucia": "lc", "st. vincent & grenadines": "vc", "tanzania": "tz", 
@@ -92,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'NA': ['us', 'ca']
     };
 
-    // --- DASHBOARD DRILLDOWN LOGIC ---
     const drilldownPanel = document.getElementById('drilldown-panel');
     const drilldownOverlay = document.getElementById('drilldown-overlay');
     const drilldownTitle = document.getElementById('drilldown-title');
@@ -112,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" />` : '<span class="w-4 h-3 inline-block mr-2 text-gray-600"><i class="ph ph-flag"></i></span>';
-            
             return `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors flex items-center" title="${name}">${flagHtml}${name}</li>`;
         }).join('');
     };
@@ -150,8 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadCSV = (title, labels, counts, leadsArray) => {
         let csvContent = "data:text/csv;charset=utf-8,Category,Ticket Count,Lead Names,Countries\n";
         labels.forEach((label, i) => {
-            let leadNames = [];
-            let leadCountries = [];
+            let leadNames = []; let leadCountries = [];
             leadsArray[i].forEach(l => {
                 if (typeof l === 'string') { leadNames.push(l); leadCountries.push('Unknown'); }
                 else { leadNames.push(l.name); leadCountries.push(l.country || 'Unknown'); }
@@ -194,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     setMatrixDefaultDates();
 
-    // --- MATRIX FETCH & RENDER ---
     const fetchMatrixData = async () => {
         const syncIcon = document.getElementById('matrix-sync-icon');
         const tbody = document.getElementById('matrix-table-body');
@@ -207,26 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DASHBOARD_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action: 'get_matrix_data', 
-                    startDate: startEl.value, 
-                    endDate: endEl.value, 
-                    secret: 'system_dashboard_init', 
-                    prompt: 'system', 
-                    model: 'gemini-3.5-flash-lite' 
-                })
+                body: JSON.stringify({ action: 'get_matrix_data', startDate: startEl.value, endDate: endEl.value, secret: 'system_dashboard_init', prompt: 'system', model: 'gemini-3.5-flash-lite' })
             });
-            
             if (!response.ok) throw new Error("Server Error HTTP " + response.status);
-            
             const textData = await response.text();
             let responseData;
-            try {
-                responseData = JSON.parse(textData);
-            } catch (e) {
-                throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'.");
-            }
-
+            try { responseData = JSON.parse(textData); } catch (e) { throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'."); }
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">${responseData.error || 'API Error'}</td></tr>`;
         } catch (error) {
@@ -303,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRiskData = null; let currentBotData = null; let currentGeoData = null;
     let currentRegionFilter = 'ALL';
 
-    // --- DASHBOARD FETCH & RENDER ---
     const fetchDashboardData = async () => {
         const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
         if (globalSyncIcon) globalSyncIcon.classList.add('animate-spin');
@@ -317,26 +296,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DASHBOARD_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action: 'get_dashboard_stats', 
-                    filters: filters, 
-                    secret: 'system_dashboard_init', 
-                    prompt: 'system_dashboard_init', 
-                    model: 'gemini-3.5-flash-lite', 
-                    history: [],
-                    forceRefresh: true 
-                })
+                body: JSON.stringify({ action: 'get_dashboard_stats', filters: filters, secret: 'system_dashboard_init', prompt: 'system_dashboard_init', model: 'gemini-3.5-flash-lite', history: [], forceRefresh: true })
             });
-
             if (!response.ok) throw new Error(`Server Error HTTP ${response.status}`);
-
             const textData = await response.text();
             let data;
-            try {
-                data = JSON.parse(textData);
-            } catch (e) {
-                throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'.");
-            }
+            try { data = JSON.parse(textData); } catch (e) { throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'."); }
 
             if (data.status === 200 && data.stats) {
                 currentRiskData = data.stats.riskChart; currentBotData = data.stats.bottleneckChart; currentGeoData = data.stats.geoChart;
@@ -355,21 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const date3 = document.getElementById('dash-approval-dates'); if (date3) date3.textContent = `${data.stats.approvalRate.startDate} TO ${data.stats.approvalRate.endDate}`;
 
                 const reportEl = document.getElementById('daily-report-content');
-                if (reportEl) {
-                    reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Month-to-Date Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.approvedVolume} strictly approved applications created this month.`;
-                }
+                if (reportEl) reportEl.innerHTML = `System pipeline integrity remains optimal. The Data Lake successfully synchronized <strong>${data.stats.totalTickets.toLocaleString()}</strong> active KYC tickets.<br><br><strong>Today's Activity:</strong> <strong>${data.stats.todayCount}</strong> new registrations were processed, with <strong>${data.stats.topCountryToday.name}</strong> leading daily ingestion volume.<br><br><strong>Month-to-Date Performance:</strong> The pipeline conversion efficiency stands at <strong>${data.stats.approvalRate.rate}</strong> across ${data.stats.approvalRate.approvedVolume} strictly approved applications created this month.`;
+                
                 renderCharts(currentRiskData, currentBotData);
                 renderGeoMap(currentGeoData, currentRegionFilter);
             }
         } catch (error) { 
             console.error("Dashboard Network Failure:", error); 
             const reportEl = document.getElementById('daily-report-content');
-            if (reportEl) {
-                reportEl.innerHTML = `<span class="text-red-400">Connection Failed: ${error.message}</span>`;
-            }
-        } finally { 
-            if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); 
-        }
+            if (reportEl) reportEl.innerHTML = `<span class="text-red-400">Connection Failed: ${error.message}</span>`;
+        } finally { if (globalSyncIcon) globalSyncIcon.classList.remove('animate-spin'); }
     };
 
     const renderCharts = (riskData, bottleneckData) => {
@@ -377,9 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const riskCanvas = document.getElementById('riskChart');
         if (riskCanvas) {
-            const riskCtx = riskCanvas.getContext('2d');
+            const existingRiskChart = Chart.getChart(riskCanvas);
+            if (existingRiskChart) existingRiskChart.destroy();
             if (riskChartInstance) riskChartInstance.destroy();
             
+            const riskCtx = riskCanvas.getContext('2d');
             const rawColors = riskData.labels.map(label => { 
                 const l = label.toLowerCase();
                 if (l.includes('critical') || l.includes('decline')) return '#ef4444'; 
@@ -394,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: { devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } }, onClick: (e, elements) => { if (elements.length > 0) openDrilldown(riskData.labels[elements[0].index], riskData.leads[elements[0].index]); } }
             });
 
-            // Dynamically build fully clickable legend items for Risk Chart
             const riskLegendContainer = document.getElementById('risk-legend');
             riskLegendContainer.innerHTML = riskData.labels.map((lbl, i) => 
                 `<div class="risk-legend-item flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" data-index="${i}">
@@ -403,40 +364,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`
             ).join('');
 
-            // Attach Direct Click Handlers to the Risk Legend
             riskLegendContainer.querySelectorAll('.risk-legend-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const idx = parseInt(item.getAttribute('data-index'));
-                    openDrilldown(riskData.labels[idx], riskData.leads[idx]);
-                });
+                item.addEventListener('click', () => { const idx = parseInt(item.getAttribute('data-index')); openDrilldown(riskData.labels[idx], riskData.leads[idx]); });
             });
         }
 
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
-            const bottleneckCtx = bottleneckCanvas.getContext('2d');
+            const existingBotChart = Chart.getChart(bottleneckCanvas);
+            if (existingBotChart) existingBotChart.destroy();
             if (bottleneckChartInstance) bottleneckChartInstance.destroy();
 
-            // Support an expansive palette to map all 19 pipeline statuses distinctively
-            const colors = [
-                '#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', 
-                '#06b6d4', '#f59e0b', '#14b8a6', '#6366f1', '#f43f5e', '#84cc16', '#a855f7'
-            ];
-
-            const gradients = bottleneckData.labels.map((_, i) => { 
-                const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300); 
-                const baseColor = colors[i % colors.length]; 
-                gradient.addColorStop(0, baseColor); 
-                gradient.addColorStop(1, '#111111'); 
-                return gradient; 
-            });
+            const bottleneckCtx = bottleneckCanvas.getContext('2d');
+            const colors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#14b8a6', '#6366f1', '#f43f5e', '#84cc16', '#a855f7'];
+            const gradients = bottleneckData.labels.map((_, i) => { const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300); const baseColor = colors[i % colors.length]; gradient.addColorStop(0, baseColor); gradient.addColorStop(1, '#111111'); return gradient; });
 
             bottleneckChartInstance = new Chart(bottleneckCtx, {
                 type: 'bar', data: { labels: bottleneckData.labels, datasets: [{ data: bottleneckData.data, backgroundColor: gradients, borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, barPercentage: 0.6 }] },
                 options: { devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } }, x: { grid: { display: false }, ticks: { display: false } } }, plugins: { legend: { display: false } }, onClick: (e, elements) => { if (elements.length > 0) openDrilldown(bottleneckData.labels[elements[0].index], bottleneckData.leads[elements[0].index]); } }
             });
             
-            // Dynamically build fully clickable legend items for Bottleneck Chart
             const botLegendContainer = document.getElementById('bot-legend');
             botLegendContainer.innerHTML = bottleneckData.labels.map((lbl, i) => 
                 `<div class="bot-legend-item flex items-center space-x-1.5 bg-white/5 px-2 py-1 rounded border border-white/5 text-[10px] text-gray-400 cursor-pointer hover:bg-white/10 transition-colors" data-index="${i}">
@@ -446,12 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`
             ).join('');
 
-            // Attach Direct Click Handlers to the Bottleneck Legend
             botLegendContainer.querySelectorAll('.bot-legend-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const idx = parseInt(item.getAttribute('data-index'));
-                    openDrilldown(bottleneckData.labels[idx], bottleneckData.leads[idx]);
-                });
+                item.addEventListener('click', () => { const idx = parseInt(item.getAttribute('data-index')); openDrilldown(bottleneckData.labels[idx], bottleneckData.leads[idx]); });
             });
         }
     };
@@ -533,14 +476,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cleanNameCheck === "unknown" || cleanNameCheck === "") return ''; 
 
                 const isoCode = countryToIsoMap[cleanNameCheck];
-                const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph ph-warning-circle"></i></span>';
+                const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph-warning-circle"></i></span>';
                 
-                return `
-                    <tr class="geo-table-row bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" data-iso="${isoCode || ''}">
-                        <td class="py-2 px-4 flex items-center">${flagHtml}<span class="text-gray-300 capitalize">${countryName}</span></td>
-                        <td class="py-2 px-4 text-right font-mono text-gold">${count}</td>
-                    </tr>
-                `;
+                return `<tr class="geo-table-row bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" data-iso="${isoCode || ''}"><td class="py-2 px-4 flex items-center">${flagHtml}<span class="text-gray-300 capitalize">${countryName}</span></td><td class="py-2 px-4 text-right font-mono text-gold">${count}</td></tr>`;
             }).join('');
 
             geoTbody.querySelectorAll('.geo-table-row').forEach((row, i) => {
@@ -563,34 +501,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
-            if (geoWidget.requestFullscreen) geoWidget.requestFullscreen();
-            else if (geoWidget.webkitRequestFullscreen) geoWidget.webkitRequestFullscreen();
-            else if (geoWidget.msRequestFullscreen) geoWidget.msRequestFullscreen();
+            if (geoWidget.requestFullscreen) geoWidget.requestFullscreen(); else if (geoWidget.webkitRequestFullscreen) geoWidget.webkitRequestFullscreen(); else if (geoWidget.msRequestFullscreen) geoWidget.msRequestFullscreen();
         } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-            else if (document.msExitFullscreen) document.msExitFullscreen();
+            if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); else if (document.msExitFullscreen) document.msExitFullscreen();
         }
     };
 
     document.addEventListener('fullscreenchange', () => {
         const isFS = !!document.fullscreenElement;
         if (isFS) {
-            geoWidget.classList.remove('rounded-xl', 'border', 'shadow-2xl');
-            geoWidget.classList.add('bg-obsidian', 'p-4'); 
-            geoFullscreenIcon.classList.replace('ph-corners-out', 'ph-corners-in');
-            geoCloseFsBtn.classList.remove('hidden');
+            geoWidget.classList.remove('rounded-xl', 'border', 'shadow-2xl'); geoWidget.classList.add('bg-obsidian', 'p-4'); 
+            geoFullscreenIcon.classList.replace('ph-corners-out', 'ph-corners-in'); geoCloseFsBtn.classList.remove('hidden');
             document.getElementById('geo-map-container').style.height = 'calc(100vh - 120px)';
         } else {
-            geoWidget.classList.add('rounded-xl', 'border', 'shadow-2xl');
-            geoWidget.classList.remove('bg-obsidian', 'p-4');
-            geoFullscreenIcon.classList.replace('ph-corners-in', 'ph-corners-out');
-            geoCloseFsBtn.classList.add('hidden');
+            geoWidget.classList.add('rounded-xl', 'border', 'shadow-2xl'); geoWidget.classList.remove('bg-obsidian', 'p-4');
+            geoFullscreenIcon.classList.replace('ph-corners-in', 'ph-corners-out'); geoCloseFsBtn.classList.add('hidden');
             document.getElementById('geo-map-container').style.height = 'auto'; 
         }
-        if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
-            setTimeout(() => geoMapInstance.updateSize(), 200);
-        }
+        if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) setTimeout(() => geoMapInstance.updateSize(), 200);
     });
 
     if (geoFullscreenBtn) geoFullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -604,21 +532,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (geoViewToggleBtn) {
         geoViewToggleBtn.addEventListener('click', () => {
             geoMapContainer.classList.toggle('hidden'); geoTableContainer.classList.toggle('hidden');
-            if (geoMapContainer.classList.contains('hidden')) {
-                geoViewToggleIcon.classList.replace('ph-list-dashes', 'ph-globe'); geoViewToggleBtn.title = "Switch to Map View";
-            } else {
-                geoViewToggleIcon.classList.replace('ph-globe', 'ph-list-dashes'); geoViewToggleBtn.title = "Switch to Table View";
-                if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) geoMapInstance.updateSize();
-            }
+            if (geoMapContainer.classList.contains('hidden')) { geoViewToggleIcon.classList.replace('ph-list-dashes', 'ph-globe'); geoViewToggleBtn.title = "Switch to Map View"; } 
+            else { geoViewToggleIcon.classList.replace('ph-globe', 'ph-list-dashes'); geoViewToggleBtn.title = "Switch to Table View"; if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) geoMapInstance.updateSize(); }
         });
     }
 
     const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn'); if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
-    
     document.getElementById('risk-start-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-end-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-clear-btn').addEventListener('click', () => { document.getElementById('risk-start-date').value = ''; document.getElementById('risk-end-date').value = ''; fetchDashboardData(); }); document.getElementById('risk-export-btn').addEventListener('click', () => { if(currentRiskData) downloadCSV('Risk_Stratification', currentRiskData.labels, currentRiskData.data, currentRiskData.leads); });
-    
     document.getElementById('bot-start-date').addEventListener('change', fetchDashboardData); document.getElementById('bot-end-date').addEventListener('change', fetchDashboardData); document.getElementById('bot-clear-btn').addEventListener('click', () => { document.getElementById('bot-start-date').value = ''; document.getElementById('bot-end-date').value = ''; fetchDashboardData(); }); document.getElementById('bot-export-btn').addEventListener('click', () => { if(currentBotData) downloadCSV('Stage_Bottlenecks', currentBotData.labels, currentBotData.data, currentBotData.leads); });
-
     document.getElementById('geo-start-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-end-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-clear-btn').addEventListener('click', () => { document.getElementById('geo-start-date').value = ''; document.getElementById('geo-end-date').value = ''; fetchDashboardData(); }); document.getElementById('geo-export-btn').addEventListener('click', () => { if(currentGeoData) downloadCSV('Geographic_Distribution', currentGeoData.labels, currentGeoData.data, currentGeoData.leads); });
 
     document.querySelectorAll('.geo-region-btn').forEach(btn => {
