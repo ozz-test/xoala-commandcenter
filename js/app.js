@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateElement = document.getElementById('current-date');
     if (dateElement) dateElement.textContent = new Date().toISOString().split('T')[0];
 
-    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY (Updated for Attio Spellings) ---
+    // --- 100% COMPREHENSIVE ISO-3166 MAPPING DICTIONARY ---
     const countryToIsoMap = {
         "united kingdom": "gb", "uk": "gb", "great britain": "gb", "england": "gb",
         "united states": "us", "usa": "us", "united states of america": "us",
@@ -78,16 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
         "cook islands": "ck", "croatia": "hr", "mongolia": "mn", "dominican republic": "do",
         "anguilla": "ai", "liechtenstein": "li", "serbia": "rs", "albania": "al", "jordan": "jo",
         "jersey": "je", "honduras": "hn", "tanzania, united republic of": "tz",
-        // ATTIO SPECIFIC ADDITIONS:
+        // ATTIO SPECIFIC & NEW ADDITIONS:
         "bahrain": "bh", "bangladesh": "bd", "british virgin islands": "vg", 
         "hong kong sar china": "hk", "sri lanka": "lk", "st. kitts & nevis": "kn", 
         "st. lucia": "lc", "st. vincent & grenadines": "vc", "tanzania": "tz", 
-        "türkiye": "tr", "ukraine": "ua"
+        "türkiye": "tr", "ukraine": "ua", "french polynesia": "pf"
     };
 
     const regionsMap = {
         'EMEA': ['gb', 'de', 'fr', 'es', 'it', 'cy', 'gr', 'nl', 'be', 'ch', 'ae', 'za', 'ee', 'lt', 'lv', 'ie', 'se', 'no', 'dk', 'fi', 'pl', 'pt', 'ro', 'cz', 'bg', 'hu', 'at', 'mt', 'lu', 'il', 'pk', 'in', 'ng', 'ke', 'eg', 'tr', 'sa', 'mu', 'sc', 'sk', 'ge', 'am', 'ru', 'km', 'im', 'om', 'gi', 'dz', 'hr', 'li', 'rs', 'al', 'jo', 'je', 'tz', 'bh', 'ua'],
-        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh', 'kz', 'ck', 'mn', 'bd', 'lk'],
+        'APAC': ['au', 'sg', 'hk', 'jp', 'in', 'my', 'id', 'nz', 'cn', 'kr', 'th', 'vn', 'ph', 'vu', 'mh', 'kz', 'ck', 'mn', 'bd', 'lk', 'pf'],
         'LATAM': ['br', 'mx', 'ar', 'cl', 'co', 'pe', 'vg', 'ky', 'bs', 'bz', 'lc', 'vc', 'cr', 'pa', 'kn', 'dm', 'uy', 'sv', 'do', 'ai', 'hn'],
         'NA': ['us', 'ca']
     };
@@ -101,9 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDrilldownLeads = [];
     let currentDrilldownIso = null;
 
-    const renderDrilldownList = (leads, isoCode = null) => {
-        const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" />` : '';
-        drilldownList.innerHTML = leads.map(name => `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors flex items-center" title="${name}">${flagHtml}${name}</li>`).join('');
+    const renderDrilldownList = (leads, overrideIso = null) => {
+        drilldownList.innerHTML = leads.map(leadItem => {
+            let name = typeof leadItem === 'string' ? leadItem : leadItem.name;
+            let country = typeof leadItem === 'string' ? null : leadItem.country;
+            
+            let isoCode = overrideIso;
+            if (!isoCode && country && country !== "Unknown") {
+                isoCode = countryToIsoMap[country.toLowerCase().trim()];
+            }
+            
+            const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" />` : '<span class="w-4 h-3 inline-block mr-2 text-gray-600"><i class="ph ph-flag"></i></span>';
+            
+            return `<li class="px-3 py-2 bg-white/5 hover:bg-gold/10 border border-white/5 rounded text-xs font-mono text-gray-300 truncate cursor-pointer transition-colors flex items-center" title="${name}">${flagHtml}${name}</li>`;
+        }).join('');
     };
 
     const openDrilldown = (title, leads, isoCode = null) => {
@@ -120,7 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (drilldownSearch) {
         drilldownSearch.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            renderDrilldownList(currentDrilldownLeads.filter(l => l.toLowerCase().includes(term)), currentDrilldownIso);
+            renderDrilldownList(currentDrilldownLeads.filter(l => {
+                const name = typeof l === 'string' ? l : l.name;
+                return name.toLowerCase().includes(term);
+            }), currentDrilldownIso);
         });
     }
 
@@ -134,10 +148,17 @@ document.addEventListener('DOMContentLoaded', () => {
     drilldownOverlay.addEventListener('click', closeDrilldown);
 
     const downloadCSV = (title, labels, counts, leadsArray) => {
-        let csvContent = "data:text/csv;charset=utf-8,Category,Ticket Count,Lead Names\n";
+        let csvContent = "data:text/csv;charset=utf-8,Category,Ticket Count,Lead Names,Countries\n";
         labels.forEach((label, i) => {
-            let safeLeads = leadsArray[i].map(l => l.replace(/"/g, '""')).join('; ');
-            csvContent += `"${label}",${counts[i]},"${safeLeads}"\n`;
+            let leadNames = [];
+            let leadCountries = [];
+            leadsArray[i].forEach(l => {
+                if (typeof l === 'string') { leadNames.push(l); leadCountries.push('Unknown'); }
+                else { leadNames.push(l.name); leadCountries.push(l.country || 'Unknown'); }
+            });
+            let safeLeads = leadNames.map(l => l.replace(/"/g, '""')).join('; ');
+            let safeCountries = leadCountries.map(c => c.replace(/"/g, '""')).join('; ');
+            csvContent += `"${label}",${counts[i]},"${safeLeads}","${safeCountries}"\n`;
         });
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
@@ -359,34 +380,79 @@ document.addEventListener('DOMContentLoaded', () => {
             const riskCtx = riskCanvas.getContext('2d');
             if (riskChartInstance) riskChartInstance.destroy();
             
-            // FIX: Case-insensitive match for the new Attio Risk Categories
             const rawColors = riskData.labels.map(label => { 
                 const l = label.toLowerCase();
-                if (l.includes('critical') || l.includes('decline')) return '#ef4444'; // Red
-                if (l.includes('high')) return '#f97316'; // Orange
-                if (l.includes('medium')) return '#DDAA33'; // Gold
-                if (l.includes('low')) return '#10b981'; // Green
-                return '#333333'; // Default Gray (Blank / Unassessed)
+                if (l.includes('critical') || l.includes('decline')) return '#ef4444'; 
+                if (l.includes('high')) return '#f97316'; 
+                if (l.includes('medium')) return '#DDAA33'; 
+                if (l.includes('low')) return '#10b981'; 
+                return '#333333'; 
             });
             
             riskChartInstance = new Chart(riskCtx, {
                 type: 'doughnut', data: { labels: riskData.labels, datasets: [{ data: riskData.data, backgroundColor: rawColors, borderWidth: 0, hoverOffset: 4 }] },
                 options: { devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } }, onClick: (e, elements) => { if (elements.length > 0) openDrilldown(riskData.labels[elements[0].index], riskData.leads[elements[0].index]); } }
             });
-            document.getElementById('risk-legend').innerHTML = riskData.labels.map((lbl, i) => `<div class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" onclick="document.getElementById('riskChart').dispatchEvent(new MouseEvent('click'))"><span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span><span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span></div>`).join('');
+
+            // Dynamically build fully clickable legend items for Risk Chart
+            const riskLegendContainer = document.getElementById('risk-legend');
+            riskLegendContainer.innerHTML = riskData.labels.map((lbl, i) => 
+                `<div class="risk-legend-item flex items-center space-x-2 text-xs text-gray-400 cursor-pointer hover:text-white transition-colors" data-index="${i}">
+                    <span class="w-3 h-3 rounded-full shadow-[0_0_8px_${rawColors[i]}]" style="background:${rawColors[i]}"></span>
+                    <span>${lbl} <strong class="text-white ml-1">${riskData.data[i]}</strong></span>
+                </div>`
+            ).join('');
+
+            // Attach Direct Click Handlers to the Risk Legend
+            riskLegendContainer.querySelectorAll('.risk-legend-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const idx = parseInt(item.getAttribute('data-index'));
+                    openDrilldown(riskData.labels[idx], riskData.leads[idx]);
+                });
+            });
         }
 
         const bottleneckCanvas = document.getElementById('bottleneckChart');
         if (bottleneckCanvas) {
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
             if (bottleneckChartInstance) bottleneckChartInstance.destroy();
-            const gradients = bottleneckData.labels.map((_, i) => { const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300); const colors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899']; const baseColor = colors[i % colors.length]; gradient.addColorStop(0, baseColor); gradient.addColorStop(1, '#111111'); return gradient; });
+
+            // Support an expansive palette to map all 19 pipeline statuses distinctively
+            const colors = [
+                '#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', 
+                '#06b6d4', '#f59e0b', '#14b8a6', '#6366f1', '#f43f5e', '#84cc16', '#a855f7'
+            ];
+
+            const gradients = bottleneckData.labels.map((_, i) => { 
+                const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300); 
+                const baseColor = colors[i % colors.length]; 
+                gradient.addColorStop(0, baseColor); 
+                gradient.addColorStop(1, '#111111'); 
+                return gradient; 
+            });
+
             bottleneckChartInstance = new Chart(bottleneckCtx, {
                 type: 'bar', data: { labels: bottleneckData.labels, datasets: [{ data: bottleneckData.data, backgroundColor: gradients, borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, barPercentage: 0.6 }] },
                 options: { devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } }, x: { grid: { display: false }, ticks: { display: false } } }, plugins: { legend: { display: false } }, onClick: (e, elements) => { if (elements.length > 0) openDrilldown(bottleneckData.labels[elements[0].index], bottleneckData.leads[elements[0].index]); } }
             });
-            const bgColors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899'];
-            document.getElementById('bot-legend').innerHTML = bottleneckData.labels.map((lbl, i) => `<div class="flex items-center space-x-1.5 bg-white/5 px-2 py-1 rounded border border-white/5 text-[10px] text-gray-400 cursor-pointer hover:bg-white/10 transition-colors"><span class="w-2 h-2 rounded-sm" style="background:${bgColors[i % bgColors.length]}"></span><span class="truncate max-w-[100px]" title="${lbl}">${lbl}</span><strong class="text-white ml-1">${bottleneckData.data[i]}</strong></div>`).join('');
+            
+            // Dynamically build fully clickable legend items for Bottleneck Chart
+            const botLegendContainer = document.getElementById('bot-legend');
+            botLegendContainer.innerHTML = bottleneckData.labels.map((lbl, i) => 
+                `<div class="bot-legend-item flex items-center space-x-1.5 bg-white/5 px-2 py-1 rounded border border-white/5 text-[10px] text-gray-400 cursor-pointer hover:bg-white/10 transition-colors" data-index="${i}">
+                    <span class="w-2 h-2 rounded-sm" style="background:${colors[i % colors.length]}"></span>
+                    <span class="truncate max-w-[150px]" title="${lbl}">${lbl}</span>
+                    <strong class="text-white ml-1">${bottleneckData.data[i]}</strong>
+                </div>`
+            ).join('');
+
+            // Attach Direct Click Handlers to the Bottleneck Legend
+            botLegendContainer.querySelectorAll('.bot-legend-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const idx = parseInt(item.getAttribute('data-index'));
+                    openDrilldown(bottleneckData.labels[idx], bottleneckData.leads[idx]);
+                });
+            });
         }
     };
 
