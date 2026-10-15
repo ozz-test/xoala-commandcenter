@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewSections = document.querySelectorAll('.view-section');
 
     navItems.forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', async () => {
             if (item.disabled) return;
             navItems.forEach(nav => nav.classList.remove('active'));
             viewSections.forEach(section => { section.classList.add('hidden'); section.classList.remove('flex', 'block'); });
@@ -24,12 +24,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     targetSection.classList.add('block');
                     if (targetId === 'dashboard-view') {
-                        fetchDashboardData(); 
+                        fetchDashboardData(false); 
                         if (typeof geoMapInstance !== 'undefined' && geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) {
                             setTimeout(() => geoMapInstance.updateSize(), 100);
                         }
                     }
-                    if (targetId === 'daily-report-view') { fetchDashboardData(); fetchMatrixData(); }
+                    // FIXED: Run sequentially and use cached CSV so GAS doesn't collide on simultaneous Drive reads
+                    if (targetId === 'daily-report-view') { 
+                        if (!currentRiskData) {
+                            await fetchDashboardData(false);
+                        }
+                        await fetchMatrixData(); 
+                    }
                 }
             }
         });
@@ -104,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let country = typeof leadItem === 'string' ? null : leadItem.country;
             
             let isoCode = overrideIso;
-            if (!isoCode && country && country !== "Unknown") {
+            if (!isoCode && country && !country.toLowerCase().includes("unknown") && !country.toLowerCase().includes("unspecified")) {
                 isoCode = countryToIsoMap[country.toLowerCase().trim()];
             }
             
@@ -148,8 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
         labels.forEach((label, i) => {
             let leadNames = []; let leadCountries = [];
             leadsArray[i].forEach(l => {
-                if (typeof l === 'string') { leadNames.push(l); leadCountries.push('Unknown'); }
-                else { leadNames.push(l.name); leadCountries.push(l.country || 'Unknown'); }
+                if (typeof l === 'string') { leadNames.push(l); leadCountries.push('Unspecified / Blank'); }
+                else { leadNames.push(l.name); leadCountries.push(l.country || 'Unspecified / Blank'); }
             });
             let safeLeads = leadNames.map(l => l.replace(/"/g, '""')).join('; ');
             let safeCountries = leadCountries.map(c => c.replace(/"/g, '""')).join('; ');
@@ -206,7 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error("Server Error HTTP " + response.status);
             const textData = await response.text();
             let responseData;
-            try { responseData = JSON.parse(textData); } catch (e) { throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'."); }
+            try { 
+                responseData = JSON.parse(textData); 
+            } catch (e) { 
+                console.error("Raw GAS Response:", textData.substring(0, 300));
+                throw new Error("GAS Execution Error or Deployment Block. Check Console (F12) for raw response."); 
+            }
             if (responseData.status === 200 && responseData.data) renderMatrix(responseData.data);
             else tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-red-500 font-mono text-xs">${responseData.error || 'API Error'}</td></tr>`;
         } catch (error) {
@@ -283,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRiskData = null; let currentBotData = null; let currentGeoData = null;
     let currentRegionFilter = 'ALL';
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (forceRefreshFlag = false) => {
         const globalSyncIcon = document.getElementById('dashboard-global-sync-icon');
         if (globalSyncIcon) globalSyncIcon.classList.add('animate-spin');
 
@@ -296,12 +307,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DASHBOARD_API_URL, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_dashboard_stats', filters: filters, secret: 'system_dashboard_init', prompt: 'system_dashboard_init', model: 'gemini-3.5-flash-lite', history: [], forceRefresh: true })
+                body: JSON.stringify({ action: 'get_dashboard_stats', filters: filters, secret: 'system_dashboard_init', prompt: 'system_dashboard_init', model: 'gemini-3.5-flash-lite', history: [], forceRefresh: forceRefreshFlag })
             });
             if (!response.ok) throw new Error(`Server Error HTTP ${response.status}`);
             const textData = await response.text();
             let data;
-            try { data = JSON.parse(textData); } catch (e) { throw new Error("Google Apps Script Authentication Block: Please set deployment access to 'Anyone'."); }
+            try { 
+                data = JSON.parse(textData); 
+            } catch (e) { 
+                console.error("Raw GAS Response:", textData.substring(0, 300));
+                throw new Error("GAS Execution Error or Deployment Block. Check Console (F12) for raw response."); 
+            }
 
             if (data.status === 200 && data.stats) {
                 currentRiskData = data.stats.riskChart; currentBotData = data.stats.bottleneckChart; currentGeoData = data.stats.geoChart;
@@ -377,14 +393,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
             
-            // Fixed Array of Solid, Bright Neon Colors to prevent blending into black background
             const colors = [
                 '#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', 
                 '#06b6d4', '#f59e0b', '#14b8a6', '#6366f1', '#f43f5e', '#84cc16', '#a855f7',
                 '#d946ef', '#2dd4bf', '#0ea5e9', '#eab308', '#64748b'
             ];
 
-            // Assign exactly one solid color per pipeline stage (Adding 'E6' makes it 90% opaque for a clean look)
             const solidBackgrounds = bottleneckData.labels.map((_, i) => colors[i % colors.length] + 'E6');
 
             bottleneckChartInstance = new Chart(bottleneckCtx, {
@@ -433,17 +447,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!mapEl) return;
         mapEl.innerHTML = ''; 
 
-        // PREVENTS scale(NaN) ERROR: Do not draw if the container is hidden / has 0 width
-        if (mapEl.offsetWidth === 0) return;
-
         const mapDataObj = {};
         const hoverData = {}; 
         let unmappedCount = 0;
         let unmappedDetails = {};
+        let unspecifiedCount = 0;
+        let unspecifiedLeads = [];
 
         geoData.labels.forEach((countryName, i) => {
             const cleanName = countryName.toLowerCase().trim();
-            if (!cleanName || cleanName === "unknown" || cleanName === "") return;
+            if (!cleanName || cleanName === "unknown" || cleanName.includes("unspecified") || cleanName.includes("blank")) {
+                unspecifiedCount += geoData.data[i];
+                unspecifiedLeads = unspecifiedLeads.concat(geoData.leads[i] || []);
+                return;
+            }
 
             const isoCode = countryToIsoMap[cleanName];
             
@@ -464,33 +481,46 @@ document.addEventListener('DOMContentLoaded', () => {
             console.table(unmappedDetails);
         }
 
-        geoMapInstance = new jsVectorMap({
-            selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
-            focusOn: { x: 0.5, y: 0.5, scale: 1.05 }, 
-            regionStyle: { 
-                initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 }, 
-                hover: { fill: '#F0D788', fillOpacity: 1 },
-                selected: { fill: '#F0D788', fillOpacity: 1 }
-            },
-            visualizeData: { scale: ['#0f3f2b', '#10b981'], values: mapDataObj },
-            onRegionTooltipShow(event, tooltip, code) {
-                if (hoverData[code]) {
-                    tooltip.text(`<div class="bg-surface border border-white/10 px-2 py-1 rounded text-xs font-mono"><img src="https://flagcdn.com/16x12/${hoverData[code].iso}.png" class="inline mr-1 rounded-sm"/> ${hoverData[code].name}: <span class="text-gold">${hoverData[code].count}</span></div>`, true);
-                } else event.preventDefault(); 
-            },
-            onRegionClick(event, code) { if (hoverData[code]) openDrilldown(hoverData[code].name, hoverData[code].leads, hoverData[code].iso); }
-        });
+        if (mapEl.offsetWidth > 0) {
+            geoMapInstance = new jsVectorMap({
+                selector: '#geo-map', map: 'world', backgroundColor: 'transparent', zoomOnScroll: false,
+                focusOn: { x: 0.5, y: 0.5, scale: 1.05 }, 
+                regionStyle: { 
+                    initial: { fill: '#1a1a1a', stroke: '#333333', strokeWidth: 0.5, fillOpacity: 1 }, 
+                    hover: { fill: '#F0D788', fillOpacity: 1 },
+                    selected: { fill: '#F0D788', fillOpacity: 1 }
+                },
+                visualizeData: { scale: ['#0f3f2b', '#10b981'], values: mapDataObj },
+                onRegionTooltipShow(event, tooltip, code) {
+                    if (hoverData[code]) {
+                        tooltip.text(`<div class="bg-surface border border-white/10 px-2 py-1 rounded text-xs font-mono"><img src="https://flagcdn.com/16x12/${hoverData[code].iso}.png" class="inline mr-1 rounded-sm"/> ${hoverData[code].name}: <span class="text-gold">${hoverData[code].count}</span></div>`, true);
+                    } else event.preventDefault(); 
+                },
+                onRegionClick(event, code) { if (hoverData[code]) openDrilldown(hoverData[code].name, hoverData[code].leads, hoverData[code].iso); }
+            });
+        }
 
-        const totalInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
+        const totalMappedInView = Object.values(mapDataObj).reduce((a,b)=>a+b, 0);
+        const grandTotalInView = regionFilter === 'ALL' ? (totalMappedInView + unspecifiedCount + unmappedCount) : totalMappedInView;
         let maxCount = Math.max(...Object.values(mapDataObj));
         if (maxCount === -Infinity) maxCount = 0;
 
-        const unmappedBadgeHtml = unmappedCount > 0 ? `<div class="ml-4 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see unmapped countries" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Tickets Unmapped</div>` : '';
+        const unspecifiedBadgeHtml = (regionFilter === 'ALL' && unspecifiedCount > 0) 
+            ? `<button id="geo-unspecified-badge" class="ml-2 text-[10px] bg-white/5 text-gray-300 border border-white/10 px-2 py-0.5 rounded cursor-pointer hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-colors" title="Click to view tickets without a country">${unspecifiedCount.toLocaleString()} Unspecified / Blank</button>` 
+            : '';
+
+        const unmappedBadgeHtml = unmappedCount > 0 
+            ? `<div class="ml-2 text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded cursor-pointer hover:bg-red-500/20 transition-colors" title="Check Console (F12) to see unmapped countries" onclick="document.getElementById('geo-view-toggle-btn').click()">⚠️ ${unmappedCount} Unmapped</div>` 
+            : '';
 
         document.getElementById('geo-legend').innerHTML = `
             <div class="flex flex-col items-center w-full">
-                <div class="text-[10px] text-gray-500 font-mono tracking-widest uppercase flex items-center justify-center space-x-2">
-                    <span>${totalInView} Tickets mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} Region</span>${unmappedBadgeHtml}
+                <div class="text-[10px] text-gray-400 font-mono tracking-widest uppercase flex flex-wrap items-center justify-center gap-2">
+                    <span><strong class="text-emerald-400">${totalMappedInView.toLocaleString()}</strong> Mapped in ${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter}</span>
+                    ${unspecifiedBadgeHtml}
+                    ${unmappedBadgeHtml}
+                    <span class="text-gray-600">|</span>
+                    <span>Total: <strong class="text-gold">${grandTotalInView.toLocaleString()}</strong> Tickets</span>
                 </div>
                 <div class="flex items-center space-x-3 w-64 mt-2">
                     <span class="text-[10px] text-gray-500 font-mono">1</span>
@@ -500,22 +530,72 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
+        const unspecBtn = document.getElementById('geo-unspecified-badge');
+        if (unspecBtn) {
+            unspecBtn.addEventListener('click', () => openDrilldown('Unspecified / Blank Country', unspecifiedLeads, null));
+        }
+
         const geoTbody = document.getElementById('geo-table-body');
         if (geoTbody) {
-            geoTbody.innerHTML = geoData.labels.map((countryName, idx) => {
+            let tableTotalTickets = 0;
+            const visibleRows = [];
+
+            geoData.labels.forEach((countryName, idx) => {
                 const count = geoData.data[idx];
                 const cleanNameCheck = countryName.toLowerCase().trim();
-                if (cleanNameCheck === "unknown" || cleanNameCheck === "") return ''; 
+                const isUnspecified = (!cleanNameCheck || cleanNameCheck === "unknown" || cleanNameCheck.includes("unspecified") || cleanNameCheck.includes("blank"));
+                const isoCode = isUnspecified ? null : countryToIsoMap[cleanNameCheck];
 
-                const isoCode = countryToIsoMap[cleanNameCheck];
-                const flagHtml = isoCode ? `<img src="https://flagcdn.com/24x18/${isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${isoCode}" />` : '<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph-warning-circle"></i></span>';
+                if (regionFilter !== 'ALL') {
+                    if (isUnspecified || !isoCode || !regionsMap[regionFilter] || !regionsMap[regionFilter].includes(isoCode)) {
+                        return;
+                    }
+                }
+
+                tableTotalTickets += count;
+                visibleRows.push({
+                    countryName: isUnspecified ? "Unspecified / Blank" : countryName,
+                    count: count,
+                    isoCode: isoCode,
+                    isUnspecified: isUnspecified,
+                    leads: geoData.leads[idx]
+                });
+            });
+
+            const rowsHtml = visibleRows.map((item, rowIdx) => {
+                let flagHtml = '';
+                if (item.isoCode) {
+                    flagHtml = `<img src="https://flagcdn.com/24x18/${item.isoCode}.png" class="w-4 h-3 inline-block mr-2 rounded-sm shadow-sm" alt="${item.isoCode}" />`;
+                } else if (item.isUnspecified) {
+                    flagHtml = `<span class="w-4 h-3 inline-block mr-2 text-gray-500" title="Blank Country Field in CRM"><i class="ph ph-question"></i></span>`;
+                } else {
+                    flagHtml = `<span class="w-4 h-3 inline-block mr-2 text-red-500" title="Unmapped in Dictionary"><i class="ph ph-warning-circle"></i></span>`;
+                }
                 
-                return `<tr class="geo-table-row bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" data-iso="${isoCode || ''}"><td class="py-2 px-4 flex items-center">${flagHtml}<span class="text-gray-300 capitalize">${countryName}</span></td><td class="py-2 px-4 text-right font-mono text-gold">${count}</td></tr>`;
+                return `<tr class="geo-table-row bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer" data-row-idx="${rowIdx}" data-iso="${item.isoCode || ''}">
+                    <td class="py-2 px-4 flex items-center">${flagHtml}<span class="${item.isUnspecified ? 'text-gray-400 italic' : 'text-gray-300 capitalize'}">${item.countryName}</span></td>
+                    <td class="py-2 px-4 text-right font-mono text-gold">${item.count.toLocaleString()}</td>
+                </tr>`;
             }).join('');
 
-            geoTbody.querySelectorAll('.geo-table-row').forEach((row, i) => {
-                const isoCode = row.getAttribute('data-iso');
-                row.addEventListener('click', () => { const countryName = geoData.labels[i]; openDrilldown(countryName, geoData.leads[i], isoCode); });
+            // Total Row at Top AND Bottom of List View for instant visibility
+            const totalRowHtml = `
+                <tr class="bg-obsidian border-y border-gold/40 font-mono text-xs">
+                    <td class="py-3 px-4 font-bold text-gold uppercase tracking-wider flex items-center space-x-2">
+                        <i class="ph ph-sigma text-base"></i>
+                        <span>Total Tickets (${regionFilter === 'ALL' ? 'GLOBAL' : regionFilter} — ${visibleRows.length} Categories)</span>
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold text-white text-sm">${tableTotalTickets.toLocaleString()}</td>
+                </tr>
+            `;
+
+            geoTbody.innerHTML = totalRowHtml + rowsHtml + totalRowHtml;
+
+            geoTbody.querySelectorAll('.geo-table-row').forEach((row) => {
+                const rIdx = parseInt(row.getAttribute('data-row-idx'));
+                const item = visibleRows[rIdx];
+                const isoCode = item.isoCode;
+                row.addEventListener('click', () => openDrilldown(item.countryName, item.leads, isoCode));
                 row.addEventListener('mouseenter', () => { if (isoCode && geoMapInstance) geoMapInstance.setSelectedRegions([isoCode.toUpperCase()]); });
                 row.addEventListener('mouseleave', () => { if (isoCode && geoMapInstance) geoMapInstance.clearSelectedRegions(); });
             });
@@ -564,15 +644,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (geoViewToggleBtn) {
         geoViewToggleBtn.addEventListener('click', () => {
             geoMapContainer.classList.toggle('hidden'); geoTableContainer.classList.toggle('hidden');
-            if (geoMapContainer.classList.contains('hidden')) { geoViewToggleIcon.classList.replace('ph-list-dashes', 'ph-globe'); geoViewToggleBtn.title = "Switch to Map View"; } 
-            else { geoViewToggleIcon.classList.replace('ph-globe', 'ph-list-dashes'); geoViewToggleBtn.title = "Switch to Table View"; if (geoMapInstance && document.getElementById('geo-map').offsetWidth > 0) geoMapInstance.updateSize(); }
+            if (geoMapContainer.classList.contains('hidden')) { 
+                geoViewToggleIcon.classList.replace('ph-list-dashes', 'ph-globe'); 
+                geoViewToggleBtn.title = "Switch to Map View"; 
+            } else { 
+                geoViewToggleIcon.classList.replace('ph-globe', 'ph-list-dashes'); 
+                geoViewToggleBtn.title = "Switch to Table View"; 
+                if (currentGeoData) renderGeoMap(currentGeoData, currentRegionFilter);
+            }
         });
     }
 
-    const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn'); if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', fetchDashboardData);
-    document.getElementById('risk-start-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-end-date').addEventListener('change', fetchDashboardData); document.getElementById('risk-clear-btn').addEventListener('click', () => { document.getElementById('risk-start-date').value = ''; document.getElementById('risk-end-date').value = ''; fetchDashboardData(); }); document.getElementById('risk-export-btn').addEventListener('click', () => { if(currentRiskData) downloadCSV('Risk_Stratification', currentRiskData.labels, currentRiskData.data, currentRiskData.leads); });
-    document.getElementById('bot-start-date').addEventListener('change', fetchDashboardData); document.getElementById('bot-end-date').addEventListener('change', fetchDashboardData); document.getElementById('bot-clear-btn').addEventListener('click', () => { document.getElementById('bot-start-date').value = ''; document.getElementById('bot-end-date').value = ''; fetchDashboardData(); }); document.getElementById('bot-export-btn').addEventListener('click', () => { if(currentBotData) downloadCSV('Stage_Bottlenecks', currentBotData.labels, currentBotData.data, currentBotData.leads); });
-    document.getElementById('geo-start-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-end-date').addEventListener('change', fetchDashboardData); document.getElementById('geo-clear-btn').addEventListener('click', () => { document.getElementById('geo-start-date').value = ''; document.getElementById('geo-end-date').value = ''; fetchDashboardData(); }); document.getElementById('geo-export-btn').addEventListener('click', () => { if(currentGeoData) downloadCSV('Geographic_Distribution', currentGeoData.labels, currentGeoData.data, currentGeoData.leads); });
+    // Only force-flush GAS cache when the user explicitly clicks the top-right Sync button
+    const dashGlobalRefreshBtn = document.getElementById('dashboard-global-refresh-btn'); 
+    if (dashGlobalRefreshBtn) dashGlobalRefreshBtn.addEventListener('click', () => fetchDashboardData(true));
+    
+    document.getElementById('risk-start-date').addEventListener('change', () => fetchDashboardData(false)); document.getElementById('risk-end-date').addEventListener('change', () => fetchDashboardData(false)); document.getElementById('risk-clear-btn').addEventListener('click', () => { document.getElementById('risk-start-date').value = ''; document.getElementById('risk-end-date').value = ''; fetchDashboardData(false); }); document.getElementById('risk-export-btn').addEventListener('click', () => { if(currentRiskData) downloadCSV('Risk_Stratification', currentRiskData.labels, currentRiskData.data, currentRiskData.leads); });
+    document.getElementById('bot-start-date').addEventListener('change', () => fetchDashboardData(false)); document.getElementById('bot-end-date').addEventListener('change', () => fetchDashboardData(false)); document.getElementById('bot-clear-btn').addEventListener('click', () => { document.getElementById('bot-start-date').value = ''; document.getElementById('bot-end-date').value = ''; fetchDashboardData(false); }); document.getElementById('bot-export-btn').addEventListener('click', () => { if(currentBotData) downloadCSV('Stage_Bottlenecks', currentBotData.labels, currentBotData.data, currentBotData.leads); });
+    document.getElementById('geo-start-date').addEventListener('change', () => fetchDashboardData(false)); document.getElementById('geo-end-date').addEventListener('change', () => fetchDashboardData(false)); document.getElementById('geo-clear-btn').addEventListener('click', () => { document.getElementById('geo-start-date').value = ''; document.getElementById('geo-end-date').value = ''; fetchDashboardData(false); }); document.getElementById('geo-export-btn').addEventListener('click', () => { if(currentGeoData) downloadCSV('Geographic_Distribution', currentGeoData.labels, currentGeoData.data, currentGeoData.leads); });
 
     document.querySelectorAll('.geo-region-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -583,5 +672,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    fetchDashboardData();
+    fetchDashboardData(false);
 });
