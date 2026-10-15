@@ -376,18 +376,47 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bottleneckChartInstance) bottleneckChartInstance.destroy();
 
             const bottleneckCtx = bottleneckCanvas.getContext('2d');
-            const colors = ['#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#14b8a6', '#6366f1', '#f43f5e', '#84cc16', '#a855f7'];
-            const gradients = bottleneckData.labels.map((_, i) => { const gradient = bottleneckCtx.createLinearGradient(0, 0, 0, 300); const baseColor = colors[i % colors.length]; gradient.addColorStop(0, baseColor); gradient.addColorStop(1, '#111111'); return gradient; });
+            
+            // Fixed Array of Solid, Bright Neon Colors to prevent blending into black background
+            const colors = [
+                '#DDAA33', '#10b981', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6', '#ec4899', 
+                '#06b6d4', '#f59e0b', '#14b8a6', '#6366f1', '#f43f5e', '#84cc16', '#a855f7',
+                '#d946ef', '#2dd4bf', '#0ea5e9', '#eab308', '#64748b'
+            ];
+
+            // Assign exactly one solid color per pipeline stage (Adding 'E6' makes it 90% opaque for a clean look)
+            const solidBackgrounds = bottleneckData.labels.map((_, i) => colors[i % colors.length] + 'E6');
 
             bottleneckChartInstance = new Chart(bottleneckCtx, {
-                type: 'bar', data: { labels: bottleneckData.labels, datasets: [{ data: bottleneckData.data, backgroundColor: gradients, borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, barPercentage: 0.6 }] },
-                options: { devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } }, x: { grid: { display: false }, ticks: { display: false } } }, plugins: { legend: { display: false } }, onClick: (e, elements) => { if (elements.length > 0) openDrilldown(bottleneckData.labels[elements[0].index], bottleneckData.leads[elements[0].index]); } }
+                type: 'bar', 
+                data: { 
+                    labels: bottleneckData.labels, 
+                    datasets: [{ 
+                        data: bottleneckData.data, 
+                        backgroundColor: solidBackgrounds, 
+                        borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, 
+                        barPercentage: 0.6 
+                    }] 
+                },
+                options: { 
+                    devicePixelRatio: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { size: 10 } } }, 
+                        x: { grid: { display: false }, ticks: { display: false } } 
+                    }, 
+                    plugins: { legend: { display: false } }, 
+                    onClick: (e, elements) => { 
+                        if (elements.length > 0) openDrilldown(bottleneckData.labels[elements[0].index], bottleneckData.leads[elements[0].index]); 
+                    } 
+                }
             });
             
             const botLegendContainer = document.getElementById('bot-legend');
             botLegendContainer.innerHTML = bottleneckData.labels.map((lbl, i) => 
                 `<div class="bot-legend-item flex items-center space-x-1.5 bg-white/5 px-2 py-1 rounded border border-white/5 text-[10px] text-gray-400 cursor-pointer hover:bg-white/10 transition-colors" data-index="${i}">
-                    <span class="w-2 h-2 rounded-sm" style="background:${colors[i % colors.length]}"></span>
+                    <span class="w-2 h-2 rounded-sm shadow-[0_0_8px_${colors[i % colors.length]}]" style="background:${colors[i % colors.length]}"></span>
                     <span class="truncate max-w-[150px]" title="${lbl}">${lbl}</span>
                     <strong class="text-white ml-1">${bottleneckData.data[i]}</strong>
                 </div>`
