@@ -43,7 +43,7 @@
         @keyframes liquid-shine { 0% { transform: translateX(-150%) skewX(-25deg); } 15% { transform: translateX(400%) skewX(-25deg); } 100% { transform: translateX(400%) skewX(-25deg); } }
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
         
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -56,29 +56,120 @@
         .prose, .markdown-body { font-variant-numeric: tabular-nums; line-height: 1.5; }
         .prose p { margin-bottom: 0.75em; }
         .prose strong { color: #DDAA33; font-weight: 600; }
-        .tabulator { background-color: #111 !important; border: 1px solid rgba(255,255,255,0.05) !important; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; font-size: 11px;}
-        .tabulator-row { background-color: transparent !important; border-bottom: 1px solid rgba(255,255,255,0.02) !important; }
-        .tabulator-row:hover { background-color: rgba(255,255,255,0.05) !important; }
-        .tabulator-header { background-color: rgba(0,0,0,0.5) !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tabulator { background-color: #0b0b0b !important; border: 1px solid rgba(255,255,255,0.06) !important; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; font-size: 11px; border-radius: 0.5rem; }
+        .tabulator-row { background-color: transparent !important; border-bottom: 1px solid rgba(255,255,255,0.03) !important; color: #d1d5db !important; transition: background-color 0.15s ease; }
+        .tabulator-row:hover { background-color: rgba(221,170,51,0.08) !important; cursor: pointer; }
+        .tabulator-header { background-color: #111111 !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; color: #9ca3af !important; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
+        .tabulator-col { background-color: #111111 !important; border-right: 1px solid rgba(255,255,255,0.04) !important; }
+        .tabulator-footer { background-color: #0b0b0b !important; border-top: 1px solid rgba(255,255,255,0.08) !important; color: #9ca3af !important; }
+        .tabulator-page { background-color: rgba(255,255,255,0.05) !important; color: #d1d5db !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 4px !important; margin: 0 2px !important; }
+        .tabulator-page.active { background-color: rgba(221,170,51,0.2) !important; color: #DDAA33 !important; border-color: rgba(221,170,51,0.4) !important; }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
 <body class="bg-obsidian text-gray-200 h-screen w-screen overflow-hidden flex antialiased">
 
     <!-- DRILLDOWN PANELS -->
-    <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-48 text-sm font-sans flex flex-col transform transition-all origin-top-left">
-        <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors"><i class="ph ph-copy"></i><span id="ctx-copy-text">Copy HubSpot ID</span></button>
+    <div id="lead-context-menu" class="hidden absolute z-[200] bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 w-52 text-sm font-sans flex flex-col transform transition-all origin-top-left">
+        <button id="ctx-open-profile" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-200 hover:text-gold flex items-center space-x-2 transition-colors border-b border-white/5"><i class="ph ph-identification-card"></i><span>Open 360° KYB Dossier</span></button>
+        <button id="ctx-copy-id" class="w-full text-left px-4 py-2 hover:bg-gold/10 text-gray-300 hover:text-gold flex items-center space-x-2 transition-colors"><i class="ph ph-copy"></i><span id="ctx-copy-text">Copy Record ID</span></button>
     </div>
     <div id="drilldown-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] hidden opacity-0 transition-opacity duration-300"></div>
-    <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[400px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+    <div id="drilldown-panel" class="fixed top-0 right-0 h-full w-[420px] bg-surface/95 backdrop-blur-3xl border-l border-white/10 z-[150] transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
         <div class="h-24 px-6 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-            <div><h3 id="drilldown-title" class="text-gold font-light tracking-tight text-xl">Category View</h3><p id="drilldown-count" class="text-xs text-gray-400 font-mono mt-1">-- Tickets Found</p></div>
+            <div><h3 id="drilldown-title" class="text-gold font-light tracking-tight text-xl">Category View</h3><p id="drilldown-count" class="text-xs text-gray-400 font-mono mt-1">-- Tickets Found • Click any lead for 360° Dossier</p></div>
             <button id="close-drilldown-btn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"><i class="ph ph-x"></i></button>
         </div>
         <div class="px-4 py-3 border-b border-white/5 bg-black/20 flex-shrink-0">
             <div class="relative"><i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i><input type="text" id="drilldown-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-gold/50 transition-colors" placeholder="Search leads in real-time..."></div>
         </div>
         <div class="flex-1 overflow-y-auto p-4"><ul id="drilldown-list" class="space-y-1"></ul></div>
+    </div>
+
+    <!-- SOVEREIGN 360° KYB PROFILE DOSSIER MODAL -->
+    <div id="profile-modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4 lg:p-8">
+        <div id="profile-modal-container" class="w-full max-w-[1440px] h-[92vh] bg-[#090909] border border-gold/25 rounded-2xl shadow-[0_0_80px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden relative transform scale-95 transition-all duration-300">
+            <!-- Top Accent Line -->
+            <div class="h-1 w-full bg-gradient-to-r from-gold-dark via-gold to-emerald-500 flex-shrink-0"></div>
+
+            <!-- Dossier Command Header -->
+            <div id="profile-header-bar" class="px-8 py-5 bg-surface/90 border-b border-white/10 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
+                <div class="flex items-center space-x-4 min-w-0">
+                    <button id="close-profile-modal-btn" class="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all flex items-center space-x-1.5 text-xs font-mono uppercase tracking-wider flex-shrink-0">
+                        <i class="ph ph-arrow-left text-sm"></i><span>Back</span>
+                    </button>
+                    <div id="profile-flag-box" class="w-11 h-11 rounded-xl bg-black border border-white/10 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                        <i class="ph ph-buildings text-gold"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center space-x-3 flex-wrap">
+                            <h2 id="profile-company-name" class="text-2xl font-light text-white tracking-tight truncate">Loading KYB Dossier...</h2>
+                            <span id="profile-stage-badge" class="px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-widest bg-gold/15 text-gold border border-gold/30">...</span>
+                            <span id="profile-risk-badge" class="px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-widest bg-white/5 text-gray-400 border border-white/10">...</span>
+                        </div>
+                        <div id="profile-subtitle-meta" class="text-xs font-mono text-gray-400 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span>Record ID: --</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Header Action Controls -->
+                <div class="flex items-center space-x-2.5 flex-shrink-0">
+                    <label class="flex items-center space-x-2 bg-black/60 border border-white/10 px-3 py-2 rounded-lg text-xs font-mono text-gray-300 cursor-pointer hover:border-gold/40 transition-colors">
+                        <input type="checkbox" id="profile-hide-empty-toggle" checked class="accent-[#DDAA33] rounded cursor-pointer">
+                        <span>Hide Empty Fields</span>
+                        <span id="profile-populated-counter" class="text-[10px] text-gold bg-gold/10 px-1.5 py-0.5 rounded">--/775</span>
+                    </label>
+                    <button id="profile-rfi-btn" class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all" title="Draft Missing KYB Info Request Email">
+                        <i class="ph ph-envelope-simple-open text-sm"></i><span>Draft RFI</span>
+                    </button>
+                    <button id="profile-ai-audit-btn" class="bg-gradient-to-r from-gold/20 to-amber-500/10 hover:from-gold/30 hover:to-amber-500/20 text-gold border border-gold/40 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_20px_rgba(221,170,51,0.15)]">
+                        <i class="ph ph-sparkle text-sm"></i><span>AI MLRO Audit</span>
+                    </button>
+                    <button id="profile-print-btn" class="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 px-3 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all" title="Print / Export Audit Dossier PDF">
+                        <i class="ph ph-printer text-sm"></i><span>Export PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dossier Sub-Navigation Tabs -->
+            <div class="px-8 bg-[#0d0d0d] border-b border-white/10 flex items-center justify-between flex-shrink-0 overflow-x-auto">
+                <div class="flex items-center space-x-1 py-2" id="profile-tabs-nav">
+                    <button data-ptab="overview" class="profile-tab-btn active px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-gold/15 text-gold border border-gold/30 transition-all flex items-center space-x-2">
+                        <i class="ph ph-squares-four"></i><span>1. 360° Overview & UBOs</span>
+                    </button>
+                    <button data-ptab="risk" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                        <i class="ph ph-shield-warning"></i><span>2. 14-Factor Risk Matrix</span>
+                    </button>
+                    <button data-ptab="volumes" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                        <i class="ph ph-ArrowsLeftRight"></i><span>3. Payments & Volumes</span>
+                    </button>
+                    <button data-ptab="crypto" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                        <i class="ph ph-currency-btc"></i><span>4. Crypto & Web3</span>
+                    </button>
+                    <button data-ptab="acquiring" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                        <i class="ph ph-credit-card"></i><span>5. Card Acquiring</span>
+                    </button>
+                    <button data-ptab="aml" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                        <i class="ph ph-scales"></i><span>6. AML / EDD & Docs</span>
+                    </button>
+                    <button data-ptab="all" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                        <i class="ph ph-MagnifyingGlass"></i><span>7. All 775 Attributes</span>
+                    </button>
+                </div>
+
+                <!-- Attribute Search inside Profile -->
+                <div class="relative w-64 my-2 flex-shrink-0">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
+                    <input type="text" id="profile-attr-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-8 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50" placeholder="Filter profile fields...">
+                </div>
+            </div>
+
+            <!-- Dynamic Dossier Body Content -->
+            <div id="profile-modal-body" class="flex-1 overflow-y-auto p-8 space-y-8 bg-obsidian">
+                <!-- Populated dynamically by app.js -->
+            </div>
+        </div>
     </div>
 
     <!-- ELITE ARTEMIS COMMAND MANUAL DRAWER -->
@@ -101,8 +192,6 @@
             <div class="relative"><i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i><input type="text" id="manual-search" class="w-full bg-surface border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50 transition-colors shadow-inner" placeholder="Search commands, syntax, or domains..."></div>
         </div>
         <div class="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide text-sm text-gray-300 font-sans leading-relaxed">
-            
-            <!-- Intro Section -->
             <section class="manual-section" data-tags="intro what is artemis hologram core architecture">
                 <div class="bg-gradient-to-br from-[#111] to-black border border-white/5 rounded-xl overflow-hidden shadow-lg relative">
                     <div class="h-32 bg-black flex items-center justify-center relative overflow-hidden">
@@ -114,12 +203,11 @@
                     </div>
                     <div class="p-5">
                         <p class="mb-3"><strong class="text-gold">Artemis</strong> is a sovereign, zero-latency quantitative analytics terminal. It processes natural language queries locally in your browser using mathematically mapped Vector AI, ensuring maximum data privacy and bypassing the need for external LLM APIs for statistical data tasks.</p>
-                        <p>It acts as the primary orchestrator for your KYC Data Lake, capable of reading exact 24-hour timestamps, mapping 1,520 schema columns, and auto-rendering the correct visual artifact.</p>
+                        <p>It acts as the primary orchestrator for your KYC Data Lake, capable of reading exact 24-hour timestamps, mapping 775+ schema columns, and auto-rendering the correct visual artifact.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Tools Section -->
             <section class="manual-section" data-tags="tools functions charts maps risk compliance pipeline volume manager financial">
                 <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Analytical Toolset</h4>
                 <div class="grid grid-cols-2 gap-4">
@@ -156,71 +244,29 @@
                 </div>
             </section>
 
-            <!-- Usage & Syntax Section -->
             <section class="manual-section" data-tags="how to use syntax examples charts tables date filters manager">
                 <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Prompt Syntax & Examples</h4>
-                <p class="text-xs text-gray-400 mb-4">Artemis automatically renders <strong class="text-white">Charts</strong> if the result has $\le 10$ categories, and <strong class="text-white">Tables</strong> if $> 10$. Use natural language or precise dates.</p>
-                
                 <div class="space-y-4">
-                    <!-- Date Filters -->
                     <div class="bg-black/40 border border-white/5 rounded-lg p-4">
                         <div class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-2">Temporal Filtering</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many tickets were registered on 2024-05-17?"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="How many tickets were registered on 2024-05-17?"><i class="ph ph-arrow-arc-left"></i><span>Inject Single-Day</span></button>
-                        
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Registration timeline from 2024-01-01 to 2024-06-30"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Registration timeline from 2024-01-01 to 2024-06-30"><i class="ph ph-arrow-arc-left"></i><span>Inject Date-Range</span></button>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many tickets were registered on 2026-09-18?"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="How many tickets were registered on 2026-09-18?"><i class="ph ph-arrow-arc-left"></i><span>Inject Single-Day</span></button>
+                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Registration timeline from 2026-01-01 to 2026-10-28"</div>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Registration timeline from 2026-01-01 to 2026-10-28"><i class="ph ph-arrow-arc-left"></i><span>Inject Date-Range</span></button>
                     </div>
-
-                    <!-- Categorical & Agent Filters -->
                     <div class="bg-black/40 border border-white/5 rounded-lg p-4">
                         <div class="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-2">Categorical & Manager Splits</div>
                         <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Break down the pipeline by account manager"</div>
                         <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="Break down the pipeline by account manager"><i class="ph ph-arrow-arc-left"></i><span>Inject Manager Split</span></button>
-
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Show distribution of estimated monthly volume"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="Show distribution of estimated monthly volume"><i class="ph ph-arrow-arc-left"></i><span>Inject Financial Split</span></button>
-
                         <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many active tickets are assigned to Ellie?"</div>
                         <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="How many active tickets are assigned to Ellie?"><i class="ph ph-arrow-arc-left"></i><span>Inject Specific Agent Filter</span></button>
                     </div>
-
-                    <!-- Prometheus Strategic -->
                     <div class="bg-black/40 border border-white/5 rounded-lg p-4">
                         <div class="text-[10px] font-mono text-crimson uppercase tracking-widest mb-2">Prometheus Strategic Intel (API)</div>
-                        <p class="text-[10px] text-gray-400 mb-3">Prepend <strong class="text-crimson">@Prometheus</strong> to access Gemini API capabilities like standard deviations, anomaly detection, and web search context.</p>
-                        
                         <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"@Prometheus Run an anomaly scan on our daily ingestion volume."</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="@Prometheus Run an anomaly scan on our daily ingestion volume."><i class="ph ph-arrow-arc-left"></i><span>Inject Anomaly Scan</span></button>
-
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"@Prometheus Calculate the standard deviation and mean for risk scores."</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="@Prometheus Calculate the standard deviation and mean for risk scores."><i class="ph ph-arrow-arc-left"></i><span>Inject Stats Engine</span></button>
+                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="@Prometheus Run an anomaly scan on our daily ingestion volume."><i class="ph ph-arrow-arc-left"></i><span>Inject Anomaly Scan</span></button>
                     </div>
                 </div>
-            </section>
-
-            <!-- Macros Section -->
-            <section class="manual-section" data-tags="macros tasks leaderboard bottlenecks summary anomaly">
-                <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Fast-Path Macros ( / Tasks )</h4>
-                <p class="text-xs text-gray-400 mb-4">Type <strong class="text-white">/</strong> to open the macro palette for instant tactical audits.</p>
-                <ul class="space-y-3">
-                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
-                        <div class="bg-gold/10 text-gold px-2 py-1 rounded border border-gold/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/leaderboard</div>
-                        <div class="text-xs text-gray-300"><strong>AM Resolution Leaderboard:</strong> Ranks account managers by throughput and queue aging.</div>
-                    </li>
-                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
-                        <div class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/bottlenecks</div>
-                        <div class="text-xs text-gray-300"><strong>Stage Bottlenecks:</strong> Identifies queues with highest latency and friction points.</div>
-                    </li>
-                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
-                        <div class="bg-blue-400/10 text-blue-400 px-2 py-1 rounded border border-blue-400/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/summary</div>
-                        <div class="text-xs text-gray-300"><strong>Executive Summary:</strong> High-level breakdown of approved, declined, and in-triage volume.</div>
-                    </li>
-                    <li class="flex items-start space-x-3 bg-surface/50 p-3 rounded-lg border border-white/5">
-                        <div class="bg-red-400/10 text-red-400 px-2 py-1 rounded border border-red-400/20 font-mono text-[10px] mt-0.5 whitespace-nowrap">/anomaly</div>
-                        <div class="text-xs text-gray-300"><strong>Daily Anomaly Scan:</strong> Scans rolling 30-day velocity to flag statistical deviations.</div>
-                    </li>
-                </ul>
             </section>
         </div>
     </div>
@@ -235,19 +281,26 @@
             <button data-target="dashboard-view" class="nav-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden"><i class="ph ph-squares-four text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Dashboard</span></button>
             <button data-target="daily-report-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden"><i class="ph ph-file-text text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Daily Report</span></button>
             <button data-target="artemis-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden"><i class="ph ph-brain text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Terminal AI Core</span></button>
-            <button disabled class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed overflow-hidden"><i class="ph ph-database text-xl flex-shrink-0"></i><span class="nav-text whitespace-nowrap">KYC Data Lake</span></button>
+            <button data-target="datalake-view" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/5 overflow-hidden"><i class="ph ph-database text-xl flex-shrink-0 text-gold"></i><span class="nav-text whitespace-nowrap">KYC Data Lake</span></button>
         </nav>
         <div class="p-4 border-t border-white/5 overflow-hidden"><a href="/cdn-cgi/access/logout" class="group flex items-center justify-center space-x-2 w-full py-3 border border-gray-800 rounded-lg text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300 hover:border-gold hover:text-gold hover:bg-gold/5"><i class="ph ph-power text-lg transition-transform group-hover:scale-110 flex-shrink-0"></i><span class="nav-text whitespace-nowrap">Disconnect</span></a></div>
     </aside>
 
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)] overflow-hidden">
-        <header class="flex-none h-16 border-b border-white/5 flex items-center justify-end px-10 bg-surface/30 backdrop-blur-md z-10 space-x-6">
-            <!-- Artemis Manual Trigger Button -->
-            <button id="open-manual-btn" class="flex items-center space-x-2 text-xs font-mono text-gray-400 hover:text-gold transition-colors border border-white/10 hover:border-gold/30 px-3 py-1.5 rounded-sm bg-black/40 shadow-inner">
-                <i class="ph ph-book-open text-base"></i><span>Artemis Guide</span>
-            </button>
-            <div class="w-px h-6 bg-white/10"></div>
-            <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
+        <header class="flex-none h-16 border-b border-white/5 flex items-center justify-between px-10 bg-surface/30 backdrop-blur-md z-10">
+            <!-- Global Quick Jump to Any Ticket Dossier -->
+            <div class="relative w-80">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm"></i>
+                <input type="text" id="global-dossier-search" class="w-full bg-black/50 border border-white/10 focus:border-gold/50 rounded-lg py-1.5 pl-9 pr-3 text-xs font-mono text-white outline-none transition-all" placeholder="Quick open KYB Dossier (Name or ID)...">
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <button id="open-manual-btn" class="flex items-center space-x-2 text-xs font-mono text-gray-400 hover:text-gold transition-colors border border-white/10 hover:border-gold/30 px-3 py-1.5 rounded-sm bg-black/40 shadow-inner">
+                    <i class="ph ph-book-open text-base"></i><span>Artemis Guide</span>
+                </button>
+                <div class="w-px h-6 bg-white/10"></div>
+                <div class="flex items-center space-x-4"><div class="text-xs text-gray-400 font-medium">Admin User</div><div class="h-9 w-9 rounded-full bg-panel border border-gold/30 flex items-center justify-center shadow-lg"><i class="ph ph-user text-gold text-lg"></i></div></div>
+            </div>
         </header>
 
         <!-- View 1: Dashboard -->
@@ -322,7 +375,10 @@
                     <p id="daily-report-content" class="text-gray-300 leading-relaxed text-sm font-sans">Awaiting data sync...</p>
                 </div>
                 <div class="flex justify-between items-end w-full mt-4">
-                    <h2 class="text-2xl font-light tracking-tight text-white">Pipeline Accountability Matrix</h2>
+                    <div>
+                        <h2 class="text-2xl font-light tracking-tight text-white">Pipeline Accountability Matrix</h2>
+                        <p class="text-xs font-mono text-gray-500 mt-1">Expand any manager & stage, then click any company name to open its 360° KYB Dossier</p>
+                    </div>
                     <div class="flex items-center space-x-4 bg-surface/50 border border-white/5 px-4 py-2 rounded-lg shadow-lg">
                         <div class="flex items-center space-x-2"><label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">From</label><input type="date" id="matrix-start-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer"></div>
                         <div class="flex items-center space-x-2"><label class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">To</label><input type="date" id="matrix-end-date" class="bg-obsidian border border-gray-800 text-gold text-xs px-2 py-1 rounded outline-none focus:border-gold/50 cursor-pointer"></div>
@@ -344,8 +400,6 @@
 
         <!-- VIEW 3: DUAL-PERSONA AI TERMINAL -->
         <section id="artemis-view" class="view-section hidden flex-1 w-full h-full flex overflow-hidden relative">
-            
-            <!-- Sidebar: Threads -->
             <div class="w-64 bg-surface/60 border-r border-white/5 flex flex-col p-4 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.3)] flex-shrink-0">
                 <button id="new-chat-btn" class="w-full bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold font-bold text-xs uppercase tracking-wider py-2.5 rounded-sm flex items-center justify-center space-x-2 transition-all mb-4 shadow-lg"><i class="ph ph-plus text-base"></i><span>New Chat</span></button>
                 <div id="pinned-header" class="text-[9px] font-mono tracking-widest text-gold uppercase mb-2 px-2 hidden flex items-center space-x-1"><i class="ph ph-push-pin-simple"></i><span>Pinned Threads</span></div>
@@ -354,12 +408,8 @@
                 <div id="chat-sessions-list" class="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide"></div>
             </div>
             
-            <!-- Main Chat Area -->
             <div class="flex-1 flex h-full relative overflow-hidden bg-obsidian z-10">
-                
                 <div id="artemis-chat-pane" class="flex-1 flex flex-col h-full transition-all duration-500 ease-in-out relative z-10">
-                    
-                    <!-- DYNAMIC HEADER -->
                     <div class="flex-none px-8 py-3 bg-surface/60 border-b border-white/5 flex items-center justify-between backdrop-blur-md z-30 transition-colors duration-500" id="terminal-header">
                         <div class="flex items-center space-x-4">
                             <div class="flex items-center space-x-2 text-xs font-mono transition-colors duration-500" id="persona-badge" style="color: #DDAA33;">
@@ -371,7 +421,6 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <!-- WEBGPU TOGGLE (Now Vector AI Toggle) -->
                             <button id="webgpu-toggle-btn" class="bg-surface/80 border border-white/10 px-3 py-1.5 rounded-sm text-xs font-mono text-gray-400 hover:text-white transition-all flex items-center space-x-1.5">
                                 <i class="ph ph-lightning text-sm text-gray-500" id="webgpu-icon"></i><span id="webgpu-status" class="text-[10px] uppercase tracking-wider font-bold text-gray-500">Vector Engine: OFF</span>
                             </button>
@@ -385,10 +434,7 @@
                         </div>
                     </div>
 
-                    <!-- CENTRAL WRAPPER: Hologram & Chat Lock -->
                     <div class="flex-1 relative w-full h-full overflow-hidden">
-                        
-                        <!-- FIXED BACKGROUND HOLOGRAM -->
                         <div id="artemis-empty-state" class="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-700 pb-16">
                             <div class="relative w-[350px] h-[350px] flex items-center justify-center">
                                 <canvas id="jarvis-core-canvas" class="absolute inset-0 w-full h-full opacity-90 mix-blend-screen"></canvas>
@@ -399,18 +445,13 @@
                             </div>
                         </div>
                         
-                        <!-- SCROLLING CHAT AREA -->
                         <div id="chat-stream-container" class="absolute inset-0 overflow-y-auto p-8 z-20 flex flex-col">
                             <div class="flex-1 min-h-[40%]"></div>
                             <div id="chat-stream" class="flex flex-col space-y-6 relative z-10 pb-4"></div>
                         </div>
-
                     </div>
                     
-                    <!-- Prompt Box & Command UI -->
                     <div class="flex-none p-6 bg-surface/40 backdrop-blur-xl border-t border-white/5 relative z-30 w-full">
-                        
-                        <!-- COMMAND PALETTE -->
                         <div id="command-palette" class="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 w-full max-w-2xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-sm shadow-2xl overflow-hidden flex-col z-50">
                             <div class="px-4 py-2 border-b border-white/5 bg-black/40 text-[10px] font-mono text-gray-500 uppercase tracking-widest">Execute Local Macro</div>
                             <button class="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center space-x-3 text-sm text-gray-300 transition-colors command-item" data-prompt="/bottlenecks"><i class="ph ph-clock-countdown text-emerald-400 text-lg"></i><span>Audit Stage Bottlenecks</span></button>
@@ -420,8 +461,6 @@
                         </div>
 
                         <div id="prompt-container" class="max-w-4xl mx-auto bg-surface/90 border border-white/10 rounded-md p-4 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-xl relative">
-                            
-                            <!-- THE CONTEXT DOCK -->
                             <div id="context-dock" class="hidden flex items-center justify-between mb-3 pb-3 border-b border-white/5 transition-all duration-300 opacity-0 h-0 overflow-hidden">
                                 <div class="flex items-center space-x-3">
                                     <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest flex items-center"><i class="ph ph-paperclip mr-1"></i>Context Payload:</span>
@@ -453,7 +492,6 @@
                     </div>
                 </div>
 
-                <!-- ARTIFACT CANVAS (Right Pane) -->
                 <div id="artemis-artifact-pane" class="w-[0px] h-full opacity-0 bg-surface/90 backdrop-blur-2xl border-l border-white/10 flex flex-col transition-all duration-500 ease-in-out relative z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.8)]">
                     <div class="h-14 flex-none border-b border-white/5 bg-black/40 flex items-center justify-between px-6">
                         <div class="flex items-center space-x-2 text-gold"><i class="ph ph-layout text-lg"></i><span class="text-xs font-mono tracking-widest font-bold uppercase">Data Canvas</span></div>
@@ -462,6 +500,71 @@
                         </div>
                     </div>
                     <div id="artifact-content" class="flex-1 p-8 overflow-y-auto w-full"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: SOVEREIGN KYC DATA LAKE EXPLORER -->
+        <section id="datalake-view" class="view-section hidden block flex-1 p-8 overflow-y-auto w-full">
+            <div class="max-w-[1600px] mx-auto w-full flex flex-col space-y-6 h-full">
+                <!-- Header & Controls -->
+                <div class="flex flex-wrap justify-between items-end gap-4 border-b border-white/10 pb-4">
+                    <div>
+                        <div class="flex items-center space-x-3">
+                            <h1 class="text-3xl font-light tracking-tight text-white">Sovereign KYC / KYB Data Lake</h1>
+                            <span id="datalake-total-badge" class="px-2.5 py-0.5 rounded text-xs font-mono bg-gold/15 text-gold border border-gold/30">... Records</span>
+                        </div>
+                        <p class="text-xs font-mono text-gray-400 mt-1">Click any merchant row to launch its 360° KYB Dossier, UBO Ownership Tree, and 14-Factor Risk Matrix</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button id="datalake-refresh-btn" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all">
+                            <i class="ph ph-arrows-clockwise" id="datalake-sync-icon"></i><span>Refresh Lake</span>
+                        </button>
+                        <button id="datalake-export-csv-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all">
+                            <i class="ph ph-download-simple"></i><span>Export Filtered CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Bar & Cohort Pills -->
+                <div class="glass-card p-4 rounded-xl border border-white/5 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-wrap items-center gap-3 flex-1">
+                        <div class="relative w-72">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
+                            <input type="text" id="datalake-search-input" class="w-full bg-obsidian border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50" placeholder="Search company, email, AM, country, ID...">
+                        </div>
+
+                        <select id="datalake-stage-filter" class="bg-obsidian border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-gray-300 outline-none focus:border-gold/50 cursor-pointer">
+                            <option value="ALL">All Stages</option>
+                        </select>
+
+                        <select id="datalake-risk-filter" class="bg-obsidian border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-gray-300 outline-none focus:border-gold/50 cursor-pointer">
+                            <option value="ALL">All Risk Ratings</option>
+                            <option value="High Risk">High Risk</option>
+                            <option value="Medium Risk">Medium Risk</option>
+                            <option value="Low Risk">Low Risk</option>
+                            <option value="Decline">Decline</option>
+                            <option value="Unassessed">Blank / Unassessed</option>
+                        </select>
+
+                        <select id="datalake-am-filter" class="bg-obsidian border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-gray-300 outline-none focus:border-gold/50 cursor-pointer">
+                            <option value="ALL">All Account Managers</option>
+                        </select>
+                    </div>
+
+                    <!-- Tactical Cohort Quick-Filters -->
+                    <div class="flex items-center space-x-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
+                        <button data-cohort="all" class="datalake-cohort-btn active px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider bg-white/10 text-white transition-all">All</button>
+                        <button data-cohort="active" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-white transition-all">Active Queue</button>
+                        <button data-cohort="high_risk" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-red-400 transition-all">High Risk</button>
+                        <button data-cohort="stuck" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-amber-400 transition-all">Stuck &gt; 5d</button>
+                        <button data-cohort="with_ubos" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-emerald-400 transition-all">Has Linked UBOs</button>
+                    </div>
+                </div>
+
+                <!-- Tabulator Master Grid Container -->
+                <div class="glass-card rounded-xl border border-white/5 flex-1 overflow-hidden shadow-2xl p-2 bg-[#0b0b0b] min-h-[540px]">
+                    <div id="datalake-tabulator-grid" class="w-full h-full"></div>
                 </div>
             </div>
         </section>
