@@ -15,10 +15,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
-
-    <!-- Elite Data Grid: Tabulator -->
-    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -43,27 +39,50 @@
         @keyframes liquid-shine { 0% { transform: translateX(-150%) skewX(-25deg); } 15% { transform: translateX(400%) skewX(-25deg); } 100% { transform: translateX(400%) skewX(-25deg); } }
         .animate-liquid-shine { animation: liquid-shine 5s infinite; }
         .canvas-glow { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.15)); }
-        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #050505; } ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #DDAA33; }
         
         .artifact-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        .drawer-slide-in { transform: translateX(0) !important; box-shadow: -20px 0 50px rgba(0,0,0,0.8); }
+        @keyframes rowCascadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .sovereign-row-animate { animation: rowCascadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
+        @keyframes pulseGlowGold {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(221, 170, 51, 0); }
+            50% { box-shadow: 0 0 20px 2px rgba(221, 170, 51, 0.2); }
+        }
+        .dossier-active-glow { animation: pulseGlowGold 3s infinite; }
+
+        .drawer-slide-in { transform: translateX(0) !important; box-shadow: -20px 0 50px rgba(0,0,0,0.8); }
         .hologram-fade-out { opacity: 0.15; filter: blur(2px); transform: scale(0.9); transition: all 1s ease; }
         .hologram-focus { opacity: 0.9; filter: blur(0px); transform: scale(1); transition: all 1s ease; }
 
         .prose, .markdown-body { font-variant-numeric: tabular-nums; line-height: 1.5; }
         .prose p { margin-bottom: 0.75em; }
         .prose strong { color: #DDAA33; font-weight: 600; }
-        .tabulator { background-color: #0b0b0b !important; border: 1px solid rgba(255,255,255,0.06) !important; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; font-size: 11px; border-radius: 0.5rem; }
-        .tabulator-row { background-color: transparent !important; border-bottom: 1px solid rgba(255,255,255,0.03) !important; color: #d1d5db !important; transition: background-color 0.15s ease; }
-        .tabulator-row:hover { background-color: rgba(221,170,51,0.08) !important; cursor: pointer; }
-        .tabulator-header { background-color: #111111 !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; color: #9ca3af !important; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
-        .tabulator-col { background-color: #111111 !important; border-right: 1px solid rgba(255,255,255,0.04) !important; }
-        .tabulator-footer { background-color: #0b0b0b !important; border-top: 1px solid rgba(255,255,255,0.08) !important; color: #9ca3af !important; }
-        .tabulator-page { background-color: rgba(255,255,255,0.05) !important; color: #d1d5db !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 4px !important; margin: 0 2px !important; }
-        .tabulator-page.active { background-color: rgba(221,170,51,0.2) !important; color: #DDAA33 !important; border-color: rgba(221,170,51,0.4) !important; }
+
+        /* Sovereign Data Grid Custom Styling */
+        .sovereign-grid-table th { position: sticky; top: 0; z-index: 20; background: #0c0c0c; backdrop-filter: blur(12px); user-select: none; }
+        .sovereign-grid-row { transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); border-left: 2px solid transparent; }
+        .sovereign-grid-row:hover, .sovereign-grid-row.kb-focused {
+            background: linear-gradient(90deg, rgba(221,170,51,0.09) 0%, rgba(255,255,255,0.02) 100%) !important;
+            border-left-color: #DDAA33;
+        }
+        .sovereign-compact td { padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; }
+        .sovereign-comfortable td { padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; }
+
+        /* Print-Ready Regulatory Audit Dossier CSS */
+        @media print {
+            body * { visibility: hidden; }
+            #profile-modal-overlay, #profile-modal-overlay * { visibility: visible; }
+            #profile-modal-overlay { position: absolute; left: 0; top: 0; width: 100%; height: auto; background: #fff !important; color: #000 !important; padding: 0 !important; }
+            #profile-modal-container { max-width: 100% !important; height: auto !important; border: none !important; box-shadow: none !important; background: #fff !important; color: #000 !important; }
+            #profile-modal-body { overflow: visible !important; height: auto !important; background: #fff !important; color: #000 !important; }
+            #close-profile-modal-btn, #profile-rfi-btn, #profile-ai-audit-btn, #profile-print-btn, #profile-share-btn { display: none !important; }
+        }
     </style>
     <link rel="stylesheet" href="css/master.css">
 </head>
@@ -87,86 +106,92 @@
     </div>
 
     <!-- SOVEREIGN 360° KYB PROFILE DOSSIER MODAL -->
-    <div id="profile-modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4 lg:p-8">
-        <div id="profile-modal-container" class="w-full max-w-[1440px] h-[92vh] bg-[#090909] border border-gold/25 rounded-2xl shadow-[0_0_80px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden relative transform scale-95 transition-all duration-300">
+    <div id="profile-modal-overlay" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[220] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-3 lg:p-6">
+        <div id="profile-modal-container" class="w-full max-w-[1500px] h-[94vh] bg-[#070707] border border-gold/30 rounded-2xl shadow-[0_0_90px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden relative transform scale-95 transition-all duration-300">
             <!-- Top Accent Line -->
             <div class="h-1 w-full bg-gradient-to-r from-gold-dark via-gold to-emerald-500 flex-shrink-0"></div>
 
             <!-- Dossier Command Header -->
-            <div id="profile-header-bar" class="px-8 py-5 bg-surface/90 border-b border-white/10 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
+            <div id="profile-header-bar" class="px-7 py-4 bg-[#0c0c0c] border-b border-white/10 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
                 <div class="flex items-center space-x-4 min-w-0">
-                    <button id="close-profile-modal-btn" class="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all flex items-center space-x-1.5 text-xs font-mono uppercase tracking-wider flex-shrink-0">
+                    <button id="close-profile-modal-btn" class="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all flex items-center space-x-1.5 text-xs font-mono uppercase tracking-wider flex-shrink-0" title="Close (Esc)">
                         <i class="ph ph-arrow-left text-sm"></i><span>Back</span>
                     </button>
-                    <div id="profile-flag-box" class="w-11 h-11 rounded-xl bg-black border border-white/10 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
-                        <i class="ph ph-buildings text-gold"></i>
+                    <div id="profile-flag-box" class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/20 to-black border border-gold/30 flex items-center justify-center text-lg font-mono font-bold text-gold flex-shrink-0 shadow-inner">
+                        --
                     </div>
                     <div class="min-w-0">
-                        <div class="flex items-center space-x-3 flex-wrap">
+                        <div class="flex items-center space-x-2.5 flex-wrap">
                             <h2 id="profile-company-name" class="text-2xl font-light text-white tracking-tight truncate">Loading KYB Dossier...</h2>
                             <span id="profile-stage-badge" class="px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-widest bg-gold/15 text-gold border border-gold/30">...</span>
                             <span id="profile-risk-badge" class="px-2.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-widest bg-white/5 text-gray-400 border border-white/10">...</span>
+                            <span id="profile-sync-indicator" class="hidden px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center space-x-1">
+                                <i class="ph ph-circle-notch animate-spin"></i><span>Hydrating Relational Objects...</span>
+                            </span>
                         </div>
-                        <div id="profile-subtitle-meta" class="text-xs font-mono text-gray-400 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <div id="profile-subtitle-meta" class="text-xs font-mono text-gray-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span>Record ID: --</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Header Action Controls -->
-                <div class="flex items-center space-x-2.5 flex-shrink-0">
-                    <label class="flex items-center space-x-2 bg-black/60 border border-white/10 px-3 py-2 rounded-lg text-xs font-mono text-gray-300 cursor-pointer hover:border-gold/40 transition-colors">
+                <div class="flex items-center space-x-2 flex-shrink-0 flex-wrap">
+                    <label class="flex items-center space-x-2 bg-black/70 border border-white/10 px-3 py-2 rounded-lg text-xs font-mono text-gray-300 cursor-pointer hover:border-gold/40 transition-colors">
                         <input type="checkbox" id="profile-hide-empty-toggle" checked class="accent-[#DDAA33] rounded cursor-pointer">
-                        <span>Hide Empty Fields</span>
+                        <span>Hide Empty</span>
                         <span id="profile-populated-counter" class="text-[10px] text-gold bg-gold/10 px-1.5 py-0.5 rounded">--/775</span>
                     </label>
-                    <button id="profile-rfi-btn" class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all" title="Draft Missing KYB Info Request Email">
+                    <button id="profile-share-btn" class="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-gold border border-white/10 px-3 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all" title="Copy Direct Dossier Deep-Link">
+                        <i class="ph ph-link text-sm"></i><span>Copy Link</span>
+                    </button>
+                    <button id="profile-rfi-btn" class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all" title="Draft Missing KYB Info Request Email">
                         <i class="ph ph-envelope-simple-open text-sm"></i><span>Draft RFI</span>
                     </button>
-                    <button id="profile-ai-audit-btn" class="bg-gradient-to-r from-gold/20 to-amber-500/10 hover:from-gold/30 hover:to-amber-500/20 text-gold border border-gold/40 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_20px_rgba(221,170,51,0.15)]">
+                    <button id="profile-ai-audit-btn" class="bg-gradient-to-r from-gold/25 to-amber-500/15 hover:from-gold/35 hover:to-amber-500/25 text-gold border border-gold/40 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_20px_rgba(221,170,51,0.18)]">
                         <i class="ph ph-sparkle text-sm"></i><span>AI MLRO Audit</span>
                     </button>
                     <button id="profile-print-btn" class="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 px-3 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all" title="Print / Export Audit Dossier PDF">
-                        <i class="ph ph-printer text-sm"></i><span>Export PDF</span>
+                        <i class="ph ph-printer text-sm"></i><span>PDF</span>
                     </button>
                 </div>
             </div>
 
             <!-- Dossier Sub-Navigation Tabs -->
-            <div class="px-8 bg-[#0d0d0d] border-b border-white/10 flex items-center justify-between flex-shrink-0 overflow-x-auto">
+            <div class="px-7 bg-[#0a0a0a] border-b border-white/10 flex items-center justify-between flex-shrink-0 overflow-x-auto gap-4">
                 <div class="flex items-center space-x-1 py-2" id="profile-tabs-nav">
-                    <button data-ptab="overview" class="profile-tab-btn active px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-gold/15 text-gold border border-gold/30 transition-all flex items-center space-x-2">
+                    <button data-ptab="overview" class="profile-tab-btn active px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-gold/15 text-gold border border-gold/30 transition-all flex items-center space-x-1.5 whitespace-nowrap">
                         <i class="ph ph-squares-four"></i><span>1. 360° Overview & UBOs</span>
                     </button>
-                    <button data-ptab="risk" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                    <button data-ptab="risk" class="profile-tab-btn px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-1.5 whitespace-nowrap">
                         <i class="ph ph-shield-warning"></i><span>2. 14-Factor Risk Matrix</span>
                     </button>
-                    <button data-ptab="volumes" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
-                        <i class="ph ph-ArrowsLeftRight"></i><span>3. Payments & Volumes</span>
+                    <button data-ptab="volumes" class="profile-tab-btn px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-1.5 whitespace-nowrap">
+                        <i class="ph ph-arrows-left-right"></i><span>3. Payments & Volumes</span>
                     </button>
-                    <button data-ptab="crypto" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                    <button data-ptab="crypto" class="profile-tab-btn px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-1.5 whitespace-nowrap">
                         <i class="ph ph-currency-btc"></i><span>4. Crypto & Web3</span>
                     </button>
-                    <button data-ptab="acquiring" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                    <button data-ptab="acquiring" class="profile-tab-btn px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-1.5 whitespace-nowrap">
                         <i class="ph ph-credit-card"></i><span>5. Card Acquiring</span>
                     </button>
-                    <button data-ptab="aml" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
+                    <button data-ptab="aml" class="profile-tab-btn px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-1.5 whitespace-nowrap">
                         <i class="ph ph-scales"></i><span>6. AML / EDD & Docs</span>
                     </button>
-                    <button data-ptab="all" class="profile-tab-btn px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-2">
-                        <i class="ph ph-MagnifyingGlass"></i><span>7. All 775 Attributes</span>
+                    <button data-ptab="all" class="profile-tab-btn px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition-all flex items-center space-x-1.5 whitespace-nowrap">
+                        <i class="ph ph-magnifying-glass"></i><span>7. All 775 Attributes</span>
                     </button>
                 </div>
 
                 <!-- Attribute Search inside Profile -->
                 <div class="relative w-64 my-2 flex-shrink-0">
                     <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
-                    <input type="text" id="profile-attr-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-8 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50" placeholder="Filter profile fields...">
+                    <input type="text" id="profile-attr-search" class="w-full bg-obsidian border border-white/10 rounded-lg py-1.5 pl-8 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50" placeholder="Filter profile attributes...">
                 </div>
             </div>
 
             <!-- Dynamic Dossier Body Content -->
-            <div id="profile-modal-body" class="flex-1 overflow-y-auto p-8 space-y-8 bg-obsidian">
+            <div id="profile-modal-body" class="flex-1 overflow-y-auto p-7 space-y-6 bg-[#050505]">
                 <!-- Populated dynamically by app.js -->
             </div>
         </div>
@@ -207,67 +232,6 @@
                     </div>
                 </div>
             </section>
-
-            <section class="manual-section" data-tags="tools functions charts maps risk compliance pipeline volume manager financial">
-                <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Analytical Toolset</h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-emerald-500/30 transition-colors">
-                        <i class="ph ph-chart-line-up text-emerald-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Time-Series</div>
-                        <div class="text-[10px] text-gray-400">Tracks ingestion velocity and aging across days or ranges.</div>
-                    </div>
-                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-blue-400/30 transition-colors">
-                        <i class="ph ph-globe-hemisphere-west text-blue-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Geo Mapping</div>
-                        <div class="text-[10px] text-gray-400">Plots volume across jurisdictional borders.</div>
-                    </div>
-                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-red-400/30 transition-colors">
-                        <i class="ph ph-shield-check text-red-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Compliance</div>
-                        <div class="text-[10px] text-gray-400">Audits adverse media, PEP influence, and sanctions.</div>
-                    </div>
-                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-amber-400/30 transition-colors">
-                        <i class="ph ph-funnel text-amber-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Stage Bottlenecks</div>
-                        <div class="text-[10px] text-gray-400">Identifies friction points in the pipeline.</div>
-                    </div>
-                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-purple-400/30 transition-colors">
-                        <i class="ph ph-users-three text-purple-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Workload Matrix</div>
-                        <div class="text-[10px] text-gray-400">Evaluates account manager ticket distribution.</div>
-                    </div>
-                    <div class="bg-surface/50 border border-white/5 p-4 rounded-lg hover:border-green-400/30 transition-colors">
-                        <i class="ph ph-currency-circle-dollar text-green-400 text-xl mb-2"></i>
-                        <div class="text-xs text-white font-semibold mb-1">Financial Volume</div>
-                        <div class="text-[10px] text-gray-400">Analyzes transaction brackets and deal sizes.</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="manual-section" data-tags="how to use syntax examples charts tables date filters manager">
-                <h4 class="text-xs font-mono text-gold uppercase tracking-widest border-b border-white/10 pb-2 mb-4">Prompt Syntax & Examples</h4>
-                <div class="space-y-4">
-                    <div class="bg-black/40 border border-white/5 rounded-lg p-4">
-                        <div class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-2">Temporal Filtering</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many tickets were registered on 2026-09-18?"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="How many tickets were registered on 2026-09-18?"><i class="ph ph-arrow-arc-left"></i><span>Inject Single-Day</span></button>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Registration timeline from 2026-01-01 to 2026-10-28"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-xs font-mono text-gray-400 hover:text-emerald-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="Registration timeline from 2026-01-01 to 2026-10-28"><i class="ph ph-arrow-arc-left"></i><span>Inject Date-Range</span></button>
-                    </div>
-                    <div class="bg-black/40 border border-white/5 rounded-lg p-4">
-                        <div class="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-2">Categorical & Manager Splits</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"Break down the pipeline by account manager"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2 mb-3" data-inject="Break down the pipeline by account manager"><i class="ph ph-arrow-arc-left"></i><span>Inject Manager Split</span></button>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"How many active tickets are assigned to Ellie?"</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-blue-400/20 border border-white/10 hover:border-blue-400/50 text-xs font-mono text-gray-400 hover:text-blue-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="How many active tickets are assigned to Ellie?"><i class="ph ph-arrow-arc-left"></i><span>Inject Specific Agent Filter</span></button>
-                    </div>
-                    <div class="bg-black/40 border border-white/5 rounded-lg p-4">
-                        <div class="text-[10px] font-mono text-crimson uppercase tracking-widest mb-2">Prometheus Strategic Intel (API)</div>
-                        <div class="bg-surface border border-white/10 p-3 rounded text-sm text-gray-200 font-mono mb-2">"@Prometheus Run an anomaly scan on our daily ingestion volume."</div>
-                        <button class="manual-inject-btn w-full bg-white/5 hover:bg-red-400/20 border border-white/10 hover:border-red-400/50 text-xs font-mono text-gray-400 hover:text-red-400 py-2 rounded transition-all flex items-center justify-center space-x-2" data-inject="@Prometheus Run an anomaly scan on our daily ingestion volume."><i class="ph ph-arrow-arc-left"></i><span>Inject Anomaly Scan</span></button>
-                    </div>
-                </div>
-            </section>
         </div>
     </div>
 
@@ -289,12 +253,16 @@
     <main class="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top_right,_rgba(30,30,30,0.4),_var(--tw-colors-obsidian)_50%)] overflow-hidden">
         <header class="flex-none h-16 border-b border-white/5 flex items-center justify-between px-10 bg-surface/30 backdrop-blur-md z-10">
             <!-- Global Quick Jump to Any Ticket Dossier -->
-            <div class="relative w-80">
-                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm"></i>
-                <input type="text" id="global-dossier-search" class="w-full bg-black/50 border border-white/10 focus:border-gold/50 rounded-lg py-1.5 pl-9 pr-3 text-xs font-mono text-white outline-none transition-all" placeholder="Quick open KYB Dossier (Name or ID)...">
+            <div class="relative w-96">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gold/70 text-sm"></i>
+                <input type="text" id="global-dossier-search" class="w-full bg-black/60 border border-white/10 focus:border-gold/50 rounded-lg py-1.5 pl-9 pr-16 text-xs font-mono text-white outline-none transition-all shadow-inner" placeholder="Quick launch 360° Dossier (Company or ID)...">
+                <span class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-[9px] font-mono text-gray-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">ENTER</span>
             </div>
 
-            <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-5">
+                <button id="global-pii-mask-btn" class="flex items-center space-x-1.5 text-xs font-mono text-gray-400 hover:text-gold transition-colors border border-white/10 hover:border-gold/30 px-3 py-1.5 rounded-sm bg-black/40" title="Toggle PII Masking for Screen-Sharing">
+                    <i class="ph ph-shield-check text-sm" id="global-pii-icon"></i><span id="global-pii-label">PII: Visible</span>
+                </button>
                 <button id="open-manual-btn" class="flex items-center space-x-2 text-xs font-mono text-gray-400 hover:text-gold transition-colors border border-white/10 hover:border-gold/30 px-3 py-1.5 rounded-sm bg-black/40 shadow-inner">
                     <i class="ph ph-book-open text-base"></i><span>Artemis Guide</span>
                 </button>
@@ -504,67 +472,176 @@
             </div>
         </section>
 
-        <!-- VIEW 4: SOVEREIGN KYC DATA LAKE EXPLORER -->
+        <!-- VIEW 4: SOVEREIGN KYC DATA LAKE EXPLORER (TOP 0.1% CUSTOM VIRTUAL GRID) -->
         <section id="datalake-view" class="view-section hidden block flex-1 p-8 overflow-y-auto w-full">
-            <div class="max-w-[1600px] mx-auto w-full flex flex-col space-y-6 h-full">
-                <!-- Header & Controls -->
-                <div class="flex flex-wrap justify-between items-end gap-4 border-b border-white/10 pb-4">
+            <div class="max-w-[1640px] mx-auto w-full flex flex-col space-y-5">
+                
+                <!-- Top Command Bar -->
+                <div class="flex flex-wrap justify-between items-center gap-4">
                     <div>
                         <div class="flex items-center space-x-3">
                             <h1 class="text-3xl font-light tracking-tight text-white">Sovereign KYC / KYB Data Lake</h1>
-                            <span id="datalake-total-badge" class="px-2.5 py-0.5 rounded text-xs font-mono bg-gold/15 text-gold border border-gold/30">... Records</span>
+                            <span id="datalake-total-badge" class="px-3 py-1 rounded-full text-xs font-mono bg-gold/15 text-gold border border-gold/30 shadow-[0_0_15px_rgba(221,170,51,0.15)]">... Records</span>
                         </div>
-                        <p class="text-xs font-mono text-gray-400 mt-1">Click any merchant row to launch its 360° KYB Dossier, UBO Ownership Tree, and 14-Factor Risk Matrix</p>
+                        <p class="text-xs font-mono text-gray-400 mt-1 flex items-center space-x-2">
+                            <span>Click any merchant row or press <kbd class="px-1.5 py-0.5 bg-white/10 rounded text-[10px] text-gold">↑</kbd> <kbd class="px-1.5 py-0.5 bg-white/10 rounded text-[10px] text-gold">↓</kbd> + <kbd class="px-1.5 py-0.5 bg-white/10 rounded text-[10px] text-gold">Enter</kbd> to launch its 360° KYB Dossier</span>
+                        </p>
                     </div>
-                    <div class="flex items-center space-x-3">
-                        <button id="datalake-refresh-btn" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all">
-                            <i class="ph ph-arrows-clockwise" id="datalake-sync-icon"></i><span>Refresh Lake</span>
+                    <div class="flex items-center space-x-2.5">
+                        <!-- Multi-Merchant AI Comparison Button (Reveals when rows checked) -->
+                        <button id="datalake-compare-ai-btn" class="hidden bg-gradient-to-r from-purple-500/20 to-gold/20 hover:from-purple-500/30 hover:to-gold/30 text-gold border border-gold/40 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-lg">
+                            <i class="ph ph-sparkle"></i><span id="datalake-compare-count">Audit Selected (0) in Prometheus</span>
                         </button>
-                        <button id="datalake-export-csv-btn" class="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all">
-                            <i class="ph ph-download-simple"></i><span>Export Filtered CSV</span>
+
+                        <!-- Density Toggle -->
+                        <div class="flex bg-black/60 border border-white/10 rounded-lg p-0.5">
+                            <button id="density-compact-btn" class="px-2.5 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider bg-white/10 text-white transition-all" title="High-Density Terminal View">Compact</button>
+                            <button id="density-comfort-btn" class="px-2.5 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-500 hover:text-white transition-all" title="Executive Spacious View">Comfort</button>
+                        </div>
+
+                        <button id="datalake-refresh-btn" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wider flex items-center space-x-1.5 transition-all">
+                            <i class="ph ph-arrows-clockwise" id="datalake-sync-icon"></i><span>Sync Lake</span>
+                        </button>
+                        <button id="datalake-export-csv-btn" class="bg-gold/15 hover:bg-gold/25 text-gold border border-gold/40 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_20px_rgba(221,170,51,0.12)]">
+                            <i class="ph ph-download-simple"></i><span>Export CSV</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Filter Bar & Cohort Pills -->
-                <div class="glass-card p-4 rounded-xl border border-white/5 flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex flex-wrap items-center gap-3 flex-1">
-                        <div class="relative w-72">
-                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
-                            <input type="text" id="datalake-search-input" class="w-full bg-obsidian border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs font-mono text-white outline-none focus:border-gold/50" placeholder="Search company, email, AM, country, ID...">
+                <!-- 5-Card Live Cohort Telemetry Strip (Clickable Quick-Filters) -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div data-cohort="all" class="datalake-kpi-card cursor-pointer glass-card p-4 rounded-xl border border-gold/40 bg-gold/[0.04] hover:bg-gold/[0.08] transition-all flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-gold">
+                            <span>Total Filtered Cohort</span><i class="ph ph-database text-sm"></i>
+                        </div>
+                        <div id="dl-kpi-total" class="text-2xl font-mono font-light text-white mt-2">...</div>
+                        <div class="text-[10px] font-mono text-gray-400 mt-1">100% of active selection</div>
+                    </div>
+
+                    <div data-cohort="active" class="datalake-kpi-card cursor-pointer glass-card p-4 rounded-xl border border-white/5 hover:border-blue-400/40 transition-all flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-blue-400">
+                            <span>Active In-Queue</span><i class="ph ph-hourglass-high text-sm"></i>
+                        </div>
+                        <div id="dl-kpi-active" class="text-2xl font-mono font-light text-white mt-2">...</div>
+                        <div id="dl-kpi-avg-age" class="text-[10px] font-mono text-gray-400 mt-1">Avg Aging: --</div>
+                    </div>
+
+                    <div data-cohort="high_risk" class="datalake-kpi-card cursor-pointer glass-card p-4 rounded-xl border border-white/5 hover:border-red-400/40 transition-all flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-red-400">
+                            <span>High Risk / Decline</span><i class="ph ph-shield-warning text-sm"></i>
+                        </div>
+                        <div id="dl-kpi-highrisk" class="text-2xl font-mono font-light text-white mt-2">...</div>
+                        <div id="dl-kpi-highrisk-pct" class="text-[10px] font-mono text-gray-400 mt-1">--% of cohort</div>
+                    </div>
+
+                    <div data-cohort="stuck" class="datalake-kpi-card cursor-pointer glass-card p-4 rounded-xl border border-white/5 hover:border-amber-400/40 transition-all flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-amber-400">
+                            <span>Bottlenecked (&gt; 5d)</span><i class="ph ph-warning-circle text-sm"></i>
+                        </div>
+                        <div id="dl-kpi-stuck" class="text-2xl font-mono font-light text-white mt-2">...</div>
+                        <div class="text-[10px] font-mono text-gray-400 mt-1">Requires SLA escalation</div>
+                    </div>
+
+                    <div data-cohort="with_ubos" class="datalake-kpi-card cursor-pointer glass-card p-4 rounded-xl border border-white/5 hover:border-emerald-400/40 transition-all flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-emerald-400">
+                            <span>UBO / Party Linked</span><i class="ph ph-users-three text-sm"></i>
+                        </div>
+                        <div id="dl-kpi-ubos" class="text-2xl font-mono font-light text-white mt-2">...</div>
+                        <div class="text-[10px] font-mono text-gray-400 mt-1">Relational KYC mapped</div>
+                    </div>
+                </div>
+
+                <!-- Precision Filter & Search Bar -->
+                <div class="glass-card p-3.5 rounded-xl border border-white/10 bg-[#0c0c0c]/90 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-2.5 flex-1">
+                        <div class="relative w-80">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gold text-xs"></i>
+                            <input type="text" id="datalake-search-input" class="w-full bg-obsidian border border-white/10 rounded-lg py-2 pl-9 pr-8 text-xs font-mono text-white outline-none focus:border-gold/50 transition-colors" placeholder="Filter by entity, ID, country, AM, email...">
+                            <button id="datalake-clear-search" class="hidden absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white"><i class="ph ph-x-circle text-xs"></i></button>
                         </div>
 
-                        <select id="datalake-stage-filter" class="bg-obsidian border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-gray-300 outline-none focus:border-gold/50 cursor-pointer">
-                            <option value="ALL">All Stages</option>
+                        <select id="datalake-stage-filter" class="bg-obsidian border border-white/10 hover:border-white/20 rounded-lg py-2 px-3 text-xs font-mono text-gray-200 outline-none focus:border-gold/50 cursor-pointer">
+                            <option value="ALL">Stage: All Stages</option>
                         </select>
 
-                        <select id="datalake-risk-filter" class="bg-obsidian border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-gray-300 outline-none focus:border-gold/50 cursor-pointer">
-                            <option value="ALL">All Risk Ratings</option>
+                        <select id="datalake-risk-filter" class="bg-obsidian border border-white/10 hover:border-white/20 rounded-lg py-2 px-3 text-xs font-mono text-gray-200 outline-none focus:border-gold/50 cursor-pointer">
+                            <option value="ALL">Risk: All Ratings</option>
                             <option value="High Risk">High Risk</option>
                             <option value="Medium Risk">Medium Risk</option>
                             <option value="Low Risk">Low Risk</option>
                             <option value="Decline">Decline</option>
-                            <option value="Unassessed">Blank / Unassessed</option>
+                            <option value="Unassessed">Unassessed / Blank</option>
                         </select>
 
-                        <select id="datalake-am-filter" class="bg-obsidian border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-gray-300 outline-none focus:border-gold/50 cursor-pointer">
-                            <option value="ALL">All Account Managers</option>
+                        <select id="datalake-am-filter" class="bg-obsidian border border-white/10 hover:border-white/20 rounded-lg py-2 px-3 text-xs font-mono text-gray-200 outline-none focus:border-gold/50 cursor-pointer">
+                            <option value="ALL">Owner: All Managers</option>
                         </select>
+
+                        <button id="datalake-reset-filters-btn" class="px-3 py-2 rounded-lg text-xs font-mono text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors flex items-center space-x-1">
+                            <i class="ph ph-arrow-counter-clockwise"></i><span>Reset</span>
+                        </button>
                     </div>
 
-                    <!-- Tactical Cohort Quick-Filters -->
-                    <div class="flex items-center space-x-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
-                        <button data-cohort="all" class="datalake-cohort-btn active px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider bg-white/10 text-white transition-all">All</button>
-                        <button data-cohort="active" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-white transition-all">Active Queue</button>
-                        <button data-cohort="high_risk" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-red-400 transition-all">High Risk</button>
-                        <button data-cohort="stuck" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-amber-400 transition-all">Stuck &gt; 5d</button>
-                        <button data-cohort="with_ubos" class="datalake-cohort-btn px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider text-gray-400 hover:text-emerald-400 transition-all">Has Linked UBOs</button>
+                    <!-- Pagination & Page Size Controls -->
+                    <div class="flex items-center space-x-3 text-xs font-mono">
+                        <span id="datalake-range-info" class="text-gray-400">Showing 0–0 of 0</span>
+                        <select id="datalake-page-size" class="bg-obsidian border border-white/10 rounded-lg py-1.5 px-2 text-xs font-mono text-gold outline-none cursor-pointer">
+                            <option value="50" selected>50 / page</option>
+                            <option value="100">100 / page</option>
+                            <option value="250">250 / page</option>
+                        </select>
+                        <div class="flex items-center space-x-1">
+                            <button id="datalake-prev-page" class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 disabled:opacity-30 disabled:pointer-events-none"><i class="ph ph-caret-left"></i></button>
+                            <span id="datalake-page-indicator" class="px-2 text-white font-bold">1 / 1</span>
+                            <button id="datalake-next-page" class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 disabled:opacity-30 disabled:pointer-events-none"><i class="ph ph-caret-right"></i></button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Tabulator Master Grid Container -->
-                <div class="glass-card rounded-xl border border-white/5 flex-1 overflow-hidden shadow-2xl p-2 bg-[#0b0b0b] min-h-[540px]">
-                    <div id="datalake-tabulator-grid" class="w-full h-full"></div>
+                <!-- Sovereign Custom Virtual Grid Container -->
+                <div class="glass-card rounded-xl border border-white/10 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.85)] bg-[#070707] flex flex-col">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-370px)]" id="sovereign-grid-scroll-box">
+                        <table class="w-full text-left border-collapse whitespace-nowrap sovereign-grid-table">
+                            <thead>
+                                <tr class="border-b border-white/10 text-[10px] font-mono uppercase tracking-widest text-gray-400">
+                                    <th class="py-3.5 px-4 w-10 text-center"><input type="checkbox" id="datalake-select-all" class="accent-[#DDAA33] rounded cursor-pointer"></th>
+                                    <th data-sort="company_name" class="datalake-sort-th py-3.5 px-4 cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center space-x-1.5"><span>Merchant / Legal Entity</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="stage" class="datalake-sort-th py-3.5 px-4 cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center space-x-1.5"><span>Pipeline Stage</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="country" class="datalake-sort-th py-3.5 px-4 cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center space-x-1.5"><span>Jurisdiction</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="risk_rating" class="datalake-sort-th py-3.5 px-4 cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center space-x-1.5"><span>Risk Rating</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="risk_score" class="datalake-sort-th py-3.5 px-4 text-right cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center justify-end space-x-1.5"><span>Score</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="parties_count" class="datalake-sort-th py-3.5 px-4 text-center cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center justify-center space-x-1.5"><span>Linked UBOs</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="account_manager" class="datalake-sort-th py-3.5 px-4 cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center space-x-1.5"><span>Account Manager</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="queue_aging_days" class="datalake-sort-th py-3.5 px-4 text-right cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center justify-end space-x-1.5"><span>Stage Aging</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th data-sort="created_at" class="datalake-sort-th py-3.5 px-4 cursor-pointer hover:text-gold transition-colors">
+                                        <div class="flex items-center space-x-1.5"><span>Created</span><i class="ph ph-caret-up-down text-xs"></i></div>
+                                    </th>
+                                    <th class="py-3.5 px-4 text-right">360° Dossier</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sovereign-datalake-tbody" class="divide-y divide-white/[0.04] text-xs font-sans sovereign-compact">
+                                <tr>
+                                    <td colspan="11" class="py-16 text-center text-gray-500 font-mono text-xs">Click "KYC Data Lake" to load records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
