@@ -2307,17 +2307,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Guard: If GAS 2 inline fallback placed an email address inside cp.nationality or cp.residence, rescue it to cp.email and clear it from nationality/residence
+            if (cp.nationality && String(cp.nationality).includes('@')) {
+                if (!cp.email || cp.email === '-') cp.email = String(cp.nationality).trim();
+                cp.nationality = '-';
+            }
+            if (cp.residence && String(cp.residence).includes('@')) {
+                if (!cp.email || cp.email === '-') cp.email = String(cp.residence).trim();
+                cp.residence = '-';
+            }
+
             const sources = [mergedRawPerson, pRec, rRec, cp];
             const locFallback = resolveClientLocationCountry(pickPersonAttr(sources, ['primary_location', 'location', 'address', 'city'], /location|address/i));
 
-            const resolvedNat = pickPersonAttr(sources, ['nationality', 'nationality_individual_1787243602', 'nationality_individual_1787242575', 'citizenship', `person_${pNum}_nationality`, 'ubo_nationality'], /nationality|citizenship/i)
+            const rawNatCandidate = pickPersonAttr(sources, ['nationality', 'nationality_individual_1787243602', 'nationality_individual_1787242575', 'citizenship', `person_${pNum}_nationality`, 'ubo_nationality'], /nationality|citizenship/i);
+            const resolvedNat = (rawNatCandidate && !String(rawNatCandidate).includes('@') ? rawNatCandidate : '')
                 || locFallback
-                || (cpIdx === 0 && fallbackEntityNat ? fallbackEntityNat : '')
-                || '-';
+                || (cpIdx === 0 && fallbackEntityNat && !String(fallbackEntityNat).includes('@') ? fallbackEntityNat : '')
+                || (h.country && h.country !== '-' ? h.country : '-');
 
-            const resolvedRes = pickPersonAttr(sources, ['residence', 'countryresidence', 'country_of_residence', 'residence_individual_1787243908', 'residence_individual_1787242743', `person_${pNum}_country`, 'ubo_country_of_residence'], /residence|countryresidence|domicile/i)
+            const rawResCandidate = pickPersonAttr(sources, ['residence', 'countryresidence', 'country_of_residence', 'residence_individual_1787243908', 'residence_individual_1787242743', `person_${pNum}_country`, 'ubo_country_of_residence'], /residence|countryresidence|domicile/i);
+            const resolvedRes = (rawResCandidate && !String(rawResCandidate).includes('@') ? rawResCandidate : '')
                 || locFallback
-                || (cpIdx === 0 && fallbackEntityRes ? fallbackEntityRes : '')
+                || (cpIdx === 0 && fallbackEntityRes && !String(fallbackEntityRes).includes('@') ? fallbackEntityRes : '')
                 || (resolvedNat !== '-' ? resolvedNat : '-');
 
             const resolvedDob = pickPersonAttr(sources, ['dob', 'date_of_birth', 'date_birth', 'birth_date', `person_${pNum}_dob`, `person_${pNum}_date_of_birth`, 'ubo_date_of_birth'], /date_of_birth|date_birth|\bdob\b|birth_date/i)
