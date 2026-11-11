@@ -1,6 +1,6 @@
 // === XOALA COMMAND CENTER: DASHBOARD, CUSTOM VIRTUAL DATA LAKE & SOVEREIGN 360° DOSSIER ===
 
-const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.osama-mohammad.workers.dev'; 
+const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.analytics-crm.workers.dev'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     
