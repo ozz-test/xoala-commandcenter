@@ -8,7 +8,7 @@
 const ARTEMIS_API_URL = (
     (window.XOALA_RUNTIME_CONFIG && window.XOALA_RUNTIME_CONFIG.WORKER_GATEWAY_URL) ||
     (typeof document !== 'undefined' && document.querySelector('meta[name="xoala-gateway-url"]')?.getAttribute('content')) ||
-    "https://xoala-command-center-middleware.osama-mohammad.workers.dev"
+    "https://xoala-command-center-middleware.analytics-crm.workers.dev"
 );
 
 // ==========================================
