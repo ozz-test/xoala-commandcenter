@@ -6,6 +6,7 @@
 
 // Runtime Endpoint Resolution: Reads from environment-injected window.XOALA_RUNTIME_CONFIG (or meta tag) first so production repos never hardcode secrets
 const ARTEMIS_API_URL = (
+    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && 'http://127.0.0.1:8787') ||
     (window.XOALA_RUNTIME_CONFIG && window.XOALA_RUNTIME_CONFIG.WORKER_GATEWAY_URL) ||
     (typeof document !== 'undefined' && document.querySelector('meta[name="xoala-gateway-url"]')?.getAttribute('content')) ||
     "https://xoala-command-center-middleware.analytics-crm.workers.dev"
@@ -857,41 +858,42 @@ class SpeechInputEngine {
 //     & BYOK GEMINI API KEY VAULT + FAIL-SAFE EXECUTIVE GEMINI CLIENT
 // ==========================================
 const XoalaOperatorVault = {
-    extractEmailFromCfCookie() {
+    extractEmailFromSovereignToken() {
         try {
-            const match = document.cookie.match(/(?:^|;\s*)CF_Authorization=([^;]+)/);
-            if (!match || !match[1]) return null;
-            const parts = match[1].split('.');
-            if (parts.length < 2) return null;
-            const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-            const jsonStr = decodeURIComponent(
-                atob(b64)
-                    .split('')
-                    .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                    .join('')
-            );
-            const payload = JSON.parse(jsonStr);
-            if (payload && payload.email && String(payload.email).includes('@')) {
+            const tok = localStorage.getItem('xoala_sovereign_jwt_token');
+            if (!tok || tok.split('.').length !== 3) return null;
+            const b64 = tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(atob(b64 + '==='.slice((b64.length + 3) % 4)));
+            if (payload && payload.email && (!payload.exp || Date.now() < payload.exp)) {
+                if (payload.seatId) localStorage.setItem('xoala_operator_seat_id', payload.seatId);
+                if (payload.role) localStorage.setItem('xoala_operator_role', payload.role);
                 return String(payload.email).trim().toLowerCase();
             }
         } catch (e) {}
         return null;
     },
+    getOperatorSeatId() {
+        return localStorage.getItem('xoala_operator_seat_id') || window.__XOALA_SEAT_ID__ || 'XOALA-SEAT-ACTIVE';
+    },
+    getOperatorRole() {
+        return localStorage.getItem('xoala_operator_role') || window.__XOALA_OPERATOR_ROLE__ || 'CRM_Operator';
+    },
     async detectCloudflareZeroTrustIdentity() {
-        // 1. Check CF_Authorization JWT cookie first (0ms synchronous)
-        const cookieEmail = this.extractEmailFromCfCookie();
-        if (cookieEmail) {
-            window.__CF_ACCESS_USER_EMAIL__ = cookieEmail;
-            window.__CF_IDENTITY_SOURCE__ = 'Cloudflare Access JWT Cookie';
-            localStorage.setItem('xoala_cf_sso_email', cookieEmail);
-            localStorage.setItem('xoala_operator_email', cookieEmail);
-            return cookieEmail;
+        // 1. Check Sovereign CRM License JWT first (0ms synchronous)
+        const sovEmail = this.extractEmailFromSovereignToken();
+        if (sovEmail) {
+            window.__CF_ACCESS_USER_EMAIL__ = sovEmail;
+            window.__CF_IDENTITY_SOURCE__ = `Xoala Sovereign CRM License • ${this.getOperatorSeatId()}`;
+            localStorage.setItem('xoala_cf_sso_email', sovEmail);
+            localStorage.setItem('xoala_operator_email', sovEmail);
+            this.pullProfileFromServer(sovEmail).catch(() => {});
+            return sovEmail;
         }
-        // 2. Query Cloudflare Zero Trust native /cdn-cgi/access/get-identity endpoint
+        // 2. Query Tier 2 Worker /whoami (Pure Sovereign OTP Session Cookie)
         try {
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 3000);
-            const res = await fetch('/cdn-cgi/access/get-identity', {
+            const res = await fetch(`${ARTEMIS_API_URL}/whoami`, {
                 method: 'GET',
                 credentials: 'include',
                 signal: ctrl.signal
@@ -899,22 +901,77 @@ const XoalaOperatorVault = {
             clearTimeout(timer);
             if (res.ok) {
                 const data = await res.json();
-                const cfEmail = (data && (data.email || data.user_email || data.upn) || '').trim().toLowerCase();
-                if (cfEmail && cfEmail.includes('@')) {
-                    window.__CF_ACCESS_USER_EMAIL__ = cfEmail;
-                    window.__CF_IDENTITY_SOURCE__ = 'Cloudflare Zero Trust /get-identity';
-                    localStorage.setItem('xoala_cf_sso_email', cfEmail);
-                    localStorage.setItem('xoala_operator_email', cfEmail);
-                    return cfEmail;
+                const sovServerEmail = (data && data.authenticated && data.email || '').trim().toLowerCase();
+                if (sovServerEmail && sovServerEmail.includes('@')) {
+                    if (data.seatId) localStorage.setItem('xoala_operator_seat_id', data.seatId);
+                    if (data.role) localStorage.setItem('xoala_operator_role', data.role);
+                    window.__CF_ACCESS_USER_EMAIL__ = sovServerEmail;
+                    window.__CF_IDENTITY_SOURCE__ = `Xoala Sovereign CRM License • ${this.getOperatorSeatId()}`;
+                    localStorage.setItem('xoala_cf_sso_email', sovServerEmail);
+                    localStorage.setItem('xoala_operator_email', sovServerEmail);
+                    this.pullProfileFromServer(sovServerEmail).catch(() => {});
+                    return sovServerEmail;
                 }
             }
         } catch (e) {}
         return this.getOperatorEmail();
     },
+    async pullProfileFromServer(emailOverride = '') {
+        const email = (emailOverride || this.getOperatorEmail() || '').trim().toLowerCase();
+        if (!email || email === 'operator@xoala.com') return null;
+        try {
+            const res = await fetch(ARTEMIS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_operator_profile', user_email: email })
+            });
+            const json = await res.json();
+            if (res.ok && json && json.ok && json.profile) {
+                const p = json.profile;
+                if (p.encryptedGeminiEnvelope && !localStorage.getItem(`xoala_vault_env_${email}`)) {
+                    localStorage.setItem(`xoala_vault_env_${email}`, p.encryptedGeminiEnvelope);
+                    this._sessionDecryptedKey = '';
+                }
+                if (p.keySha256 && !localStorage.getItem(`xoala_vault_sha256_${email}`)) {
+                    localStorage.setItem(`xoala_vault_sha256_${email}`, p.keySha256);
+                }
+                if (p.defaultModel) {
+                    localStorage.setItem(`xoala_gemini_default_model_${email}`, p.defaultModel);
+                }
+                if (p.displayName) {
+                    localStorage.setItem(`xoala_operator_name_${email}`, p.displayName);
+                }
+                return p;
+            }
+        } catch (_) {}
+        return null;
+    },
+    async pushProfileToServer() {
+        const email = this.getOperatorEmail();
+        if (!email || email === 'operator@xoala.com') return;
+        try {
+            await fetch(ARTEMIS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'save_operator_profile',
+                    user_email: email,
+                    profile: {
+                        displayName: this.getOperatorDisplayName(),
+                        defaultModel: this.getDefaultModel(),
+                        encryptedGeminiEnvelope: localStorage.getItem(`xoala_vault_env_${email}`) || '',
+                        keySha256: localStorage.getItem(`xoala_vault_sha256_${email}`) || '',
+                        voiceEnabled: localStorage.getItem(`artemis_voice_enabled_${email}`) === 'true'
+                    }
+                })
+            });
+        } catch (_) {}
+    },
     _sessionDecryptedKey: '',
+    _sessionDecryptedEmail: '',
     getOperatorEmail() {
-        const cookieEmail = this.extractEmailFromCfCookie();
-        if (cookieEmail && cookieEmail.includes('@')) return cookieEmail;
+        const sovEmail = this.extractEmailFromSovereignToken();
+        if (sovEmail && sovEmail.includes('@')) return sovEmail;
         const candidate = (
             window.__CF_ACCESS_USER_EMAIL__ ||
             localStorage.getItem('xoala_cf_sso_email') ||
@@ -1019,25 +1076,22 @@ const XoalaOperatorVault = {
         return localStorage.getItem(`xoala_vault_sha256_${email}`) || '';
     },
     getApiKey() {
-        if (this._sessionDecryptedKey && this._sessionDecryptedKey.length > 10) {
+        const email = this.getOperatorEmail();
+        if (this._sessionDecryptedKey && this._sessionDecryptedKey.length > 10 && this._sessionDecryptedEmail === email) {
             return this._sessionDecryptedKey;
         }
-        const email = this.getOperatorEmail();
-        // Check salted envelope first
+        // Check strictly per-operator salted envelope (`xoala_vault_env_${email}`)
         const env = localStorage.getItem(`xoala_vault_env_${email}`);
         if (env) {
             const dec = this._xorDeobfuscate(env, email);
             if (dec && dec.length > 10) {
                 this._sessionDecryptedKey = dec;
+                this._sessionDecryptedEmail = email;
                 return dec;
             }
         }
-        // Migrate legacy plain key if present
-        const legacy = (
-            localStorage.getItem(`xoala_gemini_api_key_${email}`) ||
-            localStorage.getItem('xoala_gemini_api_key') ||
-            ''
-        ).trim();
+        // Migrate per-email legacy key ONLY (never read shared un-scoped key across seats!)
+        const legacy = (localStorage.getItem(`xoala_gemini_api_key_${email}`) || '').trim();
         if (legacy && legacy.length > 10) {
             this.setApiKey(legacy);
             return legacy;
@@ -1052,12 +1106,13 @@ const XoalaOperatorVault = {
         const clean = String(key || '').trim();
         if (clean) {
             this._sessionDecryptedKey = clean;
+            this._sessionDecryptedEmail = email;
             const env = this._xorObfuscate(clean, email);
             localStorage.setItem(`xoala_vault_env_${email}`, env);
             // Remove raw plain-text keys from localStorage so inspect-storage never exposes raw AIzaSy... string
             localStorage.removeItem(`xoala_gemini_api_key_${email}`);
             localStorage.removeItem('xoala_gemini_api_key');
-            // Compute SHA-256 fingerprint + AES-GCM-256 cipher asynchronously
+            // Compute SHA-256 fingerprint + AES-GCM-256 cipher asynchronously + sync encrypted profile to Server!
             this.computeSha256Hex(clean).then(shaHex => {
                 if (shaHex) {
                     localStorage.setItem(`xoala_vault_sha256_${email}`, shaHex);
@@ -1066,6 +1121,7 @@ const XoalaOperatorVault = {
                         badge.textContent = `SHA-256: ${shaHex.slice(0, 12)}…${shaHex.slice(-6)} (AES-256 Locked)`;
                     }
                 }
+                this.pushProfileToServer();
             });
             this.encryptApiKeyAes256(clean, email).then(aesPayload => {
                 if (aesPayload) {
@@ -1074,6 +1130,7 @@ const XoalaOperatorVault = {
             });
         } else {
             this._sessionDecryptedKey = '';
+            this._sessionDecryptedEmail = '';
             localStorage.removeItem(`xoala_vault_env_${email}`);
             localStorage.removeItem(`xoala_vault_aes256_${email}`);
             localStorage.removeItem(`xoala_vault_sha256_${email}`);
@@ -1081,20 +1138,24 @@ const XoalaOperatorVault = {
             localStorage.removeItem('xoala_gemini_api_key');
             const badge = document.getElementById('vault-sha256-badge');
             if (badge) badge.textContent = 'SHA-256: Awaiting Key';
+            this.pushProfileToServer();
         }
         return clean;
     },
     getDefaultModel() {
-        const stored = localStorage.getItem('xoala_gemini_default_model');
+        const email = this.getOperatorEmail();
+        const stored = localStorage.getItem(`xoala_gemini_default_model_${email}`) || localStorage.getItem('xoala_gemini_default_model');
         const validOfficialModels = ['gemini-3.6-flash', 'gemini-3.6-thinking', 'gemini-3.1-pro-preview'];
         if (stored && validOfficialModels.includes(stored)) return stored;
-        localStorage.setItem('xoala_gemini_default_model', 'gemini-3.6-flash');
+        localStorage.setItem(`xoala_gemini_default_model_${email}`, 'gemini-3.6-flash');
         return 'gemini-3.6-flash';
     },
     setDefaultModel(m) {
+        const email = this.getOperatorEmail();
         const validOfficialModels = ['gemini-3.6-flash', 'gemini-3.6-thinking', 'gemini-3.1-pro-preview'];
         const chosen = validOfficialModels.includes(m) ? m : 'gemini-3.6-flash';
-        localStorage.setItem('xoala_gemini_default_model', chosen);
+        localStorage.setItem(`xoala_gemini_default_model_${email}`, chosen);
+        this.pushProfileToServer();
     },
     _discoveredModelsCache: {},
     async discoverAvailableGeminiModels(apiKey) {
@@ -1393,10 +1454,8 @@ const ArtemisQuantEngine = {
     getLearnedMemory() {
         try {
             const userRaw = localStorage.getItem(this.getStorageKey());
-            const globalRaw = localStorage.getItem('xoala_artemis_learned_memory');
             return {
                 ...this.defaultMemory,
-                ...(globalRaw ? JSON.parse(globalRaw) : {}),
                 ...(userRaw ? JSON.parse(userRaw) : {})
             };
         } catch (e) {}
@@ -1412,7 +1471,6 @@ const ArtemisQuantEngine = {
         mem[cleanAlias] = { target: cleanTarget, type, source, operator: operatorEmail, ts: Date.now() };
         try {
             localStorage.setItem(this.getStorageKey(), JSON.stringify(mem));
-            localStorage.setItem('xoala_artemis_learned_memory', JSON.stringify(mem));
         } catch (e) {}
         this.pushMemoryToGoogleDrive(cleanAlias, mem[cleanAlias]);
         return mem;
@@ -1425,7 +1483,6 @@ const ArtemisQuantEngine = {
         delete this.defaultMemory[cleanAlias];
         try {
             localStorage.setItem(this.getStorageKey(), JSON.stringify(mem));
-            localStorage.setItem('xoala_artemis_learned_memory', JSON.stringify(mem));
         } catch (e) {}
         this.pushMemoryToGoogleDrive(cleanAlias, null, true);
         return mem;
@@ -1445,9 +1502,17 @@ const ArtemisQuantEngine = {
             });
             const json = await res.json();
             if (res.ok && json && json.memory && typeof json.memory === 'object') {
-                const merged = { ...this.getLearnedMemory(), ...json.memory };
+                const serverUserRules = Array.isArray(json.memory.user_rules) ? json.memory.user_rules : [];
+                const serverSharedRules = Array.isArray(json.memory.shared_rules) ? json.memory.shared_rules : [];
+                const ruleMap = {};
+                serverSharedRules.forEach(r => {
+                    if (r && r.trigger && r.target) ruleMap[String(r.trigger).toLowerCase()] = { target: r.target, type: r.type || 'Shared Org Rule', source: 'Organization Shared', operator: r.author || '' };
+                });
+                serverUserRules.forEach(r => {
+                    if (r && r.trigger && r.target) ruleMap[String(r.trigger).toLowerCase()] = { target: r.target, type: r.type || 'Personal CRM Rule', source: 'Personal License Profile', operator: email };
+                });
+                const merged = { ...this.getLearnedMemory(), ...ruleMap };
                 localStorage.setItem(this.getStorageKey(), JSON.stringify(merged));
-                localStorage.setItem('xoala_artemis_learned_memory', JSON.stringify(merged));
                 return merged;
             }
         } catch (e) {}
@@ -1457,6 +1522,10 @@ const ArtemisQuantEngine = {
     async pushMemoryToGoogleDrive(alias, entryObj, isDelete = false) {
         try {
             const email = XoalaOperatorVault.getOperatorEmail();
+            const currentMem = this.getLearnedMemory();
+            const rulesArray = Object.entries(currentMem)
+                .filter(([k]) => !this.defaultMemory[k])
+                .map(([k, v]) => ({ trigger: k, target: v.target, type: v.type || 'Personal CRM Rule', ts: v.ts || Date.now() }));
             await fetch(ARTEMIS_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1466,7 +1535,7 @@ const ArtemisQuantEngine = {
                     alias,
                     entry: entryObj,
                     is_delete: isDelete,
-                    full_memory: this.getLearnedMemory(),
+                    rules: rulesArray,
                     secret: 'system_dashboard_init'
                 })
             });
@@ -3144,9 +3213,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.dynamic-operator-email').forEach(el => { el.textContent = email; });
         document.querySelectorAll('.dynamic-operator-name').forEach(el => { el.textContent = displayName; });
         if (vaultCfSourceLabel) {
-            vaultCfSourceLabel.textContent = window.__CF_IDENTITY_SOURCE__
-                ? `Verified via ${window.__CF_IDENTITY_SOURCE__} (${displayName})`
-                : `Cloudflare Zero Trust SSO Identity (${displayName})`;
+            const seatTag = XoalaOperatorVault.getOperatorSeatId();
+            const roleTag = XoalaOperatorVault.getOperatorRole();
+            vaultCfSourceLabel.textContent = `Licensed CRM Profile • ${seatTag} (${roleTag})`;
         }
         if (operatorKeyDot) {
             operatorKeyDot.className = key

@@ -1,6 +1,270 @@
 // === XOALA COMMAND CENTER: DASHBOARD, CUSTOM VIRTUAL DATA LAKE & SOVEREIGN 360° DOSSIER ===
 
-const DASHBOARD_API_URL = 'https://xoala-command-center-middleware.analytics-crm.workers.dev'; 
+const DASHBOARD_API_URL = (
+    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && 'http://127.0.0.1:8787') ||
+    (window.XOALA_RUNTIME_CONFIG && window.XOALA_RUNTIME_CONFIG.WORKER_GATEWAY_URL) ||
+    (typeof document !== 'undefined' && document.querySelector('meta[name="xoala-gateway-url"]')?.getAttribute('content')) ||
+    'https://xoala-command-center-middleware.analytics-crm.workers.dev'
+);
+
+// === SOVEREIGN 100-USER UNLIMITED-SEAT OTP GATE & AUTOMATIC JWT HEADER INJECTOR ===
+(function initSovereignUnlimitedSeatGate() {
+    const origFetch = window.fetch.bind(window);
+    window.fetch = function(input, init) {
+        try {
+            const urlStr = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+            if (urlStr && (urlStr.includes('xoala-command-center-middleware') || urlStr.includes('127.0.0.1:8787') || urlStr.includes('localhost:8787'))) {
+                const sovToken = localStorage.getItem('xoala_sovereign_jwt_token') || '';
+                if (sovToken) {
+                    init = init ? Object.assign({}, init) : {};
+                    const hdrs = new Headers(init.headers || {});
+                    if (!hdrs.has('X-Xoala-Sovereign-Token')) {
+                        hdrs.set('X-Xoala-Sovereign-Token', sovToken);
+                    }
+                    init.headers = hdrs;
+                }
+            }
+        } catch (_) {}
+        return origFetch(input, init);
+    };
+
+    window.XoalaSovereignAuthGate = {
+        isLocalHost() {
+            const h = window.location.hostname;
+            return h === 'localhost' || h === '127.0.0.1';
+        },
+        isLocalBypass() {
+            const params = new URLSearchParams(window.location.search);
+            // Show OTP Gate automatically if user clicked Disconnect (`logged_out=1`) OR passed `?test_otp=1`!
+            if (params.get('test_otp') === '1' || localStorage.getItem('xoala_explicitly_logged_out') === '1') {
+                return false;
+            }
+            if (this.isLocalHost()) {
+                return true;
+            }
+            return false;
+        },
+        async logout() {
+            const authBaseUrl = this.isLocalHost() ? 'http://127.0.0.1:8787' : DASHBOARD_API_URL;
+            try {
+                await fetch(`${authBaseUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
+            } catch (_) {}
+            localStorage.removeItem('xoala_sovereign_jwt_token');
+            localStorage.removeItem('xoala_cf_sso_email');
+            localStorage.removeItem('xoala_operator_email');
+            localStorage.removeItem('xoala_operator_seat_id');
+            localStorage.removeItem('xoala_operator_role');
+            localStorage.setItem('xoala_explicitly_logged_out', '1');
+            window.__CF_ACCESS_USER_EMAIL__ = '';
+            window.__XOALA_SEAT_ID__ = '';
+            window.__XOALA_OPERATOR_ROLE__ = '';
+            if (window.XoalaOperatorVault) window.XoalaOperatorVault._sessionDecryptedKey = '';
+            this.renderOtpOverlay();
+        },
+        hasValidLocalJwt() {
+            try {
+                const tok = localStorage.getItem('xoala_sovereign_jwt_token');
+                if (!tok || tok.split('.').length !== 3) return null;
+                const b64 = tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(atob(b64 + '==='.slice((b64.length + 3) % 4)));
+                if (payload && payload.email && payload.exp && Date.now() < payload.exp) {
+                    if (payload.seatId) {
+                        window.__XOALA_SEAT_ID__ = payload.seatId;
+                        localStorage.setItem('xoala_operator_seat_id', payload.seatId);
+                    }
+                    if (payload.role) {
+                        window.__XOALA_OPERATOR_ROLE__ = payload.role;
+                        localStorage.setItem('xoala_operator_role', payload.role);
+                    }
+                    return String(payload.email).trim().toLowerCase();
+                }
+            } catch (_) {}
+            return null;
+        },
+        async checkAndMountIfNeeded() {
+            const params = new URLSearchParams(window.location.search);
+            const forceTestOtp = params.get('test_otp') === '1';
+            if (this.isLocalBypass()) return;
+            if (!forceTestOtp) {
+                const existingSovEmail = this.hasValidLocalJwt();
+                if (existingSovEmail) {
+                    window.__CF_ACCESS_USER_EMAIL__ = existingSovEmail;
+                    window.__CF_IDENTITY_SOURCE__ = 'Xoala Sovereign CRM License';
+                    localStorage.setItem('xoala_cf_sso_email', existingSovEmail);
+                    localStorage.setItem('xoala_operator_email', existingSovEmail);
+                    return;
+                }
+            }
+
+            // Verify via Worker /whoami (Pure Sovereign HttpOnly Cookie / JWT — Zero Cloudflare Zero Trust Dependency)
+            try {
+                const res = await fetch(`${DASHBOARD_API_URL}/whoami`, { method: 'GET', credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.authenticated && data.email && data.source === 'sovereign_edge_otp_jwt') {
+                        window.__CF_ACCESS_USER_EMAIL__ = data.email;
+                        window.__CF_IDENTITY_SOURCE__ = 'Xoala Sovereign CRM License';
+                        if (data.seatId) {
+                            window.__XOALA_SEAT_ID__ = data.seatId;
+                            localStorage.setItem('xoala_operator_seat_id', data.seatId);
+                        }
+                        if (data.role) {
+                            window.__XOALA_OPERATOR_ROLE__ = data.role;
+                            localStorage.setItem('xoala_operator_role', data.role);
+                        }
+                        localStorage.setItem('xoala_cf_sso_email', data.email);
+                        localStorage.setItem('xoala_operator_email', data.email);
+                        return;
+                    }
+                }
+            } catch (_) {}
+
+            this.renderOtpOverlay();
+        },
+        renderOtpOverlay() {
+            if (document.getElementById('xoala-sovereign-otp-gate')) return;
+            const overlay = document.createElement('div');
+            overlay.id = 'xoala-sovereign-otp-gate';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:radial-gradient(circle at 50% 25%,#1f1708 0%,#0b0905 55%,#050505 100%);display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+            overlay.innerHTML = `
+                <div style="width:100%;max-width:430px;background:linear-gradient(180deg,#120e06 0%,#080704 100%);border:1px solid rgba(221,170,51,0.42);border-radius:22px;padding:34px 28px;box-shadow:0 30px 90px rgba(0,0,0,0.95),0 0 45px rgba(221,170,51,0.14);text-align:center;color:#f5f5f5;">
+                    <img src="xoala-gold-shine-logo.svg" alt="Xoala Core" style="height:54px;width:auto;margin:0 auto 16px;display:block;" onerror="this.style.display='none'" />
+                    <div style="font-size:11px;letter-spacing:2.8px;text-transform:uppercase;color:#DDAA33;font-weight:700;margin-bottom:6px;">XOALA CORE • ANALYTICS &amp; CRM</div>
+                    <h2 style="font-size:21px;font-weight:600;color:#FFF3C4;margin:0 0 8px;">Institutional Operator Sign-In</h2>
+                    <p id="sov-otp-sub" style="font-size:13px;color:#a3a3a3;margin:0 0 22px;line-height:1.5;">Enter your authorized <strong style="color:#F0D788;">@xoala.com</strong> email to receive a 6-digit security passcode.</p>
+
+                    <div id="sov-step-email">
+                        <input id="sov-email-input" type="email" autocomplete="email" placeholder="name@xoala.com"
+                            style="width:100%;box-sizing:border-box;padding:13px 15px;border-radius:12px;background:#050505;border:1px solid rgba(221,170,51,0.35);color:#ffffff;font-size:14px;outline:none;margin-bottom:14px;" />
+                        <button id="sov-send-btn" type="button"
+                            style="width:100%;min-height:46px;border:none;border-radius:12px;background:linear-gradient(145deg,#F0D788,#DDAA33);color:#050505;font-weight:800;font-size:13px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">
+                            Send 6-Digit Security Code →
+                        </button>
+                    </div>
+
+                    <div id="sov-step-code" style="display:none;">
+                        <input id="sov-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+                            style="width:100%;box-sizing:border-box;padding:14px;border-radius:12px;background:#050505;border:1px solid #DDAA33;color:#F0D788;font-family:monospace;font-size:26px;font-weight:800;letter-spacing:10px;text-align:center;outline:none;margin-bottom:14px;" />
+                        <button id="sov-verify-btn" type="button"
+                            style="width:100%;min-height:46px;border:none;border-radius:12px;background:linear-gradient(145deg,#F0D788,#DDAA33);color:#050505;font-weight:800;font-size:13px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">
+                            Verify &amp; Unlock Command Center
+                        </button>
+                        <button id="sov-back-btn" type="button"
+                            style="background:transparent;border:none;color:#a3a3a3;font-size:12px;cursor:pointer;text-decoration:underline;">
+                            Use a different email address
+                        </button>
+                    </div>
+
+                    <div id="sov-otp-msg" style="margin-top:14px;font-size:12px;min-height:18px;color:#F0D788;"></div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const authBaseUrl = this.isLocalHost() ? 'http://127.0.0.1:8787' : DASHBOARD_API_URL;
+            let activeChallengeToken = '';
+            let activeEmail = '';
+            const emailIn = document.getElementById('sov-email-input');
+            const codeIn = document.getElementById('sov-code-input');
+            const sendBtn = document.getElementById('sov-send-btn');
+            const verifyBtn = document.getElementById('sov-verify-btn');
+            const backBtn = document.getElementById('sov-back-btn');
+            const stepEmail = document.getElementById('sov-step-email');
+            const stepCode = document.getElementById('sov-step-code');
+            const msgEl = document.getElementById('sov-otp-msg');
+
+            sendBtn.onclick = async () => {
+                const email = (emailIn.value || '').trim().toLowerCase();
+                if (!email || !email.includes('@')) {
+                    msgEl.style.color = '#f87171';
+                    msgEl.textContent = 'Please enter a valid work email address.';
+                    return;
+                }
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'Sending Passcode...';
+                msgEl.style.color = '#F0D788';
+                msgEl.textContent = '';
+                try {
+                    const r = await fetch(`${authBaseUrl}/auth/request-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ email })
+                    });
+                    const d = await r.json();
+                    if (!r.ok || !d.ok) throw new Error(d.error || 'Could not send verification code.');
+                    activeEmail = email;
+                    activeChallengeToken = d.challengeToken;
+                    stepEmail.style.display = 'none';
+                    stepCode.style.display = 'block';
+                    msgEl.style.color = '#34d399';
+                    msgEl.textContent = d.devOtpPreview
+                        ? `Local Sandbox OTP Preview: ${d.devOtpPreview}`
+                        : `6-digit code sent to ${email}. Valid for 10 minutes.`;
+                    codeIn.focus();
+                } catch (e) {
+                    msgEl.style.color = '#f87171';
+                    msgEl.textContent = e.message;
+                } finally {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send 6-Digit Security Code →';
+                }
+            };
+
+            verifyBtn.onclick = async () => {
+                const code = (codeIn.value || '').trim();
+                if (code.length !== 6) {
+                    msgEl.style.color = '#f87171';
+                    msgEl.textContent = 'Please enter all 6 digits.';
+                    return;
+                }
+                verifyBtn.disabled = true;
+                verifyBtn.textContent = 'Verifying...';
+                try {
+                    const r = await fetch(`${authBaseUrl}/auth/verify-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ email: activeEmail, code, challengeToken: activeChallengeToken })
+                    });
+                    const d = await r.json();
+                    if (!r.ok || !d.ok) throw new Error(d.error || 'Invalid passcode.');
+                    if (d.token) localStorage.setItem('xoala_sovereign_jwt_token', d.token);
+                    localStorage.removeItem('xoala_explicitly_logged_out');
+                    localStorage.setItem('xoala_cf_sso_email', d.email);
+                    localStorage.setItem('xoala_operator_email', d.email);
+                    if (d.seatId) localStorage.setItem('xoala_operator_seat_id', d.seatId);
+                    if (d.role) localStorage.setItem('xoala_operator_role', d.role);
+                    window.__CF_ACCESS_USER_EMAIL__ = d.email;
+                    window.__XOALA_SEAT_ID__ = d.seatId || '';
+                    window.__XOALA_OPERATOR_ROLE__ = d.role || 'CRM_Operator';
+                    window.__CF_IDENTITY_SOURCE__ = 'Xoala Sovereign CRM License';
+                    overlay.remove();
+                    const cleanUrl = new URL(window.location.href);
+                    cleanUrl.searchParams.delete('test_otp');
+                    window.location.href = cleanUrl.toString();
+                } catch (e) {
+                    msgEl.style.color = '#f87171';
+                    msgEl.textContent = e.message;
+                } finally {
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify & Unlock Command Center';
+                }
+            };
+
+            backBtn.onclick = () => {
+                stepCode.style.display = 'none';
+                stepEmail.style.display = 'block';
+                msgEl.textContent = '';
+            };
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => window.XoalaSovereignAuthGate.checkAndMountIfNeeded());
+    } else {
+        window.XoalaSovereignAuthGate.checkAndMountIfNeeded();
+    }
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -2925,7 +3189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let hydrationDataReady = false;
         let hydrationGateDismissed = false;
         const hydrateStartMs = performance.now();
-        const minHydrationGateMs = 5000; // Minimum 5.0s + holds until profile data is 100% hydrated
+        const minHydrationGateMs = 1500; // Ideal 1.5s cinematic gold reveal + holds if profile data is still hydrating
 
         const dismissHydrationGateNow = () => {
             if (hydrationGateDismissed) return;
@@ -8406,7 +8670,7 @@ Provide a concise 4-bullet Executive Multi-Tool Intelligence Summary showing the
         ];
 
         const startTime = performance.now();
-        const minDurationMs = 5000; // Minimum 5.0 seconds guaranteed motion-graphic sequence
+        const minDurationMs = 2400; // Ideal 2.4 seconds cinematic gold sign-in boot sequence
 
         const finishBoot = () => {
             if (dismissed) return;
